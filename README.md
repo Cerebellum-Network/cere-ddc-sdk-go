@@ -4,5 +4,5 @@ Cere DDC SDK for Go
 #### Compile .proto files
 
 ```
-protoc --proto_path=./asset/pb --go_out=./asset/ ./**/*.proto
+protoc --proto_path=./internal/pb --go_out=./internal/ ./**/*.proto
 ```
