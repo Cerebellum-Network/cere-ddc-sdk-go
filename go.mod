@@ -1,4 +1,4 @@
-module github.com/cerebellum-network/cere-ddc-sdk-kotlin
+module github.com/cerebellum-network/cere-ddc-sdk-go
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0
@@ -7,6 +7,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.16
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
+	google.golang.org/protobuf v1.27.1
 )
 
 require (
