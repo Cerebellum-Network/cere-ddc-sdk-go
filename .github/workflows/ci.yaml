@@ -26,10 +26,6 @@ jobs:
         with:
           path: pb
           key: ${{ runner.os }}-go-${{ hashFiles('**/pb') }}
-      - name: 'Compile .proto files'
-        if: steps.cache-compiled-proto.outputs.cache-hit != 'true'
-        run: |
-          docker run -v $GITHUB_WORKSPACE:/defs namely/protoc-all:1.34_4 -l go -d pb -o ./
       - name: 'Cache go modules'
         uses: actions/cache@v2
         with:
