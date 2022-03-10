@@ -1,4 +1,4 @@
-package verification
+package crypto
 
 import (
 	"crypto/ed25519"
@@ -7,7 +7,16 @@ import (
 	"strings"
 )
 
-func VerifyContentEd25519(appPubKey string, content string, signature string) bool {
+type ed25519Scheme struct {
+}
+
+const Ed25519 SchemeName = "ed25519"
+
+func (e *ed25519Scheme) Name() SchemeName {
+	return Ed25519
+}
+
+func (e *ed25519Scheme) Verify(appPubKey string, content string, signature string) bool {
 	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
 
 	if err != nil {

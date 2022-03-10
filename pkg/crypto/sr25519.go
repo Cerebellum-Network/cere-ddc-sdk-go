@@ -1,4 +1,4 @@
-package verification
+package crypto
 
 import (
 	"encoding/hex"
@@ -7,28 +7,37 @@ import (
 	"strings"
 )
 
-var SigningContext = []byte("substrate")
+type sr25519Scheme struct {
+}
 
-func VerifyContentSr25519(appPubKey string, content string, signature string) bool {
+const Sr25519 SchemeName = "sr25519"
+
+var signingContext = []byte("substrate")
+
+func (s sr25519Scheme) Name() SchemeName {
+	return Sr25519
+}
+
+func (s sr25519Scheme) Verify(appPubKey string, content string, signature string) bool {
 	publicKey, err := getSchnorrkelPublicKey(appPubKey)
 	if err != nil {
 		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't create Schnorrkel public key")
 		return false
 	}
 
-	s, err := getSchnorrkelSignature(signature)
+	sign, err := getSchnorrkelSignature(signature)
 	if err != nil {
 		log.WithError(err).WithField("signature", signature).Info("Can't create Schnorrkel signature")
 		return false
 	}
 
-	transcript := schnorrkel.NewSigningContext(SigningContext, []byte(content))
-	verified, _ := publicKey.Verify(s, transcript)
+	transcript := schnorrkel.NewSigningContext(signingContext, []byte(content))
+	verified, _ := publicKey.Verify(sign, transcript)
 
 	if !verified {
 		wrappedContent := "<Bytes>" + content + "</Bytes>"
-		transcript = schnorrkel.NewSigningContext(SigningContext, []byte(wrappedContent))
-		verified, _ = publicKey.Verify(s, transcript)
+		transcript = schnorrkel.NewSigningContext(signingContext, []byte(wrappedContent))
+		verified, _ = publicKey.Verify(sign, transcript)
 	}
 
 	if !verified {
@@ -60,6 +69,6 @@ func getSchnorrkelSignature(signature string) (*schnorrkel.Signature, error) {
 
 	in := [64]byte{}
 	copy(in[:], hexSignature)
-	s := &schnorrkel.Signature{}
-	return s, s.Decode(in)
+	sign := &schnorrkel.Signature{}
+	return sign, sign.Decode(in)
 }

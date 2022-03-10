@@ -1,4 +1,4 @@
-package verification
+package crypto
 
 import (
 	"encoding/hex"
@@ -13,12 +13,14 @@ const (
 	privKeySr25519 = "0x6e40d467e86ec447ae0088c81072feff8c860eebcff7dc44017b1b15746cce0d"
 )
 
+var testSr25519Scheme = &sr25519Scheme{}
+
 func TestContentVerificationWhenSignatureIsValidSr25519(t *testing.T) {
 	//given
 	signature := getContentSignatureSr25519(content)
 
 	//when
-	result := VerifyContentSr25519(pubKeySr25519, content, signature)
+	result := testSr25519Scheme.Verify(pubKeySr25519, content, signature)
 
 	//then
 	assert.True(t, result)
@@ -29,7 +31,7 @@ func TestContentVerificationWhenSignatureIsInvalidSr25519(t *testing.T) {
 	signature := getContentSignatureSr25519(content + "invalid")
 
 	//when
-	result := VerifyContentSr25519(pubKeySr25519, content, signature)
+	result := testSr25519Scheme.Verify(pubKeySr25519, content, signature)
 
 	//then
 	assert.False(t, result)
@@ -42,7 +44,7 @@ func getContentSignatureSr25519(content string) string {
 	secretKey := &schnorrkel.SecretKey{}
 	_ = secretKey.Decode(in)
 
-	transcript := schnorrkel.NewSigningContext(SigningContext, []byte(content))
+	transcript := schnorrkel.NewSigningContext(signingContext, []byte(content))
 	signature, _ := secretKey.Sign(transcript)
 	s := make([]byte, 0)
 

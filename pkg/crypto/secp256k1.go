@@ -1,4 +1,4 @@
-package verification
+package crypto
 
 import (
 	"encoding/hex"
@@ -7,7 +7,16 @@ import (
 	"strings"
 )
 
-func VerifyContentSecp256k1(publicKey string, content string, signature string) bool {
+type secp256k1Scheme struct {
+}
+
+const Secp256k1 SchemeName = "secp256k1"
+
+func (s *secp256k1Scheme) Name() SchemeName {
+	return Secp256k1
+}
+
+func (s *secp256k1Scheme) Verify(publicKey string, content string, signature string) bool {
 	contentBytes := []byte(content)
 	hash := crypto.Keccak256Hash(contentBytes).Bytes()
 
