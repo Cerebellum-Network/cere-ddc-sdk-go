@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package pb;
+
+import "piece.proto";
+import "signature.proto";
+
+option go_package = "/pb";
+
+message SignedPiece {
+  Piece     piece     = 1;
+  Signature signature = 2;
+}

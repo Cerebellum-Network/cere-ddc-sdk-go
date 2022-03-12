@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package pb;
+
+import "signed_piece.proto";
+
+option go_package = "/pb";
+
+message SearchResult {
+  repeated SignedPiece signedPieces = 1;
+}
