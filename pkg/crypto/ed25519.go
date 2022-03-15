@@ -8,15 +8,32 @@ import (
 )
 
 type ed25519Scheme struct {
+	privateKey ed25519.PrivateKey
+	publicKey  string
 }
 
 const Ed25519 SchemeName = "ed25519"
 
-func (e *ed25519Scheme) Name() SchemeName {
-	return Ed25519
+func createEd25519Scheme(privateKey []byte) Scheme {
+	privKey := ed25519.NewKeyFromSeed(privateKey)
+	publicKey := hex.EncodeToString(privKey.Public().(ed25519.PublicKey))
+
+	return &ed25519Scheme{privateKey: privKey, publicKey: publicKey}
 }
 
-func (e *ed25519Scheme) Verify(appPubKey string, content string, signature string) bool {
+func (e *ed25519Scheme) PublicKey() string {
+	return e.publicKey
+}
+
+func (e *ed25519Scheme) Name() string {
+	return string(Ed25519)
+}
+
+func (e *ed25519Scheme) Sign(data []byte) (string, error) {
+	return hex.EncodeToString(ed25519.Sign(e.privateKey, data)), nil
+}
+
+func (e *ed25519Scheme) Verify(appPubKey string, data []byte, signature string) bool {
 	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
 
 	if err != nil {
@@ -31,10 +48,10 @@ func (e *ed25519Scheme) Verify(appPubKey string, content string, signature strin
 		return false
 	}
 
-	verified := ed25519.Verify(publicKey, []byte(content), hexSignature)
+	verified := ed25519.Verify(publicKey, data, hexSignature)
 
 	if !verified {
-		wrappedContent := "<Bytes>" + content + "</Bytes>"
+		wrappedContent := "<Bytes>" + string(data) + "</Bytes>"
 		verified = ed25519.Verify(publicKey, []byte(wrappedContent), hexSignature)
 	}
 

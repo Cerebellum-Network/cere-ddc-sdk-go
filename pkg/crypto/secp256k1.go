@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/sirupsen/logrus"
@@ -8,17 +9,31 @@ import (
 )
 
 type secp256k1Scheme struct {
+	privateKey *ecdsa.PrivateKey
+	publicKey  string
 }
 
 const Secp256k1 SchemeName = "secp256k1"
 
-func (s *secp256k1Scheme) Name() SchemeName {
-	return Secp256k1
+func (s *secp256k1Scheme) PublicKey() string {
+	return s.publicKey
 }
 
-func (s *secp256k1Scheme) Verify(publicKey string, content string, signature string) bool {
-	contentBytes := []byte(content)
-	hash := crypto.Keccak256Hash(contentBytes).Bytes()
+func (s *secp256k1Scheme) Name() string {
+	return string(Secp256k1)
+}
+
+func (s *secp256k1Scheme) Sign(data []byte) (string, error) {
+	sign, err := crypto.Sign(data, s.privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(sign), nil
+}
+
+func (s *secp256k1Scheme) Verify(publicKey string, data []byte, signature string) bool {
+	hash := crypto.Keccak256Hash(data).Bytes()
 
 	signatureBytes, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
 	if err != nil {

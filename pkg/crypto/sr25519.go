@@ -14,11 +14,15 @@ const Sr25519 SchemeName = "sr25519"
 
 var signingContext = []byte("substrate")
 
-func (s sr25519Scheme) Name() SchemeName {
-	return Sr25519
+func (s sr25519Scheme) Name() string {
+	return string(Sr25519)
 }
 
-func (s sr25519Scheme) Verify(appPubKey string, content string, signature string) bool {
+func (s sr25519Scheme) Sign(data []byte) (string, error) {
+	panic("implement me")
+}
+
+func (s sr25519Scheme) Verify(appPubKey string, data []byte, signature string) bool {
 	publicKey, err := getSchnorrkelPublicKey(appPubKey)
 	if err != nil {
 		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't create Schnorrkel public key")
@@ -31,11 +35,11 @@ func (s sr25519Scheme) Verify(appPubKey string, content string, signature string
 		return false
 	}
 
-	transcript := schnorrkel.NewSigningContext(signingContext, []byte(content))
+	transcript := schnorrkel.NewSigningContext(signingContext, data)
 	verified, _ := publicKey.Verify(sign, transcript)
 
 	if !verified {
-		wrappedContent := "<Bytes>" + content + "</Bytes>"
+		wrappedContent := "<Bytes>" + string(data) + "</Bytes>"
 		transcript = schnorrkel.NewSigningContext(signingContext, []byte(wrappedContent))
 		verified, _ = publicKey.Verify(sign, transcript)
 	}

@@ -20,7 +20,7 @@ func TestContentVerificationWhenSignatureIsValidSr25519(t *testing.T) {
 	signature := getContentSignatureSr25519(content)
 
 	//when
-	result := testSr25519Scheme.Verify(pubKeySr25519, content, signature)
+	result := testSr25519Scheme.Verify(pubKeySr25519, []byte(content), signature)
 
 	//then
 	assert.True(t, result)
@@ -31,7 +31,7 @@ func TestContentVerificationWhenSignatureIsInvalidSr25519(t *testing.T) {
 	signature := getContentSignatureSr25519(content + "invalid")
 
 	//when
-	result := testSr25519Scheme.Verify(pubKeySr25519, content, signature)
+	result := testSr25519Scheme.Verify(pubKeySr25519, []byte(content), signature)
 
 	//then
 	assert.False(t, result)

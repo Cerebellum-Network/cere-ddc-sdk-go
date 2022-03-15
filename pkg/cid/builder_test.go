@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+//go:embedded asd
+
 func TestGetPieceCid(t *testing.T) {
 	//given
 	testSubject := DefaultBuilder()

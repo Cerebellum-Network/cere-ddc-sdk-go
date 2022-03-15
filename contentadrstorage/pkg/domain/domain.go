@@ -1,27 +1,12 @@
 package domain
 
-type (
-	PieceUri struct {
-		bucketId uint64
-		cid      string
-	}
-
-	Piece struct {
-		data []byte
-		tags []Tag
-	}
-
-	Tag struct {
-		key   string
-		value string
-	}
-
-	Query struct {
-		bucketId uint64
-		tags     []Tag
-	}
-
-	SearchResult struct {
-		pieces []Piece
-	}
+import (
+	"google.golang.org/protobuf/proto"
 )
+
+type PieceUri struct {
+	BucketId uint64
+	Cid      string
+}
+
+var protoMarshalOption = proto.MarshalOptions{Deterministic: true}
