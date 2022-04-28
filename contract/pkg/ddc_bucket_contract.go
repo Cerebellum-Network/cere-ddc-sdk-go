@@ -1,18 +1,15 @@
 package pkg
 
 import (
+	_ "embed"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/abi"
 	"github.com/patractlabs/go-patract/metadata"
 	"github.com/patractlabs/go-patract/rpc"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"io/ioutil"
 	"time"
-)
-
-const (
-	metadataFilename = "pkg/contract/ink/ddc_bucket_contract.json"
 )
 
 type DdcBucketContract interface {
@@ -36,16 +33,12 @@ func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract 
 	if err != nil {
 		log.WithError(err).WithField("apiUrl", apiUrl).Fatal("Can't initialize ddc bucket contract api")
 	}
-	metaBz, err := ioutil.ReadFile(metadataFilename)
-	if err != nil {
-		log.WithError(err).Fatal("Can't read ddc bucket contract metadata")
-	}
 
-	if err := contract.WithMetaData(metaBz); err != nil {
+	if err := contract.WithMetaData(abi.DdcBucket); err != nil {
 		log.WithError(err).Fatal("Can't initialize ddc bucket contract metadata")
 	}
 
-	contractMetadata, _ := metadata.New(metaBz)
+	contractMetadata, _ := metadata.New(abi.DdcBucket)
 
 	log.WithFields(log.Fields{"apiUrl": apiUrl, "accountId": accountId}).Info("Ddc bucket contract configured")
 	return &ddcBucketContract{
