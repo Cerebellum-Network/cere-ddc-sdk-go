@@ -1,46 +1,55 @@
 package crypto
 
 import (
+	"encoding/hex"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
 const (
-	pubKeyEthereum           = "0x048e66b3e549818ea2cb354fb70749f6c8de8fa484f7530fc447d5fe80a1c424e4f5ae648d648c980ae7095d1efad87161d83886ca4b6c498ac22a93da5099014a"
-	compressedPubKeyEthereum = "0x028e66b3e549818ea2cb354fb70749f6c8de8fa484f7530fc447d5fe80a1c424e4"
+	privKeySecp256k1   = "fad9c8855b740a0b7ed4c221dbad0f33a83a49cad6b3fe8d5817ac83d38b6a19"
+	signatureSecp256k1 = "0xdc5b199958dc51bd2924754f1c2d4908ec7a7bd2b8ff7b55cf6c88e5315adbba0c033d77414650f17ffd702863f33709972d647aef2c3b3dd0378a5d39c4685801"
 )
 
-var testSecp256k1Scheme Scheme
+var testSecp256k1Scheme = initTestSubjectSecp256k1()
 
-func TestContentVerificationWhenSignatureIsValidEthereum(t *testing.T) {
-	//given
-	signature := "0x7655c23866338f3a73bc0d416504424715328828f082b8e162d5670a84103e6508e3a68f14bdc6ec27c4b364d819f744fcfbf006d12eb6dd5b7109615ee273c701"
+func initTestSubjectSecp256k1() Scheme {
+	decodeString, err := hex.DecodeString(privKeySecp256k1)
+	if err != nil {
+		log.Fatal("Failed decode private key secp256k1")
+	}
 
+	scheme, err := createSecp256k1Scheme(decodeString)
+	if err != nil {
+		log.Fatal("Failed create scheme secp256k1")
+	}
+
+	return scheme
+}
+
+func TestContentVerificationWhenSignatureIsValidSecp256k1(t *testing.T) {
 	//when
-	result := testSecp256k1Scheme.Verify(pubKeyEthereum, []byte(content), signature)
+	result := testSecp256k1Scheme.Verify([]byte(content), signatureSecp256k1)
 
 	//then
 	assert.True(t, result)
 }
 
-func TestContentWithCompressedPubLeyVerificationWhenSignatureIsValidEthereum(t *testing.T) {
-	//given
-	signature := "0x7655c23866338f3a73bc0d416504424715328828f082b8e162d5670a84103e6508e3a68f14bdc6ec27c4b364d819f744fcfbf006d12eb6dd5b7109615ee273c701"
-
+func TestContentVerificationWhenSignatureIsInvalidSecp256k1(t *testing.T) {
 	//when
-	result := testSecp256k1Scheme.Verify(compressedPubKeyEthereum, []byte(content), signature)
-
-	//then
-	assert.True(t, result)
-}
-
-func TestContentVerificationWhenSignatureIsInvalidEthereum(t *testing.T) {
-	//given
-	signature := "0x789a80053e4927d0a898db8e065e948f5cf086e32f9ccaa54c1908e22ac430c62621578113ddbb62d509bf6049b8fb544ab06d36f916685a2eb8e57ffadde02301"
-
-	//when
-	result := testSecp256k1Scheme.Verify(pubKeyEthereum, []byte(content), signature)
+	result := testSecp256k1Scheme.Verify([]byte(content+"invalid"), signatureSecp256k1)
 
 	//then
 	assert.False(t, result)
+}
+
+func TestSignSecp256k1(t *testing.T) {
+	//when
+	sign, err := testSecp256k1Scheme.Sign([]byte(content))
+
+	//then
+	assert.NoError(t, err)
+	assert.Equal(t, strings.TrimPrefix(signatureSecp256k1, "0x"), sign)
 }

@@ -9,7 +9,7 @@ type SearchResult struct {
 }
 
 func (s *SearchResult) FromProto(pbSearchResult *pb.SearchResult) {
-	s.Pieces = make([]*Piece, len(s.Pieces))
+	s.Pieces = make([]*Piece, len(pbSearchResult.SignedPieces))
 
 	for i, p := range pbSearchResult.SignedPieces {
 		piece := &Piece{}

@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	defaultMhType = multihash.SHA2_256
-	defaultCodec  = cid.Raw
+	defaultMhType   = multihash.BLAKE2B_MAX - 32
+	defaultMhLength = 32
+	defaultCodec    = cid.Raw
 )
 
 type Builder struct {
@@ -19,7 +20,7 @@ func CreateBuilder(codec uint64, mhType uint64) *Builder {
 }
 
 func DefaultBuilder() *Builder {
-	return &Builder{cidBuilder: cid.V1Builder{Codec: defaultCodec, MhType: defaultMhType}}
+	return &Builder{cidBuilder: cid.V1Builder{Codec: defaultCodec, MhType: defaultMhType, MhLength: defaultMhLength}}
 }
 
 func (b *Builder) Build(data []byte) (string, error) {

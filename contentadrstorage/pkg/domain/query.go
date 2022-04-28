@@ -5,7 +5,7 @@ import (
 )
 
 type Query struct {
-	BucketId uint64
+	BucketId uint32
 	Tags     []*Tag
 }
 

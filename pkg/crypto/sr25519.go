@@ -8,21 +8,56 @@ import (
 )
 
 type sr25519Scheme struct {
+	privateKey *schnorrkel.SecretKey
+	publicKey  string
 }
 
 const Sr25519 SchemeName = "sr25519"
 
 var signingContext = []byte("substrate")
 
-func (s sr25519Scheme) Name() string {
+func createSr25519Scheme(privateKey []byte) (Scheme, error) {
+	key := [schnorrkel.SecretKeySize]byte{}
+	nonce := [schnorrkel.PublicKeySize]byte{}
+
+	copy(key[:], privateKey[:32])
+	copy(nonce[:], privateKey[32:])
+
+	secretKey := schnorrkel.NewSecretKey(key, nonce)
+	public, err := secretKey.Public()
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey := public.Encode()
+
+	return &sr25519Scheme{privateKey: secretKey, publicKey: hex.EncodeToString(publicKey[:])}, nil
+}
+
+func (s *sr25519Scheme) Name() string {
 	return string(Sr25519)
 }
 
-func (s sr25519Scheme) Sign(data []byte) (string, error) {
-	panic("implement me")
+func (s *sr25519Scheme) PublicKey() string {
+	return s.publicKey
 }
 
-func (s sr25519Scheme) Verify(appPubKey string, data []byte, signature string) bool {
+func (s *sr25519Scheme) Sign(data []byte) (string, error) {
+	transcript := schnorrkel.NewSigningContext(signingContext, data)
+	signature, err := s.privateKey.Sign(transcript)
+	if err != nil {
+		return "", err
+	}
+
+	result := signature.Encode()
+	return hex.EncodeToString(result[:]), nil
+}
+
+func (s *sr25519Scheme) Verify(data []byte, signature string) bool {
+	return verifySr25519(s.publicKey, data, signature)
+}
+
+func verifySr25519(appPubKey string, data []byte, signature string) bool {
 	publicKey, err := getSchnorrkelPublicKey(appPubKey)
 	if err != nil {
 		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't create Schnorrkel public key")

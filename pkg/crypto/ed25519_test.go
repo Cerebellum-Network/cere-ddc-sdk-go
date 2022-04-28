@@ -42,11 +42,12 @@ func TestNameEd25519(t *testing.T) {
 
 func TestSignEd25519(t *testing.T) {
 	//when
-	signature := testEd25519Scheme.Sign([]byte(content))
+	signature, err := testEd25519Scheme.Sign([]byte(content))
 
 	//then
 	expected := "464fc53d45cc95e7bdbac954ae21bd8831cbe059f8f438c0f367f57a7ad7a47f56ca32b15c084b6ad81b91e6122984eaaff0f47280f3115294df8f83dd959e0a"
 	assert.Equal(t, expected, signature)
+	assert.NoError(t, err)
 }
 
 func TestContentVerificationWhenSignatureIsValidEd25519(t *testing.T) {
@@ -54,7 +55,7 @@ func TestContentVerificationWhenSignatureIsValidEd25519(t *testing.T) {
 	signature := getContentSignatureEd25519(content)
 
 	//when
-	result := testEd25519Scheme.Verify(pubKeyEd25519, []byte(content), signature)
+	result := testEd25519Scheme.Verify([]byte(content), signature)
 
 	//then
 	assert.True(t, result)
@@ -65,7 +66,7 @@ func TestContentVerificationWhenSignatureIsInvalidEd25519(t *testing.T) {
 	signature := getContentSignatureEd25519(content + "invalid")
 
 	//when
-	result := testEd25519Scheme.Verify(pubKeyEd25519, []byte(content), signature)
+	result := testEd25519Scheme.Verify([]byte(content), signature)
 
 	//then
 	assert.False(t, result)

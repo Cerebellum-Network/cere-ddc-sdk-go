@@ -7,6 +7,6 @@ import "tag.proto";
 option go_package = "/pb";
 
 message Query {
-  uint64       bucketId = 1;
+  uint32       bucketId = 1;
   repeated Tag tags     = 2;
 }

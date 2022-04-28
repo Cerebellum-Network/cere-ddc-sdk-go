@@ -4,55 +4,33 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contentadrstorage/pkg/config"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contentadrstorage/pkg/domain"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pb"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pkg/cid"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pkg/crypto"
 	"google.golang.org/protobuf/proto"
 	"io"
-	"net"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type ContentAddressableStorage interface {
 	Store(ctx context.Context, piece *domain.Piece) (*domain.PieceUri, error)
-	Read(ctx context.Context, bucketId uint64, cid string) (*domain.Piece, error)
+	Read(ctx context.Context, bucketId uint32, cid string) (*domain.Piece, error)
 	Search(ctx context.Context, query *domain.Query) (*domain.SearchResult, error)
 }
 
 type contentAddressableStorage struct {
 	scheme         crypto.Scheme
 	gatewayNodeUrl string
-	config         config.ClientConfig
-	cidBuilder     cid.Builder
+	cidBuilder     *cid.Builder
 	client         *http.Client
 }
 
 const basePath = "/api/rest/pieces"
 
-func CreateContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string, cfg config.ClientConfig, cidBuilder cid.Builder) ContentAddressableStorage {
-	defaultTransport := http.DefaultTransport.(*http.Transport)
-	transport := &http.Transport{
-		Proxy: defaultTransport.Proxy,
-		DialContext: (&net.Dialer{
-			Timeout:   cfg.ConnectionTimeout,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     defaultTransport.ForceAttemptHTTP2,
-		MaxIdleConns:          defaultTransport.MaxIdleConns,
-		IdleConnTimeout:       defaultTransport.IdleConnTimeout,
-		TLSHandshakeTimeout:   defaultTransport.TLSHandshakeTimeout,
-		ExpectContinueTimeout: defaultTransport.ExpectContinueTimeout,
-	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   cfg.RequestTimeout + cfg.ConnectionTimeout,
-	}
-
-	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cidBuilder, config: cfg, client: client}
+func NewContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string) ContentAddressableStorage {
+	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cid.DefaultBuilder(), client: http.DefaultClient}
 }
 
 func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Piece) (*domain.PieceUri, error) {
@@ -76,22 +54,22 @@ func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Pie
 	return pieceUri, nil
 }
 
-func (c *contentAddressableStorage) Read(ctx context.Context, bucketId uint64, cid string) (*domain.Piece, error) {
-	url := c.gatewayNodeUrl + basePath + "/" + cid + "?bucketId=" + strconv.FormatUint(bucketId, 10)
+func (c *contentAddressableStorage) Read(ctx context.Context, bucketId uint32, cid string) (*domain.Piece, error) {
+	url := c.gatewayNodeUrl + basePath + "/" + cid + "?bucketId=" + strconv.FormatUint(uint64(bucketId), 10)
 
 	data, err := c.sendRequest(ctx, "GET", url, nil, http.StatusOK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %w", err)
 	}
 
-	pbPiece := &pb.Piece{}
-	err = proto.Unmarshal(data, pbPiece)
+	pbSignedPiece := &pb.SignedPiece{}
+	err = proto.Unmarshal(data, pbSignedPiece)
 	if err != nil {
 		return nil, err
 	}
 
 	piece := &domain.Piece{}
-	piece.FromProto(pbPiece)
+	piece.FromProto(pbSignedPiece.Piece)
 
 	return piece, nil
 }
@@ -120,7 +98,6 @@ func (c *contentAddressableStorage) Search(ctx context.Context, query *domain.Qu
 	return searchResult, nil
 }
 
-//ToDo verify signature etc.
 func (c *contentAddressableStorage) sendRequest(ctx context.Context, method string, url string, body []byte, expectedStatus int) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
 	if err != nil {
@@ -134,6 +111,7 @@ func (c *contentAddressableStorage) sendRequest(ctx context.Context, method stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
+		//ToDO we need to read body
 		return nil, fmt.Errorf("fail status %s", resp.Status)
 	}
 
@@ -151,7 +129,7 @@ func (c *contentAddressableStorage) signPiece(piece *pb.Piece) (*pb.SignedPiece,
 		return nil, "", fmt.Errorf("failed marshal piece proto: %w", err)
 	}
 
-	pieceCid, err := cid.DefaultBuilder().Build(pieceBytes)
+	pieceCid, err := c.cidBuilder.Build(pieceBytes)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to build CID: %w", err)
 	}

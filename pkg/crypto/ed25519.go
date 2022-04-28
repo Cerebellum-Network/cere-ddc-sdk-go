@@ -33,7 +33,11 @@ func (e *ed25519Scheme) Sign(data []byte) (string, error) {
 	return hex.EncodeToString(ed25519.Sign(e.privateKey, data)), nil
 }
 
-func (e *ed25519Scheme) Verify(appPubKey string, data []byte, signature string) bool {
+func (e *ed25519Scheme) Verify(data []byte, signature string) bool {
+	return verifyEd25519(e.publicKey, data, signature)
+}
+
+func verifyEd25519(appPubKey string, data []byte, signature string) bool {
 	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
 
 	if err != nil {

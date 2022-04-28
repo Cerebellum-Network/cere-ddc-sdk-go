@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "/pb";
+
+message Link {
+  string          cid  = 1;
+  uint64          size = 2;
+  optional string name = 3;
+}
