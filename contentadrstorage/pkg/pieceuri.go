@@ -1,4 +1,4 @@
-package domain
+package pkg
 
 type PieceUri struct {
 	BucketId uint32

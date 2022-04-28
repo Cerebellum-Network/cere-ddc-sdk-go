@@ -1,9 +1,6 @@
 module github.com/cerebellum-network/cere-ddc-sdk-go/contentadrstorage
 
-require (
-	github.com/cerebellum-network/cere-ddc-sdk-go v0.0.0
-	google.golang.org/protobuf v1.27.1
-)
+require github.com/cerebellum-network/cere-ddc-sdk-go v0.0.0
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -26,8 +23,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect
 	golang.org/x/sys v0.0.0-20210816183151-1e6c022a8912 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
 
 go 1.18
 
-replace github.com/cerebellum-network/cere-ddc-sdk-go => ../
+replace github.com/cerebellum-network/cere-ddc-sdk-go v0.0.0 => ../

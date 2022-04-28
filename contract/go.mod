@@ -6,6 +6,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.2.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 )
 
 require (

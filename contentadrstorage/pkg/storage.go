@@ -1,14 +1,12 @@
-package storage
+package pkg
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contentadrstorage/pkg/domain"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/pb"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/model/domain"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pkg/cid"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pkg/crypto"
-	"google.golang.org/protobuf/proto"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,7 +14,7 @@ import (
 )
 
 type ContentAddressableStorage interface {
-	Store(ctx context.Context, piece *domain.Piece) (*domain.PieceUri, error)
+	Store(ctx context.Context, piece *domain.Piece) (*PieceUri, error)
 	Read(ctx context.Context, bucketId uint32, cid string) (*domain.Piece, error)
 	Search(ctx context.Context, query *domain.Query) (*domain.SearchResult, error)
 }
@@ -34,14 +32,12 @@ func NewContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string) C
 	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cid.DefaultBuilder(), client: http.DefaultClient}
 }
 
-func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Piece) (*domain.PieceUri, error) {
-	pbPiece := piece.ToProto()
-
-	signPiece, pieceCid, err := c.signPiece(pbPiece)
+func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Piece) (*PieceUri, error) {
+	signPiece, pieceCid, err := c.signPiece(piece)
 	if err != nil {
 		return nil, err
 	}
-	body, err := proto.Marshal(signPiece)
+	body, err := signPiece.MarshalProto()
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +47,7 @@ func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Pie
 		return nil, fmt.Errorf("failed to store: %w", err)
 	}
 
-	pieceUri := &domain.PieceUri{BucketId: piece.BucketId, Cid: pieceCid}
+	pieceUri := &PieceUri{BucketId: piece.BucketId, Cid: pieceCid}
 	return pieceUri, nil
 }
 
@@ -63,21 +59,17 @@ func (c *contentAddressableStorage) Read(ctx context.Context, bucketId uint32, c
 		return nil, fmt.Errorf("failed to read: %w", err)
 	}
 
-	pbSignedPiece := &pb.SignedPiece{}
-	err = proto.Unmarshal(data, pbSignedPiece)
+	signedPiece := &domain.SignedPiece{}
+	err = signedPiece.UnmarshalProto(data)
 	if err != nil {
 		return nil, err
 	}
 
-	piece := &domain.Piece{}
-	piece.FromProto(pbSignedPiece.Piece)
-
-	return piece, nil
+	return signedPiece.Piece, nil
 }
 
 func (c *contentAddressableStorage) Search(ctx context.Context, query *domain.Query) (*domain.SearchResult, error) {
-	pbQuery := query.ToProto()
-	body, err := proto.Marshal(pbQuery)
+	body, err := query.MarshalProto()
 	if err != nil {
 		return nil, err
 	}
@@ -87,14 +79,11 @@ func (c *contentAddressableStorage) Search(ctx context.Context, query *domain.Qu
 		return nil, fmt.Errorf("failed to search: %w", err)
 	}
 
-	pbSearchResult := &pb.SearchResult{}
-	err = proto.Unmarshal(data, pbSearchResult)
+	searchResult := &domain.SearchResult{}
+	err = searchResult.UnmarshalProto(data)
 	if err != nil {
 		return nil, err
 	}
-
-	searchResult := &domain.SearchResult{}
-	searchResult.FromProto(pbSearchResult)
 
 	return searchResult, nil
 }
@@ -124,8 +113,8 @@ func (c *contentAddressableStorage) sendRequest(ctx context.Context, method stri
 	return result, err
 }
 
-func (c *contentAddressableStorage) signPiece(piece *pb.Piece) (*pb.SignedPiece, string, error) {
-	pieceBytes, err := proto.Marshal(piece)
+func (c *contentAddressableStorage) signPiece(piece *domain.Piece) (*domain.SignedPiece, string, error) {
+	pieceBytes, err := piece.MarshalProto()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed marshal piece proto: %w", err)
 	}
@@ -140,9 +129,9 @@ func (c *contentAddressableStorage) signPiece(piece *pb.Piece) (*pb.SignedPiece,
 		return nil, "", fmt.Errorf("failed to sign piece: %w", err)
 	}
 
-	signedPiece := &pb.SignedPiece{
+	signedPiece := &domain.SignedPiece{
 		Piece:     piece,
-		Signature: &pb.Signature{Value: signature, Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
+		Signature: &domain.Signature{Value: signature, Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
 	}
 
 	return signedPiece, pieceCid, nil
