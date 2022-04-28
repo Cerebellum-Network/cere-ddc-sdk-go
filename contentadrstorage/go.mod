@@ -28,6 +28,6 @@ require (
 	golang.org/x/sys v0.0.0-20210816183151-1e6c022a8912 // indirect
 )
 
-go 1.17
+go 1.18
 
 replace github.com/cerebellum-network/cere-ddc-sdk-go => ../

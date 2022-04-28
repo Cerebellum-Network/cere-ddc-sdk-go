@@ -10,6 +10,7 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/pkg/crypto"
 	"google.golang.org/protobuf/proto"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -111,7 +112,7 @@ func (c *contentAddressableStorage) sendRequest(ctx context.Context, method stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
-		//ToDO we need to read body
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
 		return nil, fmt.Errorf("fail status %s", resp.Status)
 	}
 
