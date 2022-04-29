@@ -29,12 +29,12 @@ type ddcBucketContract struct {
 }
 
 func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract {
-	contract, err := rpc.NewContractAPI(apiUrl)
+	smartContract, err := rpc.NewContractAPI(apiUrl)
 	if err != nil {
 		log.WithError(err).WithField("apiUrl", apiUrl).Fatal("Can't initialize ddc bucket contract api")
 	}
 
-	if err := contract.WithMetaData(abi.DdcBucket); err != nil {
+	if err := smartContract.WithMetaData(abi.DdcBucket); err != nil {
 		log.WithError(err).Fatal("Can't initialize ddc bucket contract metadata")
 	}
 
@@ -42,7 +42,7 @@ func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract 
 
 	log.WithFields(log.Fields{"apiUrl": apiUrl, "accountId": accountId}).Info("Ddc bucket contract configured")
 	return &ddcBucketContract{
-		contract:  CreateContract(contract, accountId, contractMetadata),
+		contract:  CreateContract(smartContract, accountId, contractMetadata),
 		apiUrl:    apiUrl,
 		accountId: accountId,
 	}
