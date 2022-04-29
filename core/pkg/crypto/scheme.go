@@ -37,15 +37,15 @@ func CreateScheme(schemeName SchemeName, privateKeyHex string) (Scheme, error) {
 	}
 }
 
-func Verify(schemeName SchemeName, publicKeyHex string, content []byte, signature string) bool {
+func Verify(schemeName SchemeName, publicKeyHex string, content []byte, signature string) (bool, error) {
 	switch schemeName {
 	case Ed25519:
-		return verifyEd25519(publicKeyHex, content, signature)
+		return verifyEd25519(publicKeyHex, content, signature), nil
 	case Secp256k1:
-		return verifySecp256k1(publicKeyHex, content, signature)
+		return verifySecp256k1(publicKeyHex, content, signature), nil
 	case Sr25519:
-		return verifySr25519(publicKeyHex, content, signature)
+		return verifySr25519(publicKeyHex, content, signature), nil
 	default:
-		return false
+		return false, ErrSchemeNotExist
 	}
 }

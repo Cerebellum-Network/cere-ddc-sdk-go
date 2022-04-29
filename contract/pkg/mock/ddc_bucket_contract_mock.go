@@ -16,12 +16,12 @@ var buckets = []*pkg.BucketStatus{
 }
 
 type (
-	Node = struct {
+	Node struct {
 		Id  uint32
 		Url string
 	}
 
-	Cluster = struct {
+	Cluster struct {
 		Id     uint32
 		VNodes []uint32
 	}
