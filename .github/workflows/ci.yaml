@@ -27,6 +27,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      #Core module check
       - name: 'Run linters core module'
         uses: golangci/golangci-lint-action@v2
         with:
@@ -37,3 +38,36 @@ jobs:
         run: go test -v ./...
         with:
           working-directory: 'core'
+      #Model module check
+      - name: 'Run linters model module'
+        uses: golangci/golangci-lint-action@v2
+        with:
+          working-directory: 'model'
+          version: v1.45
+          args: --timeout 5m
+      - name: 'Run unit tests model module'
+        run: go test -v ./...
+        with:
+          working-directory: 'model'
+      #Contentadrstorage module check
+      - name: 'Run linters contentadrstorage module'
+        uses: golangci/golangci-lint-action@v2
+        with:
+          working-directory: 'contentadrstorage'
+          version: v1.45
+          args: --timeout 5m
+      - name: 'Run unit tests contentadrstorage module'
+        run: go test -v ./...
+        with:
+          working-directory: 'contentadrstorage'
+      #Contract module check
+      - name: 'Run linters contract module'
+        uses: golangci/golangci-lint-action@v2
+        with:
+          working-directory: 'contract'
+          version: v1.45
+          args: --timeout 5m
+      - name: 'Run unit tests contract module'
+        run: go test -v ./...
+        with:
+          working-directory: 'contract'
