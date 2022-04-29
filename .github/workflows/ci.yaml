@@ -29,7 +29,7 @@ jobs:
             ${{ runner.os }}-go-
       #Core module
       - name: 'Run linters core module'
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           working-directory: 'core'
           version: v1.45
@@ -38,7 +38,7 @@ jobs:
         run: go test -v ./core/...
       #Model module
       - name: 'Run linters model module'
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           working-directory: 'model'
           version: v1.45
@@ -47,7 +47,7 @@ jobs:
         run: go test -v ./model/...
       #Contentadrstorage module
       - name: 'Run linters contentadrstorage module'
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           working-directory: 'contentadrstorage'
           version: v1.45
@@ -56,7 +56,7 @@ jobs:
         run: go test -v ./contentadrstorage/...
       #Contract module
       - name: 'Run linters contract module'
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           working-directory: 'contract'
           version: v1.45
