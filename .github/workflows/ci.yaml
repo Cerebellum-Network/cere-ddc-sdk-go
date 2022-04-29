@@ -27,16 +27,11 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: 'Run linters'
+      - name: 'Run linters core module'
         uses: golangci/golangci-lint-action@v2
         with:
+          working-directory: 'core'
           version: v1.45
           args: --timeout 5m
-      - name: 'Run unit tests core module'
-        run: go test -v ./core/...
-      - name: 'Run unit tests model module'
-        run: go test -v ./model/...
-      - name: 'Run unit tests contentadrstorage module'
-        run: go test -v ./contentadrstorage/...
-      - name: 'Run unit tests contract module'
-        run: go test -v ./contract/...
+      - name: 'Run unit tests'
+        run: go test -v ./...
