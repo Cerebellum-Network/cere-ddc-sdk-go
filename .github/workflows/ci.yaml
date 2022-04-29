@@ -47,23 +47,3 @@ jobs:
         run: go test -v ./...
         with:
           working-directory: 'model'
-      - name: 'Run linters contentadrstorage module'
-        uses: golangci/golangci-lint-action@v2
-        with:
-          working-directory: 'contentadrstorage'
-          version: v1.45
-          args: --timeout 5m
-      - name: 'Run unit tests contentadrstorage module'
-        run: go test -v ./...
-        with:
-          working-directory: 'contentadrstorage'
-      - name: 'Run linters contract module'
-        uses: golangci/golangci-lint-action@v2
-        with:
-          working-directory: 'contract'
-          version: v1.45
-          args: --timeout 5m
-      - name: 'Run unit tests contract module'
-        run: go test -v ./...
-        with:
-          working-directory: 'contract'
