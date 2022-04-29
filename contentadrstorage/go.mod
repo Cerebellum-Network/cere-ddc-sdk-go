@@ -1,6 +1,9 @@
 module github.com/cerebellum-network/cere-ddc-sdk-go/contentadrstorage
 
-require github.com/cerebellum-network/cere-ddc-sdk-go v0.0.0
+require (
+	github.com/cerebellum-network/cere-ddc-sdk-go/core v0.0.0
+	github.com/cerebellum-network/cere-ddc-sdk-go/model v0.0.0
+)
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -28,4 +31,6 @@ require (
 
 go 1.18
 
-replace github.com/cerebellum-network/cere-ddc-sdk-go v0.0.0 => ../
+replace github.com/cerebellum-network/cere-ddc-sdk-go/core v0.0.0 => ../core
+
+replace github.com/cerebellum-network/cere-ddc-sdk-go/model v0.0.0 => ../model
