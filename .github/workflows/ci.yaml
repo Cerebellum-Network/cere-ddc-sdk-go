@@ -33,5 +33,7 @@ jobs:
           working-directory: 'core'
           version: v1.45
           args: --timeout 5m
-      - name: 'Run unit tests'
+      - name: 'Run unit tests core module'
         run: go test -v ./...
+        with:
+          working-directory: 'core'
