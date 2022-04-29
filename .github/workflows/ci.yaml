@@ -37,13 +37,3 @@ jobs:
         run: go test -v ./...
         with:
           working-directory: 'core'
-      - name: 'Run linters model module'
-        uses: golangci/golangci-lint-action@v2
-        with:
-          working-directory: 'model'
-          version: v1.45
-          args: --timeout 5m
-      - name: 'Run unit tests model module'
-        run: go test -v ./...
-        with:
-          working-directory: 'model'
