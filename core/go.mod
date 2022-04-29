@@ -1,4 +1,4 @@
-module github.com/cerebellum-network/cere-ddc-sdk-go
+module github.com/cerebellum-network/cere-ddc-sdk-go/core
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0
