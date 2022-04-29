@@ -1,7 +1,6 @@
 package domain
 
 import (
-	domain "github.com/cerebellum-network/cere-ddc-sdk-go/model"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -12,7 +11,7 @@ type Link struct {
 	Name *string
 }
 
-var _ domain.Protobufable = (*Link)(nil)
+var _ Protobufable = (*Link)(nil)
 
 func (l *Link) ToProto() *pb.Link {
 	return &pb.Link{

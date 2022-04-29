@@ -1,7 +1,6 @@
 package domain
 
 import (
-	domain "github.com/cerebellum-network/cere-ddc-sdk-go/model"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -11,7 +10,7 @@ type Tag struct {
 	Value string
 }
 
-var _ domain.Protobufable = (*Tag)(nil)
+var _ Protobufable = (*Tag)(nil)
 
 func (t *Tag) ToProto() *pb.Tag {
 	return &pb.Tag{

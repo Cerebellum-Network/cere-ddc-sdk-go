@@ -1,7 +1,6 @@
 package domain
 
 import (
-	domain "github.com/cerebellum-network/cere-ddc-sdk-go/model"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -10,7 +9,7 @@ type SearchResult struct {
 	SignedPieces []*SignedPiece
 }
 
-var _ domain.Protobufable = (*SearchResult)(nil)
+var _ Protobufable = (*SearchResult)(nil)
 
 func (sr *SearchResult) ToProto() *pb.SearchResult {
 	pbSearchResult := &pb.SearchResult{

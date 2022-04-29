@@ -1,7 +1,6 @@
 package domain
 
 import (
-	domain "github.com/cerebellum-network/cere-ddc-sdk-go/model"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -11,7 +10,7 @@ type Query struct {
 	Tags     []*Tag
 }
 
-var _ domain.Protobufable = (*Query)(nil)
+var _ Protobufable = (*Query)(nil)
 
 func (q *Query) ToProto() *pb.Query {
 	pbQuery := &pb.Query{

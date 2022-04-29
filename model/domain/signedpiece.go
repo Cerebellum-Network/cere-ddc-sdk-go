@@ -1,7 +1,6 @@
 package domain
 
 import (
-	domain "github.com/cerebellum-network/cere-ddc-sdk-go/model"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -11,7 +10,7 @@ type SignedPiece struct {
 	Signature *Signature
 }
 
-var _ domain.Protobufable = (*SignedPiece)(nil)
+var _ Protobufable = (*SignedPiece)(nil)
 
 func (sp *SignedPiece) ToProto() *pb.SignedPiece {
 	return &pb.SignedPiece{
