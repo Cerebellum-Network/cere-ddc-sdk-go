@@ -38,6 +38,10 @@ type (
 func CreateDdcBucketContractMock(accountId string, apiUrl string, nodes []Node, clusters []Cluster) pkg.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
 	return &ddcBucketContractMock{
+		accountId:      accountId,
+		apiUrl:         apiUrl,
+		nodes:          nodes,
+		clusters:       clusters,
 		lastAccessTime: time.Now(),
 	}
 }
