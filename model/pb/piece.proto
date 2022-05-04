@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package pb;
+
+import "link.proto";
+import "tag.proto";
+
+option go_package = "/pb";
+
+message Piece {
+  bytes         data     = 1;
+  uint32        bucketId = 2;
+  repeated Tag  tags     = 3;
+  repeated Link links    = 4;
+}
