@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func CreateDdcBucketContractMock(accountId string, apiUrl string, nodes []Node, clusters []Cluster) pkg.DdcBucketContract {
+func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster) pkg.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
 	return &ddcBucketContractMock{
 		accountId:      accountId,
