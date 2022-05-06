@@ -5,7 +5,8 @@ package pb;
 option go_package = "/pb";
 
 message Signature {
-  string value  = 1;
-  string signer = 2;
-  string scheme = 3;
+  string value         = 1;
+  string signer        = 2;
+  string scheme        = 3;
+  uint64 multiHashType = 4;
 }
