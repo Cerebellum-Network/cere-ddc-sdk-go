@@ -28,8 +28,8 @@ type contentAddressableStorage struct {
 
 const basePath = "/api/rest/pieces"
 
-func NewContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string) ContentAddressableStorage {
-	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cid.DefaultBuilder(), client: http.DefaultClient}
+func NewContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string, cidBuilder *cid.Builder) ContentAddressableStorage {
+	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cidBuilder, client: http.DefaultClient}
 }
 
 func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Piece) (*PieceUri, error) {

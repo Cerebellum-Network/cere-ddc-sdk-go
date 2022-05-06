@@ -6,18 +6,20 @@ import (
 )
 
 type Signature struct {
-	Value  string
-	Signer string
-	Scheme string
+	Value         string
+	Signer        string
+	Scheme        string
+	MultiHashType uint64
 }
 
 var _ Protobufable = (*Signature)(nil)
 
 func (s *Signature) ToProto() *pb.Signature {
 	return &pb.Signature{
-		Value:  s.Value,
-		Signer: s.Signer,
-		Scheme: s.Scheme,
+		Value:         s.Value,
+		Signer:        s.Signer,
+		Scheme:        s.Scheme,
+		MultiHashType: s.MultiHashType,
 	}
 }
 
@@ -25,6 +27,7 @@ func (s *Signature) ToDomain(pbSignature *pb.Signature) {
 	s.Value = pbSignature.Value
 	s.Signer = pbSignature.Signer
 	s.Scheme = pbSignature.Scheme
+	s.MultiHashType = pbSignature.MultiHashType
 }
 
 func (s *Signature) MarshalProto() ([]byte, error) {
