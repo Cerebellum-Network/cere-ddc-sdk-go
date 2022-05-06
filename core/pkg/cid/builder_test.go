@@ -7,7 +7,7 @@ import (
 
 func TestGetPieceCid_Sha2_256(t *testing.T) {
 	//given
-	testSubject := CreateBuilder(BLAKE2B_256)
+	testSubject := CreateBuilder(Blake2b256)
 	expectedCid := "bafk2bzacea73ycjnxe2qov7cvnhx52lzfp6nf5jcblnfus6gqreh6ygganbws"
 
 	//when

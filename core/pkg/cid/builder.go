@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	BLAKE2B_256  = 0xb220
+	Blake2b256   = 0xb220
 	defaultCodec = cid.Raw
 )
 
@@ -15,7 +15,7 @@ type Builder struct {
 
 func CreateBuilder(mhType uint64) *Builder {
 	if mhType == 0 {
-		mhType = BLAKE2B_256
+		mhType = Blake2b256
 	}
 	return &Builder{cidBuilder: cid.V1Builder{Codec: defaultCodec, MhType: mhType}}
 }
