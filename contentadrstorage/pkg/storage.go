@@ -20,16 +20,16 @@ type ContentAddressableStorage interface {
 }
 
 type contentAddressableStorage struct {
-	scheme         crypto.Scheme
-	gatewayNodeUrl string
-	cidBuilder     *cid.Builder
-	client         *http.Client
+	scheme     crypto.Scheme
+	cdnNodeUrl string
+	cidBuilder *cid.Builder
+	client     *http.Client
 }
 
 const basePath = "/api/rest/pieces"
 
-func NewContentAddressableStorage(scheme crypto.Scheme, gatewayNodeUrl string, cidBuilder *cid.Builder) ContentAddressableStorage {
-	return &contentAddressableStorage{scheme: scheme, gatewayNodeUrl: gatewayNodeUrl, cidBuilder: cidBuilder, client: http.DefaultClient}
+func NewContentAddressableStorage(scheme crypto.Scheme, cdnNodeUrl string, cidBuilder *cid.Builder) ContentAddressableStorage {
+	return &contentAddressableStorage{scheme: scheme, cdnNodeUrl: cdnNodeUrl, cidBuilder: cidBuilder, client: http.DefaultClient}
 }
 
 func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Piece) (*PieceUri, error) {
@@ -42,7 +42,7 @@ func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Pie
 		return nil, err
 	}
 
-	_, err = c.sendRequest(ctx, "PUT", c.gatewayNodeUrl+basePath, body, http.StatusCreated)
+	_, err = c.sendRequest(ctx, "PUT", c.cdnNodeUrl+basePath, body, http.StatusCreated)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store: %w", err)
 	}
@@ -52,7 +52,7 @@ func (c *contentAddressableStorage) Store(ctx context.Context, piece *domain.Pie
 }
 
 func (c *contentAddressableStorage) Read(ctx context.Context, bucketId uint32, cid string) (*domain.Piece, error) {
-	url := c.gatewayNodeUrl + basePath + "/" + cid + "?bucketId=" + strconv.FormatUint(uint64(bucketId), 10)
+	url := c.cdnNodeUrl + basePath + "/" + cid + "?bucketId=" + strconv.FormatUint(uint64(bucketId), 10)
 
 	data, err := c.sendRequest(ctx, "GET", url, nil, http.StatusOK)
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *contentAddressableStorage) Search(ctx context.Context, query *domain.Qu
 		return nil, err
 	}
 
-	data, err := c.sendRequest(ctx, "GET", c.gatewayNodeUrl+basePath, body, http.StatusOK)
+	data, err := c.sendRequest(ctx, "GET", c.cdnNodeUrl+basePath, body, http.StatusOK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search: %w", err)
 	}
