@@ -35,13 +35,7 @@ type NodeStatus struct {
 type Bucket struct {
 	OwnerId          types.AccountID
 	ClusterId        uint32
-	Flow             Flow
 	ResourceReserved uint32
-}
-
-type Flow struct {
-	From     types.AccountID
-	Schedule Schedule
 }
 
 type Schedule struct {
