@@ -113,7 +113,6 @@ func CreateBucket(bucketId uint32, bucketParams string) *pkg.BucketStatus {
 		Bucket: pkg.Bucket{
 			OwnerId:          types.AccountID{},
 			ClusterId:        0,
-			Flow:             pkg.Flow{},
 			ResourceReserved: 0,
 		},
 		Params:             bucketParams,
