@@ -8,5 +8,8 @@ protobuf:
 			--go_out=/go_out     							\
 			$$(find ddc-schemas/storage/protobuf -name '*.proto' -printf '%P ')
 
+protoc:
+	protoc --proto_path=./ddc-schemas/storage/protobuf --go_out=./model ./ddc-schemas/storage/**/*.proto
+
 fix-docker-mess:
 	sudo chown $$(whoami) -R model/pb/
