@@ -13,11 +13,11 @@ Checkout a particular version of the schema:
 
     cd ddc-schemas && git checkout storage-v0.1.2
 
-Regenerate the code through Docker image
+Regenerate the code through a Docker image
 
     make protobuf
 
-Regenerate the code through `protoc` command
+    … or through the `protoc` command …
 
     make protoc
 
