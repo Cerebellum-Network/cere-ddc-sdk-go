@@ -6,30 +6,30 @@ import (
 )
 
 type SearchResult struct {
-	SignedPieces []*SignedPiece
+	SearchedPieces []*SearchedPiece
 }
 
 var _ Protobufable = (*SearchResult)(nil)
 
 func (sr *SearchResult) ToProto() *pb.SearchResult {
 	pbSearchResult := &pb.SearchResult{
-		SignedPieces: make([]*pb.SignedPiece, len(sr.SignedPieces)),
+		SearchedPieces: make([]*pb.SearchedPiece, len(sr.SearchedPieces)),
 	}
 
-	for i, signedPiece := range sr.SignedPieces {
-		pbSearchResult.SignedPieces[i] = signedPiece.ToProto()
+	for i, searchedPiece := range sr.SearchedPieces {
+		pbSearchResult.SearchedPieces[i] = searchedPiece.ToProto()
 	}
 
 	return pbSearchResult
 }
 
 func (sr *SearchResult) ToDomain(pbSearchResult *pb.SearchResult) {
-	sr.SignedPieces = make([]*SignedPiece, len(pbSearchResult.SignedPieces))
+	sr.SearchedPieces = make([]*SearchedPiece, len(pbSearchResult.SearchedPieces))
 
-	for i, pbSignedPiece := range pbSearchResult.SignedPieces {
-		signedPiece := &SignedPiece{}
-		signedPiece.ToDomain(pbSignedPiece)
-		sr.SignedPieces[i] = signedPiece
+	for i, pbSearchedPiece := range pbSearchResult.SearchedPieces {
+		searchedPiece := &SearchedPiece{}
+		searchedPiece.ToDomain(pbSearchedPiece)
+		sr.SearchedPieces[i] = searchedPiece
 	}
 }
 
@@ -44,5 +44,40 @@ func (sr *SearchResult) UnmarshalProto(searchResultAsBytes []byte) error {
 	}
 
 	sr.ToDomain(pbSearchResult)
+	return nil
+}
+
+type SearchedPiece struct {
+	SignedPiece *SignedPiece
+	Cid         string
+}
+
+var _ Protobufable = (*SearchedPiece)(nil)
+
+func (sp *SearchedPiece) ToProto() *pb.SearchedPiece {
+	return &pb.SearchedPiece{
+		Cid:         sp.Cid,
+		SignedPiece: sp.SignedPiece.ToProto(),
+	}
+}
+
+func (sp *SearchedPiece) ToDomain(pbSearchPiece *pb.SearchedPiece) {
+	sp.Cid = pbSearchPiece.Cid
+	sp.SignedPiece = &SignedPiece{}
+
+	sp.SignedPiece.ToDomain(pbSearchPiece.SignedPiece)
+}
+
+func (sp *SearchedPiece) MarshalProto() ([]byte, error) {
+	return proto.Marshal(sp.ToProto())
+}
+
+func (sp *SearchedPiece) UnmarshalProto(searchedPieceAsBytes []byte) error {
+	pbSearchedPiece := &pb.SearchedPiece{}
+	if err := proto.Unmarshal(searchedPieceAsBytes, pbSearchedPiece); err != nil {
+		return err
+	}
+
+	sp.ToDomain(pbSearchedPiece)
 	return nil
 }
