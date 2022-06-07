@@ -8,6 +8,7 @@ import (
 type Query struct {
 	BucketId uint32
 	Tags     []*Tag
+	LoadData bool
 }
 
 var _ Protobufable = (*Query)(nil)
@@ -16,6 +17,7 @@ func (q *Query) ToProto() *pb.Query {
 	pbQuery := &pb.Query{
 		BucketId: q.BucketId,
 		Tags:     make([]*pb.Tag, len(q.Tags)),
+		LoadData: q.LoadData,
 	}
 
 	for i, tag := range q.Tags {
@@ -28,6 +30,7 @@ func (q *Query) ToProto() *pb.Query {
 func (q *Query) ToDomain(pbQuery *pb.Query) {
 	q.BucketId = pbQuery.BucketId
 	q.Tags = make([]*Tag, len(pbQuery.Tags))
+	q.LoadData = pbQuery.LoadData
 
 	for i, pbTag := range pbQuery.Tags {
 		tag := &Tag{}
