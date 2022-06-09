@@ -1,3 +1,6 @@
+test-all:
+	go test ./model/... ./core/... ./contract/... ./contentadrstorage/...
+
 protobuf:
 	docker run --rm       									\
 		-v ${PWD}/ddc-schemas/storage/protobuf:/proto_path	\

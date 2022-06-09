@@ -7,7 +7,7 @@ import (
 
 type Tag struct {
 	Key   string
-	Value string
+	Value []byte
 }
 
 var _ Protobufable = (*Tag)(nil)
