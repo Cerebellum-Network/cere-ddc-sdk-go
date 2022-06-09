@@ -6,22 +6,25 @@ import (
 )
 
 type Tag struct {
-	Key   string
-	Value []byte
+	Key        string
+	Value      []byte
+	Searchable pb.SearchType
 }
 
 var _ Protobufable = (*Tag)(nil)
 
 func (t *Tag) ToProto() *pb.Tag {
 	return &pb.Tag{
-		Key:   t.Key,
-		Value: t.Value,
+		Key:        t.Key,
+		Value:      t.Value,
+		Searchable: t.Searchable,
 	}
 }
 
 func (t *Tag) ToDomain(pbTag *pb.Tag) {
 	t.Key = pbTag.Key
 	t.Value = pbTag.Value
+	t.Searchable = pbTag.Searchable
 }
 
 func (t *Tag) MarshalProto() ([]byte, error) {

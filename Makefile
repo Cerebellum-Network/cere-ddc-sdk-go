@@ -1,4 +1,4 @@
-test-all:
+test:
 	go test ./model/... ./core/... ./contract/... ./contentadrstorage/...
 
 protobuf:
