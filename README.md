@@ -11,7 +11,7 @@ Clone the ddc-schemas repo:
 
 Checkout a particular version of the schema:
 
-    cd ddc-schemas && git checkout storage-v0.1.2
+    cd ddc-schemas && git checkout storage-vX.X.X
 
 Regenerate the code through a Docker image
 

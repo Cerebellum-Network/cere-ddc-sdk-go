@@ -9,7 +9,7 @@ protobuf:
 			--experimental_allow_proto3_optional            \
 			--proto_path=/proto_path   						\
 			--go_out=/go_out     							\
-			$$(find ddc-schemas/storage/protobuf -name '*.proto' -printf '%P ')
+			$$(find ddc-schemas/storage/protobuf -name '*.proto' -type f | sed 's/.*\///')
 
 protoc:
 	protoc --proto_path=./ddc-schemas/storage/protobuf --go_out=./model ./ddc-schemas/storage/**/*.proto
