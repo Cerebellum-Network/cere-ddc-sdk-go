@@ -25,7 +25,7 @@ func splitParts(uri string) []string {
 
 func consumeMain(q *DdcQuery, parts []string) error {
 	// Example input: [ddc org my_org buc my_bucket ifile my_cid]
-	if len(parts) == 0 || parts[0] != "ddc" {
+	if len(parts) == 0 || parts[0] != DDC {
 		return fmt.Errorf("DDC URI must start with /ddc/")
 	}
 
@@ -34,7 +34,7 @@ func consumeMain(q *DdcQuery, parts []string) error {
 
 func consumeOrg(q *DdcQuery, parts []string) error {
 	// Example input: [org my_org buc my_bucket ifile my_cid]
-	if len(parts) >= 2 && parts[0] == "org" {
+	if len(parts) >= 2 && parts[0] == ORG {
 		q.Organization = parts[1]
 		parts = parts[2:]
 	}
@@ -44,7 +44,7 @@ func consumeOrg(q *DdcQuery, parts []string) error {
 
 func consumeBuc(q *DdcQuery, parts []string) error {
 	// Example input: [buc my_bucket ifile my_cid]
-	if len(parts) >= 2 && parts[0] == "buc" {
+	if len(parts) >= 2 && parts[0] == BUC {
 		value := parts[1]
 		parts = parts[2:]
 
@@ -70,11 +70,11 @@ func consumeProtocol(q *DdcQuery, parts []string) error {
 	// Example input: [ifile my_cid]
 	if len(parts) >= 2 {
 		field := parts[0]
-		if field == "ipiece" || field == "ifile" {
+		if field == IPIECE || field == IFILE {
 			q.Protocol = field
 			q.Cid = parts[1]
 			parts = parts[2:]
-		} else if field == "piece" || field == "file" {
+		} else if field == PIECE || field == FILE {
 			q.Protocol = field
 			q.Path = parts[1:]
 			parts = nil

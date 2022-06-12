@@ -9,6 +9,7 @@ import (
 func TestGoodDdcUri(t *testing.T) {
 	goodDdcUri(t,
 		"/ddc/buc/123/ipiece/cid123",
+		"",
 		DdcQuery{
 			Protocol:    "ipiece",
 			BucketId:    123,
@@ -18,6 +19,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"  /ddc/buc/123/ipiece/cid123   ",
+		"/ddc/buc/123/ipiece/cid123", // canonical
 		DdcQuery{
 			Protocol:    "ipiece",
 			BucketId:    123,
@@ -27,6 +29,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"ddc/buc/123/ifile/cid123",
+		"/ddc/buc/123/ifile/cid123", // canonical
 		DdcQuery{
 			Protocol:    "ifile",
 			BucketId:    123,
@@ -36,6 +39,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"ddc/org/my_org/buc/my_bucket/ifile/cid123",
+		"/ddc/org/my_org/buc/my_bucket/ifile/cid123", // canonical
 		DdcQuery{
 			Organization: "my_org",
 			BucketName:   "my_bucket",
@@ -45,6 +49,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"/ddc/org/my_org/buc/my_bucket/ifile/cid123?option=yes",
+		"",
 		DdcQuery{
 			Organization: "my_org",
 			BucketName:   "my_bucket",
@@ -55,6 +60,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"/ddc/org/my_org/buc/my_bucket/file/my_folder/image.png?option=yes",
+		"",
 		DdcQuery{
 			Organization: "my_org",
 			BucketName:   "my_bucket",
@@ -65,6 +71,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 	goodDdcUri(t,
 		"/ddc/org/my_org/buc/my_bucket/file/",
+		"",
 		DdcQuery{
 			Organization: "my_org",
 			BucketName:   "my_bucket",
@@ -82,11 +89,16 @@ func TestBadDdcUri(t *testing.T) {
 	badDdcUri(t, "/ddc/org/my_org/buc/my_bucket/file", "unrecognized field [file]")
 }
 
-func goodDdcUri(t *testing.T, uri string, expected DdcQuery) {
-	parsed, err := Parse(uri)
-
+func goodDdcUri(t *testing.T, inputUri string, canonicalUri string, expected DdcQuery) {
+	parsed, err := Parse(inputUri)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, parsed)
+
+	rebuilt := expected.String()
+	if canonicalUri == "" {
+		canonicalUri = inputUri
+	}
+	assert.Equal(t, rebuilt, canonicalUri)
 }
 
 func badDdcUri(t *testing.T, uri string, errMsg string) {
