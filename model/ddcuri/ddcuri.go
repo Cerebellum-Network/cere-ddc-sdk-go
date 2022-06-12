@@ -1,5 +1,10 @@
 package ddcuri
 
+import (
+	"fmt"
+	"strings"
+)
+
 type DdcQuery struct {
 	Organization string
 
@@ -19,6 +24,15 @@ func Parse(uri string) (q DdcQuery, err error) {
 	parts := splitParts(uri)
 	err = consumeMain(&q, parts)
 	return q, err
+}
+
+func ParseWebUrl(url string) (q DdcQuery, err error) {
+	position := strings.Index(url, "/ddc/")
+	if position == -1 {
+		return q, fmt.Errorf("not a DDC URL (%s)", url)
+	}
+	uri := url[position:]
+	return Parse(uri)
 }
 
 func (q *DdcQuery) String() string {

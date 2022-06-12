@@ -103,7 +103,36 @@ func goodDdcUri(t *testing.T, inputUri string, canonicalUri string, expected Ddc
 
 func badDdcUri(t *testing.T, uri string, errMsg string) {
 	_, err := Parse(uri)
+	assert.EqualError(t, err, errMsg)
+}
+
+func TestGoodWebUrl(t *testing.T) {
+	uri := "/ddc/buc/123/ipiece/cid123?options"
+	parsed1, err1 := Parse(uri)
+	parsed2, err2 := ParseWebUrl(uri)
+	parsed3, err3 := ParseWebUrl("htts://cdn" + uri)
+	assert.Equal(t, parsed1, parsed2)
+	assert.Equal(t, parsed1, parsed3)
+	assert.NoError(t, err1)
+	assert.NoError(t, err2)
+	assert.NoError(t, err3)
+}
+
+func TestBadWebUrl(t *testing.T) {
+	uri := "/ddc/xyz"
+	parsed1, err1 := Parse(uri)
+	parsed2, err2 := ParseWebUrl("htts://cdn" + uri)
+	assert.Equal(t, parsed1, parsed2)
+	assert.Equal(t, err1, err2)
+	assert.EqualError(t, err2, "unrecognized field [xyz]")
+
+	_, err := ParseWebUrl("")
 	if assert.Error(t, err) {
-		assert.Equal(t, err.Error(), errMsg)
+		assert.Equal(t, err.Error(), "not a DDC URL ()")
+	}
+
+	_, err = ParseWebUrl("htts://cdn-ddc/buc/123")
+	if assert.Error(t, err) {
+		assert.Equal(t, err.Error(), "not a DDC URL (htts://cdn-ddc/buc/123)")
 	}
 }
