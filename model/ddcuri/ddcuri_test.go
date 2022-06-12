@@ -17,6 +17,15 @@ func TestGoodDdcUri(t *testing.T) {
 		})
 
 	goodDdcUri(t,
+		"  /ddc/buc/123/ipiece/cid123   ",
+		DdcQuery{
+			Protocol:    "ipiece",
+			BucketId:    123,
+			BucketIdSet: true,
+			Cid:         "cid123",
+		})
+
+	goodDdcUri(t,
 		"ddc/buc/123/ifile/cid123",
 		DdcQuery{
 			Protocol:    "ifile",
