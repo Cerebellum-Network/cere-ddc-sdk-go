@@ -16,20 +16,16 @@ func consumeOptions(q *DdcQuery, uri string) string {
 	return mainUri
 }
 
-func splitParts(uri string) []string {
+func consumeMain(q *DdcQuery, uri string) error {
 	// Example input: /ddc/org/my_org/buc/my_bucket/ifile/my_cid
-	uri = strings.TrimPrefix(uri, "/")
-	parts := strings.Split(uri, "/")
-	return parts
-}
-
-func consumeMain(q *DdcQuery, parts []string) error {
-	// Example input: [ddc org my_org buc my_bucket ifile my_cid]
-	if len(parts) == 0 || parts[0] != DDC {
-		return fmt.Errorf("DDC URI must start with /ddc/")
+	if !strings.HasPrefix(uri, DDC_PREFIX) {
+		return fmt.Errorf("DDC URI must start with " + DDC_PREFIX)
 	}
+	uri = uri[len(DDC_PREFIX):]
 
-	return consumeOrg(q, parts[1:])
+	// Example input: org/my_org/buc/my_bucket/ifile/my_cid
+	parts := strings.Split(uri, "/")
+	return consumeOrg(q, parts)
 }
 
 func consumeOrg(q *DdcQuery, parts []string) error {

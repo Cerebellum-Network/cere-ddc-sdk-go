@@ -21,8 +21,7 @@ type DdcQuery struct {
 
 func Parse(uri string) (q DdcQuery, err error) {
 	uri = consumeOptions(&q, uri)
-	parts := splitParts(uri)
-	err = consumeMain(&q, parts)
+	err = consumeMain(&q, uri)
 	return q, err
 }
 
@@ -40,11 +39,12 @@ func (q *DdcQuery) String() string {
 }
 
 const (
-	DDC    = "ddc"
-	ORG    = "org"
-	BUC    = "buc"
-	IPIECE = "ipiece"
-	IFILE  = "ifile"
-	PIECE  = "piece"
-	FILE   = "file"
+	DDC_PREFIX = "/ddc/"
+	DDC        = "ddc"
+	ORG        = "org"
+	BUC        = "buc"
+	IPIECE     = "ipiece"
+	IFILE      = "ifile"
+	PIECE      = "piece"
+	FILE       = "file"
 )

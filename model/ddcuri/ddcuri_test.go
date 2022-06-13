@@ -28,18 +28,8 @@ func TestGoodDdcUri(t *testing.T) {
 		})
 
 	goodDdcUri(t,
-		"ddc/buc/123/ifile/cid123",
-		"/ddc/buc/123/ifile/cid123", // canonical
-		DdcQuery{
-			Protocol:    "ifile",
-			BucketId:    123,
-			BucketIdSet: true,
-			Cid:         "cid123",
-		})
-
-	goodDdcUri(t,
-		"ddc/org/my_org/buc/my_bucket/ifile/cid123",
-		"/ddc/org/my_org/buc/my_bucket/ifile/cid123", // canonical
+		"/ddc/org/my_org/buc/my_bucket/ifile/cid123",
+		"",
 		DdcQuery{
 			Organization: "my_org",
 			BucketName:   "my_bucket",
@@ -82,6 +72,7 @@ func TestGoodDdcUri(t *testing.T) {
 
 func TestBadDdcUri(t *testing.T) {
 	badDdcUri(t, "", "DDC URI must start with /ddc/")
+	badDdcUri(t, "ddc/buc/123/ifile/cid123", "DDC URI must start with /ddc/")
 	badDdcUri(t, "http://something", "DDC URI must start with /ddc/")
 	badDdcUri(t, "/ddc/org/my_org/buc//ifile/cid123", "invalid bucket name ()")
 	badDdcUri(t, "/ddc/org/my_org/buc/?my_bucket/ifile/cid123", "invalid bucket name ()")
