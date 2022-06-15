@@ -56,7 +56,7 @@ func (s *BucketStatus) RentExpired() bool {
 	return s.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
 }
 
-func (s *BucketStatus) hasWriteAccess(publicKey string) (bool, error) {
+func (s *BucketStatus) HasWriteAccess(publicKey string) (bool, error) {
 	address, err := types.NewAddressFromHexAccountID(publicKey)
 	if err != nil {
 		return false, err
