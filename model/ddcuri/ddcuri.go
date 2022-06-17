@@ -1,3 +1,6 @@
+// Package ddcuri is an implementation of DDC URI v0.2
+//
+// Reference: https://docs.cere.network/ddc/protocols/ddc-url
 package ddcuri
 
 import (
