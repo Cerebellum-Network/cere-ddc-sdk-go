@@ -78,8 +78,16 @@ func (SearchType) EnumDescriptor() ([]byte, []int) {
 // using the `searchable` field.
 //
 // Specific tags are used to implement different higher protocols, such as a file system.
-// The key should start with a prefix indicating which protocol or application relies on it.
-// Example: `file-path` is used by the file protocol.
+// Each key should start with a prefix indicating which protocol or application relies on it. Below is a non-exhaustive table of known tag keys:
+//
+// Tag Key      | Description
+// ------------ | -----------
+// content-type | The MIME type of the payload of a piece or file. This is returned by the CDN web interface as HTTP Content-Type.
+// file-*       | Tags to implement a filesystem over object storage. Example: `file-path`
+// kv-*         | Tags to implement a key/value store over object storage.
+// enc-*        | Tags to organize data encryption and data sharing keys.
+//
+// Below is the structure of a tag:
 type Tag struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

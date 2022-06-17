@@ -71,7 +71,7 @@ func (x *SearchResult) GetSearchedPieces() []*SearchedPiece {
 }
 
 //
-// A searched piece found in storage
+// A searched piece found in storage.
 type SearchedPiece struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -79,7 +79,7 @@ type SearchedPiece struct {
 
 	// Found signed piece.
 	SignedPiece *SignedPiece `protobuf:"bytes,1,opt,name=signedPiece,proto3" json:"signedPiece,omitempty"`
-	// CID of the found piece
+	// CID of the found piece.
 	Cid string `protobuf:"bytes,2,opt,name=cid,proto3" json:"cid,omitempty"`
 }
 
