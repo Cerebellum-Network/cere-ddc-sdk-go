@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"time"
 )
@@ -53,4 +54,19 @@ type BucketStatus struct {
 
 func (s *BucketStatus) RentExpired() bool {
 	return s.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
+}
+
+func (s *BucketStatus) HasWriteAccess(publicKey string) (bool, error) {
+	address, err := types.NewAddressFromHexAccountID(publicKey)
+	if err != nil {
+		return false, err
+	}
+
+	for _, writerId := range s.WriterIds {
+		if writerId == address.AsAccountID {
+			return true, nil
+		}
+	}
+
+	return false, errors.New("no write access")
 }
