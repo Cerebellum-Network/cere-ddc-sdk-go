@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/cid"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/model/domain"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/cid"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/model/domain"
 )
 
 type ContentAddressableStorage interface {
@@ -65,7 +66,8 @@ func (c *contentAddressableStorage) Read(ctx context.Context, bucketId uint32, c
 		return nil, err
 	}
 
-	return signedPiece.Piece, nil
+	piece := signedPiece.Piece()
+	return piece, nil
 }
 
 func (c *contentAddressableStorage) Search(ctx context.Context, query *domain.Query) (*domain.SearchResult, error) {
@@ -129,10 +131,11 @@ func (c *contentAddressableStorage) signPiece(piece *domain.Piece) (*domain.Sign
 		return nil, "", fmt.Errorf("failed to sign piece: %w", err)
 	}
 
-	signedPiece := &domain.SignedPiece{
-		Piece:     piece,
-		Signature: &domain.Signature{Value: signature, Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
-	}
+	signedPiece := domain.NewSignedPiece(
+		piece,
+		pieceBytes,
+		&domain.Signature{Value: signature, Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
+	)
 
 	return signedPiece, pieceCid, nil
 

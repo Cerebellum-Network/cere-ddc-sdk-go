@@ -23,14 +23,18 @@ func (sr *SearchResult) ToProto() *pb.SearchResult {
 	return pbSearchResult
 }
 
-func (sr *SearchResult) ToDomain(pbSearchResult *pb.SearchResult) {
+func (sr *SearchResult) ToDomain(pbSearchResult *pb.SearchResult) error {
 	sr.SearchedPieces = make([]*SearchedPiece, len(pbSearchResult.SearchedPieces))
 
 	for i, pbSearchedPiece := range pbSearchResult.SearchedPieces {
 		searchedPiece := &SearchedPiece{}
-		searchedPiece.ToDomain(pbSearchedPiece)
+		err := searchedPiece.ToDomain(pbSearchedPiece)
+		if err != nil {
+			return err
+		}
 		sr.SearchedPieces[i] = searchedPiece
 	}
+	return nil
 }
 
 func (sr *SearchResult) MarshalProto() ([]byte, error) {
@@ -43,8 +47,8 @@ func (sr *SearchResult) UnmarshalProto(searchResultAsBytes []byte) error {
 		return err
 	}
 
-	sr.ToDomain(pbSearchResult)
-	return nil
+	err := sr.ToDomain(pbSearchResult)
+	return err
 }
 
 type SearchedPiece struct {
@@ -61,11 +65,11 @@ func (sp *SearchedPiece) ToProto() *pb.SearchedPiece {
 	}
 }
 
-func (sp *SearchedPiece) ToDomain(pbSearchPiece *pb.SearchedPiece) {
+func (sp *SearchedPiece) ToDomain(pbSearchPiece *pb.SearchedPiece) error {
 	sp.Cid = pbSearchPiece.Cid
 	sp.SignedPiece = &SignedPiece{}
 
-	sp.SignedPiece.ToDomain(pbSearchPiece.SignedPiece)
+	return sp.SignedPiece.ToDomain(pbSearchPiece.SignedPiece)
 }
 
 func (sp *SearchedPiece) MarshalProto() ([]byte, error) {
@@ -78,6 +82,6 @@ func (sp *SearchedPiece) UnmarshalProto(searchedPieceAsBytes []byte) error {
 		return err
 	}
 
-	sp.ToDomain(pbSearchedPiece)
-	return nil
+	err := sp.ToDomain(pbSearchedPiece)
+	return err
 }

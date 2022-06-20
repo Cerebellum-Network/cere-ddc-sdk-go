@@ -6,25 +6,38 @@ import (
 )
 
 type SignedPiece struct {
-	Piece     *Piece
-	Signature *Signature
+	pieceSerial []byte
+	Signature   *Signature
+
+	piece *Piece
 }
 
 var _ Protobufable = (*SignedPiece)(nil)
 
+func NewSignedPiece(piece *Piece, pieceSerial []byte, sig *Signature) *SignedPiece {
+	return &SignedPiece{
+		pieceSerial: pieceSerial,
+		Signature:   sig,
+		piece:       piece,
+	}
+}
+
 func (sp *SignedPiece) ToProto() *pb.SignedPiece {
 	return &pb.SignedPiece{
-		Piece:     sp.Piece.ToProto(),
+		Piece:     sp.pieceSerial,
 		Signature: sp.Signature.ToProto(),
 	}
 }
 
-func (sp *SignedPiece) ToDomain(pbSignedPiece *pb.SignedPiece) {
-	sp.Piece = &Piece{}
-	sp.Piece.ToDomain(pbSignedPiece.Piece)
+func (sp *SignedPiece) ToDomain(pbSignedPiece *pb.SignedPiece) error {
+	sp.pieceSerial = pbSignedPiece.Piece
 
 	sp.Signature = &Signature{}
 	sp.Signature.ToDomain(pbSignedPiece.Signature)
+
+	sp.piece = &Piece{}
+	err := sp.piece.UnmarshalProto(sp.pieceSerial)
+	return err
 }
 
 func (sp *SignedPiece) MarshalProto() ([]byte, error) {
@@ -37,6 +50,18 @@ func (sp *SignedPiece) UnmarshalProto(signedPieceAsBytes []byte) error {
 		return err
 	}
 
-	sp.ToDomain(pbSignedPiece)
-	return nil
+	return sp.ToDomain(pbSignedPiece)
+}
+
+func (sp *SignedPiece) PieceSerial() []byte {
+	return sp.pieceSerial
+}
+
+func (sp *SignedPiece) Piece() *Piece {
+	return sp.piece
+}
+
+func (sp *SignedPiece) UpdatePiece() (err error) {
+	sp.pieceSerial, err = sp.piece.MarshalProto()
+	return err
 }
