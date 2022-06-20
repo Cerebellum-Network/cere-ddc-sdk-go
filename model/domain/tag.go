@@ -6,7 +6,7 @@ import (
 )
 
 type Tag struct {
-	Key        string
+	Key        []byte
 	Value      []byte
 	Searchable pb.SearchType
 }
