@@ -28,8 +28,7 @@ func (sr *SearchResult) ToDomain(pbSearchResult *pb.SearchResult) error {
 
 	for i, pbSearchedPiece := range pbSearchResult.SearchedPieces {
 		searchedPiece := &SearchedPiece{}
-		err := searchedPiece.ToDomain(pbSearchedPiece)
-		if err != nil {
+		if err := searchedPiece.ToDomain(pbSearchedPiece); err != nil {
 			return err
 		}
 		sr.SearchedPieces[i] = searchedPiece
@@ -47,8 +46,7 @@ func (sr *SearchResult) UnmarshalProto(searchResultAsBytes []byte) error {
 		return err
 	}
 
-	err := sr.ToDomain(pbSearchResult)
-	return err
+	return sr.ToDomain(pbSearchResult)
 }
 
 type SearchedPiece struct {
@@ -82,6 +80,5 @@ func (sp *SearchedPiece) UnmarshalProto(searchedPieceAsBytes []byte) error {
 		return err
 	}
 
-	err := sp.ToDomain(pbSearchedPiece)
-	return err
+	return sp.ToDomain(pbSearchedPiece)
 }

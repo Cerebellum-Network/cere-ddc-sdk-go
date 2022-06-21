@@ -36,8 +36,7 @@ func (sp *SignedPiece) ToDomain(pbSignedPiece *pb.SignedPiece) error {
 	sp.Signature.ToDomain(pbSignedPiece.Signature)
 
 	sp.piece = &Piece{}
-	err := sp.piece.UnmarshalProto(sp.pieceSerial)
-	return err
+	return sp.piece.UnmarshalProto(sp.pieceSerial)
 }
 
 func (sp *SignedPiece) MarshalProto() ([]byte, error) {
