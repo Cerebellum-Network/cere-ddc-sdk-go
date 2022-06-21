@@ -59,8 +59,3 @@ func (sp *SignedPiece) PieceSerial() []byte {
 func (sp *SignedPiece) Piece() *Piece {
 	return sp.piece
 }
-
-func (sp *SignedPiece) UpdatePiece() (err error) {
-	sp.pieceSerial, err = sp.piece.MarshalProto()
-	return err
-}
