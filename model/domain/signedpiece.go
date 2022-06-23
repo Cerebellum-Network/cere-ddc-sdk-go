@@ -1,8 +1,8 @@
 package domain
 
 import (
+	"github.com/cerebellum-network/cere-ddc-sdk-go/model/ddcodec"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 type SignedPiece struct {
@@ -11,6 +11,8 @@ type SignedPiece struct {
 
 	piece *Piece
 }
+
+const DDTYPE_SIGNED_PIECE uint64 = 1
 
 var _ Protobufable = (*SignedPiece)(nil)
 
@@ -40,12 +42,12 @@ func (sp *SignedPiece) ToDomain(pbSignedPiece *pb.SignedPiece) error {
 }
 
 func (sp *SignedPiece) MarshalProto() ([]byte, error) {
-	return proto.Marshal(sp.ToProto())
+	return ddcodec.MarshalTyped(sp.ToProto(), DDTYPE_SIGNED_PIECE)
 }
 
 func (sp *SignedPiece) UnmarshalProto(signedPieceAsBytes []byte) error {
 	pbSignedPiece := &pb.SignedPiece{}
-	if err := proto.Unmarshal(signedPieceAsBytes, pbSignedPiece); err != nil {
+	if err := ddcodec.UnmarshalTyped(signedPieceAsBytes, pbSignedPiece, DDTYPE_SIGNED_PIECE); err != nil {
 		return err
 	}
 
