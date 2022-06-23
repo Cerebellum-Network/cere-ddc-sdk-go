@@ -1,5 +1,10 @@
+packages = ./model/... ./core/... ./contract/... ./contentadrstorage/...
+
 test:
-	go test ./model/... ./core/... ./contract/... ./contentadrstorage/...
+	go test ${packages}
+
+lint:
+	docker run --rm -v ${PWD}:/app -w /app golangci/golangci-lint:v1.45.2 golangci-lint run -v ${packages}
 
 protobuf:
 	docker run --rm       									\
