@@ -57,3 +57,11 @@ func encodeSignature(sig []byte) string {
 func decodeSignature(sig string) ([]byte, error) {
 	return hex.DecodeString(strings.TrimPrefix(sig, "0x"))
 }
+
+func encodeKey(key []byte) string {
+	return "0x" + hex.EncodeToString(key)
+}
+
+func decodeKey(key string) ([]byte, error) {
+	return hex.DecodeString(strings.TrimPrefix(key, "0x"))
+}

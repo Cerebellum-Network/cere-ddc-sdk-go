@@ -2,9 +2,7 @@ package crypto
 
 import (
 	"crypto/ed25519"
-	"encoding/hex"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type ed25519Scheme struct {
@@ -16,7 +14,7 @@ const Ed25519 SchemeName = "ed25519"
 
 func createEd25519Scheme(privateKey []byte) Scheme {
 	privKey := ed25519.NewKeyFromSeed(privateKey)
-	publicKey := hex.EncodeToString(privKey.Public().(ed25519.PublicKey))
+	publicKey := encodeKey(privKey.Public().(ed25519.PublicKey))
 
 	return &ed25519Scheme{privateKey: privKey, publicKey: publicKey}
 }
@@ -45,7 +43,7 @@ func verifyEd25519(appPubKey string, data []byte, signature string) bool {
 		return false
 	}
 
-	publicKey, err := hex.DecodeString(strings.TrimPrefix(appPubKey, "0x"))
+	publicKey, err := decodeKey(appPubKey)
 
 	if err != nil {
 		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't decode app pub key (without 0x prefix) to hex")

@@ -1,10 +1,8 @@
 package crypto
 
 import (
-	"encoding/hex"
 	"github.com/ChainSafe/go-schnorrkel"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type sr25519Scheme struct {
@@ -31,7 +29,7 @@ func createSr25519Scheme(privateKey []byte) (Scheme, error) {
 
 	publicKey := public.Encode()
 
-	return &sr25519Scheme{privateKey: secretKey, publicKey: hex.EncodeToString(publicKey[:])}, nil
+	return &sr25519Scheme{privateKey: secretKey, publicKey: encodeKey(publicKey[:])}, nil
 }
 
 func (s *sr25519Scheme) Name() string {
@@ -87,14 +85,14 @@ func verifySr25519(appPubKey string, data []byte, signature string) bool {
 }
 
 func getSchnorrkelPublicKey(appPubKey string) (*schnorrkel.PublicKey, error) {
-	hexPublicKey, err := hex.DecodeString(strings.TrimPrefix(appPubKey, "0x"))
+	publicKeyBytes, err := decodeKey(appPubKey)
 	if err != nil {
 		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't decode app pub key (without 0x prefix) to hex")
 		return nil, err
 	}
 
 	in := [32]byte{}
-	copy(in[:], hexPublicKey)
+	copy(in[:], publicKeyBytes)
 	publicKey := &schnorrkel.PublicKey{}
 	return publicKey, publicKey.Decode(in)
 }
