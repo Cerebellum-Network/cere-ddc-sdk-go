@@ -30,6 +30,9 @@ func (e *ed25519Scheme) Name() string {
 }
 
 func (e *ed25519Scheme) Sign(data []byte) (string, error) {
+	if err := validateSafeMessage(data); err != nil {
+		return "", err
+	}
 	return hex.EncodeToString(ed25519.Sign(e.privateKey, data)), nil
 }
 
