@@ -41,7 +41,7 @@ func (s *secp256k1Scheme) Sign(data []byte) (string, error) {
 		return "", err
 	}
 
-	return hex.EncodeToString(sign), nil
+	return encodeSignature(sign), nil
 }
 
 func (s *secp256k1Scheme) Verify(data []byte, signature string) bool {
@@ -51,7 +51,7 @@ func (s *secp256k1Scheme) Verify(data []byte, signature string) bool {
 func verifySecp256k1(publicKey string, data []byte, signature string) bool {
 	hash := crypto.Keccak256Hash(data).Bytes()
 
-	signatureBytes, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
+	signatureBytes, err := decodeSignature(signature)
 	if err != nil {
 		log.WithError(err).WithField("signature", signature).Info("Can't decode signature to hex")
 		return false

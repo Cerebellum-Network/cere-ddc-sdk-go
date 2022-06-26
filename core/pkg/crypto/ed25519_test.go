@@ -45,7 +45,7 @@ func TestSignEd25519(t *testing.T) {
 	signature, err := testEd25519Scheme.Sign([]byte(content))
 
 	//then
-	expected := "464fc53d45cc95e7bdbac954ae21bd8831cbe059f8f438c0f367f57a7ad7a47f56ca32b15c084b6ad81b91e6122984eaaff0f47280f3115294df8f83dd959e0a"
+	expected := "0x464fc53d45cc95e7bdbac954ae21bd8831cbe059f8f438c0f367f57a7ad7a47f56ca32b15c084b6ad81b91e6122984eaaff0f47280f3115294df8f83dd959e0a"
 	assert.Equal(t, expected, signature)
 	assert.NoError(t, err)
 }

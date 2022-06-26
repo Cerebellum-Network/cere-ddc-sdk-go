@@ -49,3 +49,11 @@ func Verify(schemeName SchemeName, publicKeyHex string, content []byte, signatur
 		return false, ErrSchemeNotExist
 	}
 }
+
+func encodeSignature(sig []byte) string {
+	return "0x" + hex.EncodeToString(sig)
+}
+
+func decodeSignature(sig string) ([]byte, error) {
+	return hex.DecodeString(strings.TrimPrefix(sig, "0x"))
+}

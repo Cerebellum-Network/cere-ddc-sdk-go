@@ -30,7 +30,7 @@ func (e *ed25519Scheme) Name() string {
 }
 
 func (e *ed25519Scheme) Sign(data []byte) (string, error) {
-	return hex.EncodeToString(ed25519.Sign(e.privateKey, data)), nil
+	return encodeSignature(ed25519.Sign(e.privateKey, data)), nil
 }
 
 func (e *ed25519Scheme) Verify(data []byte, signature string) bool {
@@ -38,7 +38,7 @@ func (e *ed25519Scheme) Verify(data []byte, signature string) bool {
 }
 
 func verifyEd25519(appPubKey string, data []byte, signature string) bool {
-	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
+	hexSignature, err := decodeSignature(signature)
 
 	if err != nil {
 		log.WithError(err).WithField("signature", signature).Info("Can't decode signature to hex")

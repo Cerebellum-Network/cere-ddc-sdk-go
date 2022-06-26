@@ -50,7 +50,7 @@ func (s *sr25519Scheme) Sign(data []byte) (string, error) {
 	}
 
 	result := signature.Encode()
-	return hex.EncodeToString(result[:]), nil
+	return encodeSignature(result[:]), nil
 }
 
 func (s *sr25519Scheme) Verify(data []byte, signature string) bool {
@@ -100,14 +100,14 @@ func getSchnorrkelPublicKey(appPubKey string) (*schnorrkel.PublicKey, error) {
 }
 
 func getSchnorrkelSignature(signature string) (*schnorrkel.Signature, error) {
-	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
+	sigBytes, err := decodeSignature(signature)
 	if err != nil {
 		log.WithError(err).WithField("signature", signature).Info("Can't decode signature (without 0x prefix) to hex")
 		return nil, err
 	}
 
 	in := [64]byte{}
-	copy(in[:], hexSignature)
+	copy(in[:], sigBytes)
 	sign := &schnorrkel.Signature{}
 	return sign, sign.Decode(in)
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
@@ -51,5 +50,5 @@ func TestSignSecp256k1(t *testing.T) {
 
 	//then
 	assert.NoError(t, err)
-	assert.Equal(t, strings.TrimPrefix(signatureSecp256k1, "0x"), sign)
+	assert.Equal(t, signatureSecp256k1, sign)
 }
