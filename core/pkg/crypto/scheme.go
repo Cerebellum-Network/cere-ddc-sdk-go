@@ -26,12 +26,12 @@ func CreateScheme(schemeName SchemeName, privateKeyHex string) (Scheme, error) {
 	}
 
 	switch schemeName {
+	case Sr25519, "": // Default.
+		return createSr25519Scheme(privateKey)
 	case Ed25519:
 		return createEd25519Scheme(privateKey), nil
 	case Secp256k1:
 		return createSecp256k1Scheme(privateKey)
-	case Sr25519:
-		return createSr25519Scheme(privateKey)
 	default:
 		return nil, ErrSchemeNotExist
 	}
