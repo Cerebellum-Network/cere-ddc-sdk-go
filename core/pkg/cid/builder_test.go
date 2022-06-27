@@ -5,13 +5,17 @@ import (
 	"testing"
 )
 
-func TestGetPieceCid_Sha2_256(t *testing.T) {
+func TestGetPieceCid(t *testing.T) {
+	doTestGetPieceCid(t, Blake2b256, "Hello world!", "bafk2bzacea73ycjnxe2qov7cvnhx52lzfp6nf5jcblnfus6gqreh6ygganbws")
+	doTestGetPieceCid(t, 0, "Hello world!", "bafk2bzacea73ycjnxe2qov7cvnhx52lzfp6nf5jcblnfus6gqreh6ygganbws")
+}
+
+func doTestGetPieceCid(t *testing.T, mhType uint64, data string, expectedCid string) {
 	//given
-	testSubject := CreateBuilder(Blake2b256)
-	expectedCid := "bafk2bzacea73ycjnxe2qov7cvnhx52lzfp6nf5jcblnfus6gqreh6ygganbws"
+	testSubject := CreateBuilder(mhType)
 
 	//when
-	c, err := testSubject.Build([]byte("Hello world!"))
+	c, err := testSubject.Build([]byte(data))
 
 	//then
 	assert.NoError(t, err)
