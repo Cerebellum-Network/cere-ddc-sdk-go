@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/cid"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
@@ -91,7 +93,10 @@ func (sp *SignedPiece) SigneableCid() (signeable []byte, pieceCid string, err er
 		return nil, "", err
 	}
 
-	return []byte(pieceCid), pieceCid, nil
+	timeText := "" // TODO
+	msg := fmt.Sprintf("<Bytes>DDC store %s at %s</Bytes>", pieceCid, timeText)
+
+	return []byte(msg), pieceCid, nil
 }
 
 func (sp *SignedPiece) SetSignature(sig []byte) {
@@ -106,11 +111,17 @@ func (sp *SignedPiece) Verify() (pieceCid string, err error) {
 		return "", err
 	}
 
+	sig, signer, isV013 := sp.getSigAndSigner()
+	if isV013 {
+		// Verify the message from v0.1.3. TODO: Remove this.
+		signeable = []byte(pieceCid)
+	}
+
 	ok, err := crypto.Verify(
 		crypto.SchemeName(sp.Signature.Scheme),
-		sp.Signature.Signer,
+		signer,
 		signeable,
-		sp.Signature.Value)
+		sig)
 	if err != nil {
 		return "", err
 	}
@@ -119,4 +130,29 @@ func (sp *SignedPiece) Verify() (pieceCid string, err error) {
 	}
 
 	return pieceCid, nil
+}
+
+func (sp *SignedPiece) getSigAndSigner() (sig []byte, signer []byte, isV013 bool) {
+
+	// Try the deprecated hexadecimal format. TODO: Remove this.
+	sigFromHex := maybeDecodeHex(sp.Signature.Value, 64)
+	signerFromHex := maybeDecodeHex(sp.Signature.Signer, 32)
+	if sigFromHex != nil && signerFromHex != nil {
+		return sigFromHex, signerFromHex, true
+	}
+
+	return sp.Signature.Value, sp.Signature.Signer, false
+}
+
+func maybeDecodeHex(src []byte, bytesLen int) (maybeDecoded []byte) {
+	hexLen := 2 + bytesLen*2
+	if len(src) == hexLen && string(src[:2]) == "0x" {
+		decoded := make([]byte, bytesLen)
+		_, err := hex.Decode(decoded, src[2:])
+		if err != nil {
+			return nil
+		}
+		return decoded
+	}
+	return nil
 }
