@@ -6,8 +6,8 @@ import (
 )
 
 type Signature struct {
-	Value         string
-	Signer        string
+	Value         []byte
+	Signer        []byte
 	Scheme        string
 	MultiHashType uint64
 }

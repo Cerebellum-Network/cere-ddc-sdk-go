@@ -1,15 +1,13 @@
 package crypto
 
 import (
-	"encoding/hex"
 	"github.com/ChainSafe/go-schnorrkel"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type sr25519Scheme struct {
 	privateKey *schnorrkel.SecretKey
-	publicKey  string
+	publicKey  []byte
 }
 
 const Sr25519 SchemeName = "sr25519"
@@ -31,39 +29,39 @@ func createSr25519Scheme(privateKey []byte) (Scheme, error) {
 
 	publicKey := public.Encode()
 
-	return &sr25519Scheme{privateKey: secretKey, publicKey: hex.EncodeToString(publicKey[:])}, nil
+	return &sr25519Scheme{privateKey: secretKey, publicKey: publicKey[:]}, nil
 }
 
 func (s *sr25519Scheme) Name() string {
 	return string(Sr25519)
 }
 
-func (s *sr25519Scheme) PublicKey() string {
+func (s *sr25519Scheme) PublicKey() []byte {
 	return s.publicKey
 }
 
-func (s *sr25519Scheme) Sign(data []byte) (string, error) {
+func (s *sr25519Scheme) Sign(data []byte) ([]byte, error) {
 	if err := validateSafeMessage(data); err != nil {
-		return "", err
+		return nil, err
 	}
 	transcript := schnorrkel.NewSigningContext(signingContext, data)
 	signature, err := s.privateKey.Sign(transcript)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	result := signature.Encode()
-	return hex.EncodeToString(result[:]), nil
+	return result[:], nil
 }
 
-func (s *sr25519Scheme) Verify(data []byte, signature string) bool {
+func (s *sr25519Scheme) Verify(data []byte, signature []byte) bool {
 	return verifySr25519(s.publicKey, data, signature)
 }
 
-func verifySr25519(appPubKey string, data []byte, signature string) bool {
-	publicKey, err := getSchnorrkelPublicKey(appPubKey)
+func verifySr25519(pubKey []byte, data []byte, signature []byte) bool {
+	publicKey, err := getSchnorrkelPublicKey(pubKey)
 	if err != nil {
-		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't create Schnorrkel public key")
+		log.WithError(err).WithField("publicKey", pubKey).Info("Can't create Schnorrkel public key")
 		return false
 	}
 
@@ -77,40 +75,29 @@ func verifySr25519(appPubKey string, data []byte, signature string) bool {
 	verified, _ := publicKey.Verify(sign, transcript)
 
 	if !verified {
+		// Try the Polkadot.js format (https://github.com/polkadot-js/wasm/issues/256#issuecomment-1002419850)
 		wrappedContent := "<Bytes>" + string(data) + "</Bytes>"
 		transcript = schnorrkel.NewSigningContext(signingContext, []byte(wrappedContent))
 		verified, _ = publicKey.Verify(sign, transcript)
 	}
 
 	if !verified {
-		log.WithField("appPubKey", appPubKey).Info("Invalid content signature")
+		log.WithField("appPubKey", pubKey).Info("Invalid content signature")
 	}
 
 	return verified
 }
 
-func getSchnorrkelPublicKey(appPubKey string) (*schnorrkel.PublicKey, error) {
-	hexPublicKey, err := hex.DecodeString(strings.TrimPrefix(appPubKey, "0x"))
-	if err != nil {
-		log.WithError(err).WithField("appPubKey", appPubKey).Info("Can't decode app pub key (without 0x prefix) to hex")
-		return nil, err
-	}
-
+func getSchnorrkelPublicKey(pubKey []byte) (*schnorrkel.PublicKey, error) {
 	in := [32]byte{}
-	copy(in[:], hexPublicKey)
+	copy(in[:], pubKey)
 	publicKey := &schnorrkel.PublicKey{}
 	return publicKey, publicKey.Decode(in)
 }
 
-func getSchnorrkelSignature(signature string) (*schnorrkel.Signature, error) {
-	hexSignature, err := hex.DecodeString(strings.TrimPrefix(signature, "0x"))
-	if err != nil {
-		log.WithError(err).WithField("signature", signature).Info("Can't decode signature (without 0x prefix) to hex")
-		return nil, err
-	}
-
+func getSchnorrkelSignature(signature []byte) (*schnorrkel.Signature, error) {
 	in := [64]byte{}
-	copy(in[:], hexSignature)
+	copy(in[:], signature)
 	sign := &schnorrkel.Signature{}
 	return sign, sign.Decode(in)
 }

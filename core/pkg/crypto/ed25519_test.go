@@ -14,6 +14,12 @@ const (
 	privKeyEd25519 = "38a538d3d890bfe8f76dc9bf578e215af16fd3d684666f72db0bc0a22bc1d05b"
 )
 
+var pubKeyEd25519Bytes []byte
+
+func init() {
+	pubKeyEd25519Bytes, _ = hex.DecodeString(strings.TrimPrefix(pubKeyEd25519, "0x"))
+}
+
 var testEd25519Scheme = initTestSubjectEd25519()
 
 func initTestSubjectEd25519() Scheme {
@@ -29,7 +35,7 @@ func TestPublicKeyEd25519(t *testing.T) {
 	publicKey := testEd25519Scheme.PublicKey()
 
 	//then
-	assert.Equal(t, pubKeyEd25519, publicKey)
+	assert.Equal(t, pubKeyEd25519Bytes, publicKey)
 }
 
 func TestNameEd25519(t *testing.T) {
@@ -46,7 +52,8 @@ func TestSignEd25519(t *testing.T) {
 
 	//then
 	expected := "464fc53d45cc95e7bdbac954ae21bd8831cbe059f8f438c0f367f57a7ad7a47f56ca32b15c084b6ad81b91e6122984eaaff0f47280f3115294df8f83dd959e0a"
-	assert.Equal(t, expected, signature)
+	expectedB, _ := hex.DecodeString(strings.TrimPrefix(expected, "0x"))
+	assert.Equal(t, expectedB, signature)
 	assert.NoError(t, err)
 }
 
@@ -72,8 +79,8 @@ func TestContentVerificationWhenSignatureIsInvalidEd25519(t *testing.T) {
 	assert.False(t, result)
 }
 
-func getContentSignatureEd25519(content string) string {
+func getContentSignatureEd25519(content string) []byte {
 	privKeyAsBytes, _ := hex.DecodeString(strings.TrimPrefix(privKeyEd25519, "0x"))
 	privKey := ed25519.NewKeyFromSeed(privKeyAsBytes)
-	return hex.EncodeToString(ed25519.Sign(privKey, []byte(content)))
+	return ed25519.Sign(privKey, []byte(content))
 }
