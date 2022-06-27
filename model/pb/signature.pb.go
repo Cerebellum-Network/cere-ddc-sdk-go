@@ -58,8 +58,9 @@ const (
 //
 // #### Legacy signatures before v0.1.4
 //
-// - If `value` is 130 bytes long, and `signer` is 66 bytes long, and they starts with `0x` (UTF-8), decode them from hexadecimal.
-// - Then, the signed message is `${CID}` or `<Bytes>${CID}</Bytes>`.
+// If `timestamp == 0`, assume an older version:
+// - Decode `value` and `signer` from hexadecimal with or without `0x`.
+// - Then the signed message is either `${CID}` or `<Bytes>${CID}</Bytes>`.
 //
 type Signature struct {
 	state         protoimpl.MessageState
