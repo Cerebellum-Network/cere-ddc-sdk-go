@@ -10,6 +10,7 @@ type Signature struct {
 	Signer        []byte
 	Scheme        string
 	MultiHashType uint64
+	Timestamp     uint64
 }
 
 var _ Protobufable = (*Signature)(nil)
@@ -20,6 +21,7 @@ func (s *Signature) ToProto() *pb.Signature {
 		Signer:        s.Signer,
 		Scheme:        s.Scheme,
 		MultiHashType: s.MultiHashType,
+		Timestamp:     s.Timestamp,
 	}
 }
 
@@ -28,6 +30,7 @@ func (s *Signature) ToDomain(pbSignature *pb.Signature) {
 	s.Signer = pbSignature.Signer
 	s.Scheme = pbSignature.Scheme
 	s.MultiHashType = pbSignature.MultiHashType
+	s.Timestamp = pbSignature.Timestamp
 }
 
 func (s *Signature) MarshalProto() ([]byte, error) {
