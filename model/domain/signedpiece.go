@@ -1,10 +1,31 @@
 package domain
 
 import (
+	"errors"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/cid"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
 
+// ## Generation of a SignedPiece:
+//
+// 1. Prepare a `Piece` structure and its ProtoBuf serialization.
+// 2. Prepare a `Signature` structure with its details except `Value`.
+// 3. Pass those to `NewSignedPiece(…)`.
+// 4. Use `SigneableCid()` to generate a signeable message, and a CID of the piece.
+// 5. Generate a signature of the `signeable` message using `crypto.CreateScheme(…)`.
+// 6. Store the signature with `SetSignature()`.
+// 7. Serialize the SignedPiece with `MarshalProto()` for transmission or storage.
+// 8. Use the CID above as a permanent identifier of the piece.
+//
+// ## Verification of a SignedPiece:
+//
+// 1. Deserialize using `UnmarshalProto()`.
+// 2. Call `Verify()`.
+// 3. If the piece is to be forwarded or stored, use the original serialization (do not re-serialize).
+//
 type SignedPiece struct {
 	pieceSerial []byte
 	Signature   *Signature
@@ -58,4 +79,44 @@ func (sp *SignedPiece) PieceSerial() []byte {
 
 func (sp *SignedPiece) Piece() *Piece {
 	return sp.piece
+}
+
+func (sp *SignedPiece) PieceCid() (string, error) {
+	return cid.CreateBuilder(sp.Signature.MultiHashType).Build(sp.PieceSerial())
+}
+
+func (sp *SignedPiece) SigneableCid() (signeable []byte, pieceCid string, err error) {
+	pieceCid, err = sp.PieceCid()
+	if err != nil {
+		return nil, "", err
+	}
+
+	return []byte(pieceCid), pieceCid, nil
+}
+
+func (sp *SignedPiece) SetSignature(sig []byte) {
+	sp.Signature.Value = sig
+}
+
+var ErrInvalidSignature = errors.New("invalid signature")
+
+func (sp *SignedPiece) Verify() (pieceCid string, err error) {
+	signeable, pieceCid, err := sp.SigneableCid()
+	if err != nil {
+		return "", err
+	}
+
+	ok, err := crypto.Verify(
+		crypto.SchemeName(sp.Signature.Scheme),
+		sp.Signature.Signer,
+		signeable,
+		sp.Signature.Value)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", ErrInvalidSignature
+	}
+
+	return pieceCid, nil
 }
