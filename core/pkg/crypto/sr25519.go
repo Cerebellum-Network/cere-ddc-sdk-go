@@ -41,6 +41,9 @@ func (s *sr25519Scheme) PublicKey() string {
 }
 
 func (s *sr25519Scheme) Sign(data []byte) (string, error) {
+	if err := validateSafeMessage(data); err != nil {
+		return "", err
+	}
 	transcript := schnorrkel.NewSigningContext(signingContext, data)
 	signature, err := s.privateKey.Sign(transcript)
 	if err != nil {
