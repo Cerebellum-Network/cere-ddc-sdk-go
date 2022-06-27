@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -107,14 +108,23 @@ func (sp *SignedPiece) SetSignature(sig []byte) {
 var ErrInvalidSignature = errors.New("invalid signature")
 
 func (sp *SignedPiece) Verify() (pieceCid string, err error) {
+	sig := sp.Signature.Value
+	signer := sp.Signature.Signer
 	signeable, pieceCid, err := sp.SigneableCid()
 	if err != nil {
 		return "", err
 	}
 
-	sig, signer, isV013 := sp.getSigAndSigner()
-	if isV013 {
-		// Verify the message from v0.1.3. TODO: Remove this.
+	if sp.Signature.Timestamp == 0 {
+		// Assume the deprecated SDK v0.1.3. TODO: Remove this.
+		sig, err = decodeHex(sig)
+		if err != nil {
+			return "", fmt.Errorf("missing signature timestamp, or old SDK")
+		}
+		signer, err = decodeHex(signer)
+		if err != nil {
+			return "", fmt.Errorf("missing signature timestamp, or old SDK")
+		}
 		signeable = []byte(pieceCid)
 	}
 
@@ -133,29 +143,11 @@ func (sp *SignedPiece) Verify() (pieceCid string, err error) {
 	return pieceCid, nil
 }
 
-func (sp *SignedPiece) getSigAndSigner() (sig []byte, signer []byte, isV013 bool) {
-
-	// Try the deprecated hexadecimal format. TODO: Remove this.
-	sigFromHex := maybeDecodeHex(sp.Signature.Value, 64)
-	signerFromHex := maybeDecodeHex(sp.Signature.Signer, 32)
-	if sigFromHex != nil && signerFromHex != nil {
-		return sigFromHex, signerFromHex, true
-	}
-
-	return sp.Signature.Value, sp.Signature.Signer, false
-}
-
-func maybeDecodeHex(src []byte, bytesLen int) (maybeDecoded []byte) {
-	hexLen := 2 + bytesLen*2
-	if len(src) == hexLen && string(src[:2]) == "0x" {
-		decoded := make([]byte, bytesLen)
-		_, err := hex.Decode(decoded, src[2:])
-		if err != nil {
-			return nil
-		}
-		return decoded
-	}
-	return nil
+func decodeHex(src []byte) ([]byte, error) {
+	src = bytes.TrimPrefix(src, []byte("0x"))
+	decoded := make([]byte, hex.DecodedLen(len(src)))
+	_, err := hex.Decode(decoded, src)
+	return decoded, err
 }
 
 // Format the time the same way as JavaScript Date.toISOString()
