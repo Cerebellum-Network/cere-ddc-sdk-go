@@ -36,6 +36,9 @@ func (s *secp256k1Scheme) Name() string {
 }
 
 func (s *secp256k1Scheme) Sign(data []byte) (string, error) {
+	if err := validateSafeMessage(data); err != nil {
+		return "", err
+	}
 	sign, err := crypto.Sign(crypto.Keccak256Hash(data).Bytes(), s.privateKey)
 	if err != nil {
 		return "", err
