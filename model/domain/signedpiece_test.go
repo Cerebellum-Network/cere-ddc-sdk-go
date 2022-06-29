@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const TEST_VECTOR = "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.8.json"
+const TEST_VECTOR = "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.9.json"
 
 type StoreRequest struct {
 	Body  string
