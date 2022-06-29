@@ -25,9 +25,7 @@ type StoreRequest struct {
 
 func TestStoreRequest(t *testing.T) {
 	raw, err := os.ReadFile(TEST_VECTOR)
-	if err != nil {
-		t.Skip("WARNING: no test vectors. Run: git submodule update --init")
-	}
+	require.NoError(t, err)
 
 	request := StoreRequest{}
 	err = json.Unmarshal(raw, &request)
