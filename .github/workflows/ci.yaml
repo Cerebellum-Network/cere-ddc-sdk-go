@@ -27,6 +27,8 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - name: Init submodules
+        run: git submodule update --init
       #Core module
       - name: 'Run linters core module'
         uses: golangci/golangci-lint-action@v3
