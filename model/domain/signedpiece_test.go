@@ -13,8 +13,14 @@ import (
 const TEST_VECTOR = "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.8.json"
 
 type StoreRequest struct {
-	Body string
-	Cid  string
+	Body  string
+	Cid   string
+	Piece struct {
+		Data []byte
+		Tags []struct {
+			Searchable string
+		}
+	}
 }
 
 func TestStoreRequest(t *testing.T) {
@@ -38,4 +44,6 @@ func TestStoreRequest(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, request.Cid, cid)
+	require.Equal(t, request.Piece.Data, sp.Piece().Data)
+	require.Equal(t, request.Piece.Tags[0].Searchable, sp.Piece().Tags[0].Searchable.String())
 }
