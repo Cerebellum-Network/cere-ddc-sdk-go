@@ -11,10 +11,10 @@ type (
 	SchemeName string
 
 	Scheme interface {
-		Verify(data []byte, signature string) bool
-		Sign(data []byte) (string, error)
+		Verify(data []byte, signature []byte) bool
+		Sign(data []byte) ([]byte, error)
 		Name() string
-		PublicKey() string
+		PublicKey() []byte
 	}
 )
 
@@ -38,14 +38,14 @@ func CreateScheme(schemeName SchemeName, privateKeyHex string) (Scheme, error) {
 	}
 }
 
-func Verify(schemeName SchemeName, publicKeyHex string, content []byte, signature string) (bool, error) {
+func Verify(schemeName SchemeName, publicKey []byte, content []byte, signature []byte) (bool, error) {
 	switch schemeName {
+	case Sr25519, "": // Default.
+		return verifySr25519(publicKey, content, signature), nil
 	case Ed25519:
-		return verifyEd25519(publicKeyHex, content, signature), nil
+		return verifyEd25519(publicKey, content, signature), nil
 	case Secp256k1:
-		return verifySecp256k1(publicKeyHex, content, signature), nil
-	case Sr25519:
-		return verifySr25519(publicKeyHex, content, signature), nil
+		return verifySecp256k1(publicKey, content, signature), nil
 	default:
 		return false, ErrSchemeNotExist
 	}

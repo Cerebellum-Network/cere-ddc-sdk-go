@@ -121,22 +121,23 @@ func (c *contentAddressableStorage) signPiece(piece *domain.Piece) (*domain.Sign
 		return nil, "", fmt.Errorf("failed marshal piece proto: %w", err)
 	}
 
-	pieceCid, err := c.cidBuilder.Build(pieceBytes)
+	signedPiece := domain.NewSignedPiece(
+		piece,
+		pieceBytes,
+		&domain.Signature{Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
+	)
+
+	signeable, pieceCid, err := signedPiece.SigneableCid()
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to build CID: %w", err)
+		return nil, "", err
 	}
 
-	signature, err := c.scheme.Sign([]byte(pieceCid))
+	signature, err := c.scheme.Sign(signeable)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to sign piece: %w", err)
 	}
 
-	signedPiece := domain.NewSignedPiece(
-		piece,
-		pieceBytes,
-		&domain.Signature{Value: signature, Signer: c.scheme.PublicKey(), Scheme: c.scheme.Name()},
-	)
+	signedPiece.SetSignature(signature)
 
 	return signedPiece, pieceCid, nil
-
 }

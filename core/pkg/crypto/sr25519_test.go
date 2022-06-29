@@ -2,9 +2,11 @@ package crypto
 
 import (
 	"encoding/hex"
+	"strings"
+	"testing"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 const (
@@ -12,6 +14,12 @@ const (
 
 	signatureSr25519 = "04803a00dfbf383d146251dc898167b78719c23a1e2f0b2b20ba2b4b5a714a242042b377c829129d4cfbf5eb51d0ac97ece10e54a0b0d9c2149def4c77f87489"
 )
+
+var signatureSr25519Bytes []byte
+
+func init() {
+	signatureSr25519Bytes, _ = hex.DecodeString(strings.TrimPrefix(signatureSr25519, "0x"))
+}
 
 var testSr25519Scheme = initTestSubjectSr25519()
 
@@ -32,7 +40,7 @@ func initTestSubjectSr25519() Scheme {
 
 func TestContentVerificationWhenSignatureIsValidSr25519(t *testing.T) {
 	//when
-	result := testSr25519Scheme.Verify([]byte(content), signatureSr25519)
+	result := testSr25519Scheme.Verify([]byte(content), signatureSr25519Bytes)
 
 	//then
 	assert.True(t, result)
@@ -40,7 +48,7 @@ func TestContentVerificationWhenSignatureIsValidSr25519(t *testing.T) {
 
 func TestContentVerificationWhenSignatureIsInvalidSr25519(t *testing.T) {
 	//when
-	result := testSr25519Scheme.Verify([]byte(content+"invalid"), signatureSr25519)
+	result := testSr25519Scheme.Verify([]byte(content+"invalid"), signatureSr25519Bytes)
 
 	//then
 	assert.False(t, result)
