@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"github.com/stretchr/testify/require"
 )
-
-const TEST_VECTOR = "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.9.json"
 
 type StoreRequest struct {
 	Body  string
@@ -24,7 +23,13 @@ type StoreRequest struct {
 }
 
 func TestStoreRequest(t *testing.T) {
-	raw, err := os.ReadFile(TEST_VECTOR)
+	doTestStoreRequest(t, "../../ddc-schemas/test-vectors/store-request-sdk-js-1.1.0.json")
+	doTestStoreRequest(t, "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.8.json")
+	doTestStoreRequest(t, "../../ddc-schemas/test-vectors/store-request-sdk-js-1.2.9.json")
+}
+
+func doTestStoreRequest(t *testing.T, vectorFile string) {
+	raw, err := os.ReadFile(vectorFile)
 	require.NoError(t, err)
 
 	request := StoreRequest{}
@@ -43,5 +48,6 @@ func TestStoreRequest(t *testing.T) {
 
 	require.Equal(t, request.Cid, cid)
 	require.Equal(t, request.Piece.Data, sp.Piece().Data)
-	require.Equal(t, request.Piece.Tags[0].Searchable, sp.Piece().Tags[0].Searchable.String())
+	tagType := pb.SearchType_value[request.Piece.Tags[0].Searchable]
+	require.Equal(t, tagType, int32(sp.Piece().Tags[0].Searchable))
 }
