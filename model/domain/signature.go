@@ -1,6 +1,9 @@
 package domain
 
 import (
+	"bytes"
+	"encoding/hex"
+	"errors"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
 )
@@ -45,4 +48,37 @@ func (s *Signature) UnmarshalProto(signatureAsBytes []byte) error {
 
 	s.ToDomain(signature)
 	return nil
+}
+
+func (s *Signature) DecodedValue() ([]byte, error) {
+	if len(s.Value) > 64 {
+		signature, err := decodeHex(s.Value)
+		if err != nil {
+			return nil, errors.New("unable to decode hex signature")
+		}
+
+		return signature, nil
+	}
+
+	return s.Value, nil
+}
+
+func (s *Signature) DecodedSigner() ([]byte, error) {
+	if len(s.Signer) > 32 {
+		signer, err := decodeHex(s.Signer)
+		if err != nil {
+			return nil, errors.New("unable to decode hex signer")
+		}
+
+		return signer, nil
+	}
+
+	return s.Signer, nil
+}
+
+func decodeHex(src []byte) ([]byte, error) {
+	src = bytes.TrimPrefix(src, []byte("0x"))
+	decoded := make([]byte, hex.DecodedLen(len(src)))
+	_, err := hex.Decode(decoded, src)
+	return decoded, err
 }

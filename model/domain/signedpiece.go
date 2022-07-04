@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -95,6 +93,10 @@ func (sp *SignedPiece) SigneableCid() (signeable []byte, pieceCid string, err er
 		return nil, "", err
 	}
 
+	if sp.Signature.Timestamp == 0 {
+		return []byte(pieceCid), pieceCid, nil
+	}
+
 	timeText := formatTimestamp(sp.Signature.Timestamp)
 	message := fmt.Sprintf("<Bytes>DDC store %s at %s</Bytes>", pieceCid, timeText)
 
@@ -108,46 +110,26 @@ func (sp *SignedPiece) SetSignature(sig []byte) {
 var ErrInvalidSignature = errors.New("invalid signature")
 
 func (sp *SignedPiece) Verify() (pieceCid string, err error) {
-	sig := sp.Signature.Value
-	signer := sp.Signature.Signer
+	sig, err := sp.Signature.DecodedValue()
+	if err != nil {
+		return "", err
+	}
+	signer, err := sp.Signature.DecodedSigner()
+	if err != nil {
+		return "", err
+	}
 	signeable, pieceCid, err := sp.SigneableCid()
 	if err != nil {
 		return "", err
 	}
 
-	if sp.Signature.Timestamp == 0 {
-		// Assume the deprecated SDK v0.1.3. TODO: Remove this.
-		sig, err = decodeHex(sig)
-		if err != nil {
-			return "", fmt.Errorf("missing signature timestamp, or old SDK")
-		}
-		signer, err = decodeHex(signer)
-		if err != nil {
-			return "", fmt.Errorf("missing signature timestamp, or old SDK")
-		}
-		signeable = []byte(pieceCid)
-	}
-
-	ok, err := crypto.Verify(
-		crypto.SchemeName(sp.Signature.Scheme),
-		signer,
-		signeable,
-		sig)
-	if err != nil {
+	if ok, err := crypto.Verify(crypto.SchemeName(sp.Signature.Scheme), signer, signeable, sig); err != nil {
 		return "", err
-	}
-	if !ok {
+	} else if !ok {
 		return "", ErrInvalidSignature
 	}
 
 	return pieceCid, nil
-}
-
-func decodeHex(src []byte) ([]byte, error) {
-	src = bytes.TrimPrefix(src, []byte("0x"))
-	decoded := make([]byte, hex.DecodedLen(len(src)))
-	_, err := hex.Decode(decoded, src)
-	return decoded, err
 }
 
 // Format the time the same way as JavaScript Date.toISOString()
