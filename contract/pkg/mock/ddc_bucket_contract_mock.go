@@ -126,7 +126,7 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 		Bucket: pkg.Bucket{
 			OwnerId:          writerIds[0],
 			ClusterId:        0,
-			ResourceReserved: 0,
+			ResourceReserved: 32,
 		},
 		Params:             bucketParams,
 		WriterIds:          writerIds,
