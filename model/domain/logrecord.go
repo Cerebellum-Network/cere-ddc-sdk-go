@@ -9,9 +9,12 @@ import (
 
 type (
 	LogRecord struct {
-		Record    isLogRecord
-		Timestamp time.Time
-		Id        string
+		Record       isLogRecord
+		Timestamp    time.Time
+		Uuid         string
+		Ip           string
+		ResponseCode uint32
+		Error        string
 	}
 
 	WriteRecord struct {
@@ -37,18 +40,32 @@ type (
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp: timestamppb.New(l.Timestamp),
-		Id:        l.Id,
+		Timestamp:    timestamppb.New(l.Timestamp),
+		Uuid:         l.Uuid,
+		Ip:           l.Ip,
+		ResponseCode: l.ResponseCode,
 	}
+
+	if l.Error != "" {
+		err := l.Error
+		result.Error = &err
+	}
+
 	l.recordToProto(result)
 
 	return result
 }
 
 func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
-	l.Id = pbLogRecord.Id
+	l.Uuid = pbLogRecord.Uuid
+	l.Ip = pbLogRecord.Ip
+	l.ResponseCode = pbLogRecord.ResponseCode
 	l.Timestamp = pbLogRecord.Timestamp.AsTime()
 	l.Record = recordToDomain(pbLogRecord)
+
+	if pbLogRecord.Error != nil {
+		l.Error = *pbLogRecord.Error
+	}
 }
 
 func (l *LogRecord) recordToProto(logRecord *pb.LogRecord) {
