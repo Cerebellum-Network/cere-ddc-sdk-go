@@ -10,7 +10,7 @@ import (
 type (
 	LogRecord struct {
 		Record       isLogRecord
-		Timestamp    time.Time
+		Timestamp    *time.Time
 		Uuid         string
 		Ip           string
 		ResponseCode uint32
@@ -40,7 +40,7 @@ type (
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp:    timestamppb.New(l.Timestamp),
+		Timestamp:    timestamppb.New(*l.Timestamp),
 		Uuid:         l.Uuid,
 		Ip:           l.Ip,
 		ResponseCode: l.ResponseCode,
@@ -57,10 +57,11 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 }
 
 func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
+	timestamp := pbLogRecord.Timestamp.AsTime()
 	l.Uuid = pbLogRecord.Uuid
 	l.Ip = pbLogRecord.Ip
 	l.ResponseCode = pbLogRecord.ResponseCode
-	l.Timestamp = pbLogRecord.Timestamp.AsTime()
+	l.Timestamp = &timestamp
 	l.Record = recordToDomain(pbLogRecord)
 
 	if pbLogRecord.Error != nil {
