@@ -7,115 +7,29 @@ import (
 	"time"
 )
 
-type (
-	LogRecord struct {
-		Record       isLogRecord
-		Timestamp    *time.Time
-		Uuid         string
-		Ip           string
-		ResponseCode uint32
-		Error        string
-	}
+type LogRecord struct {
+	Ack       []byte
+	Timestamp *time.Time
+	Address   string
+}
 
-	WriteRecord struct {
-		Cid       string
-		BucketId  uint32
-		Size      uint32
-		Signature *Signature
-	}
-
-	ReadRecord struct {
-		Cid      string
-		BucketId uint32
-	}
-
-	QueryRecord struct {
-		Query *Query
-	}
-
-	isLogRecord interface {
-		isLogRecord()
-	}
-)
+var _ Protobufable = (*LogRecord)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp:    timestamppb.New(*l.Timestamp),
-		Uuid:         l.Uuid,
-		Ip:           l.Ip,
-		ResponseCode: l.ResponseCode,
+		Timestamp: timestamppb.New(*l.Timestamp),
+		Address:   l.Address,
+		Ack:       l.Ack,
 	}
-
-	if l.Error != "" {
-		err := l.Error
-		result.Error = &err
-	}
-
-	l.recordToProto(result)
 
 	return result
 }
 
 func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	timestamp := pbLogRecord.Timestamp.AsTime()
-	l.Uuid = pbLogRecord.Uuid
-	l.Ip = pbLogRecord.Ip
-	l.ResponseCode = pbLogRecord.ResponseCode
 	l.Timestamp = &timestamp
-	l.Record = recordToDomain(pbLogRecord)
-
-	if pbLogRecord.Error != nil {
-		l.Error = *pbLogRecord.Error
-	}
-}
-
-func (l *LogRecord) recordToProto(logRecord *pb.LogRecord) {
-	switch record := l.Record.(type) {
-	case *WriteRecord:
-		signature := record.Signature.ToProto()
-		logRecord.Record = &pb.LogRecord_WriteRecord{WriteRecord: &pb.WriteRecord{
-			BucketId:  record.BucketId,
-			Size:      record.Size,
-			Cid:       record.Cid,
-			Signature: signature,
-		}}
-	case *ReadRecord:
-		logRecord.Record = &pb.LogRecord_ReadRecord{ReadRecord: &pb.ReadRecord{
-			Cid:      record.Cid,
-			BucketId: record.BucketId,
-		}}
-	case *QueryRecord:
-		logRecord.Record = &pb.LogRecord_QueryRecord{QueryRecord: &pb.QueryRecord{
-			Query: record.Query.ToProto(),
-		}}
-	}
-}
-
-func recordToDomain(pbLogRecord *pb.LogRecord) isLogRecord {
-	switch record := pbLogRecord.Record.(type) {
-	case *pb.LogRecord_WriteRecord:
-		writeRecord := record.WriteRecord
-
-		signature := &Signature{}
-		signature.ToDomain(writeRecord.Signature)
-
-		return &WriteRecord{
-			BucketId:  writeRecord.BucketId,
-			Size:      writeRecord.Size,
-			Cid:       writeRecord.Cid,
-			Signature: signature,
-		}
-	case *pb.LogRecord_ReadRecord:
-		readRecord := record.ReadRecord
-		return &ReadRecord{Cid: readRecord.Cid, BucketId: readRecord.BucketId}
-	case *pb.LogRecord_QueryRecord:
-		queryRecord := record.QueryRecord
-		query := &Query{}
-		query.ToDomain(queryRecord.Query)
-		return &QueryRecord{Query: query}
-	}
-
-	return nil
+	l.Address = pbLogRecord.Address
+	l.Ack = pbLogRecord.Ack
 }
 
 func (l *LogRecord) MarshalProto() ([]byte, error) {
@@ -131,7 +45,3 @@ func (l *LogRecord) UnmarshalProto(logRecordAsBytes []byte) error {
 	l.ToDomain(pbLogRecord)
 	return nil
 }
-
-func (w *WriteRecord) isLogRecord() {}
-func (q *QueryRecord) isLogRecord() {}
-func (r *ReadRecord) isLogRecord()  {}
