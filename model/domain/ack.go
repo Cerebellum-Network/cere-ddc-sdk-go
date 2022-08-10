@@ -23,7 +23,7 @@ type (
 	Code int32
 
 	Ack struct {
-		Request      isRequest
+		Request      IsRequest
 		Nonce        []byte
 		NodeId       uint32
 		ResponseCode Code
@@ -45,7 +45,7 @@ type (
 		Query *Query
 	}
 
-	isRequest interface {
+	IsRequest interface {
 		isRequest()
 	}
 )
@@ -107,7 +107,7 @@ func (a *Ack) recordToProto(ack *pb.Ack) {
 	}
 }
 
-func requestToDomain(pbAck *pb.Ack) isRequest {
+func requestToDomain(pbAck *pb.Ack) IsRequest {
 	switch record := pbAck.Request.(type) {
 	case *pb.Ack_WriteRequest:
 		writeRecord := record.WriteRequest
