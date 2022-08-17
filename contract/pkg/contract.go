@@ -5,12 +5,17 @@ import (
 	"github.com/patractlabs/go-patract/api"
 	"github.com/patractlabs/go-patract/metadata"
 	"github.com/patractlabs/go-patract/rpc"
+	"github.com/patractlabs/go-patract/utils"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
+
+const CERE = 10_000_000_000
 
 type Contract interface {
 	CallToRead(ctx api.Context, result interface{}, call []string, args ...interface{}) error
 	CallToReadEncoded(ctx api.Context, call []string, args ...interface{}) (string, error)
+	CallToExec(ctx api.Context, value float64, gasLimit float64, call []string, args ...interface{}) (types.Hash, error)
 	GetAccountIDSS58() string
 }
 
@@ -18,6 +23,7 @@ type contract struct {
 	*rpc.Contract
 
 	accountIDSS58 string
+	account       types.AccountID
 	metadata      *metadata.Data
 }
 
@@ -30,10 +36,16 @@ func (l *NopLogger) Warn(string, ...interface{})  {}
 func (l *NopLogger) Error(string, ...interface{}) {}
 
 func CreateContract(rpcContract *rpc.Contract, accountIDSS58 string, metadata *metadata.Data) Contract {
+	account, err := utils.DecodeAccountIDFromSS58(accountIDSS58)
+	if err != nil {
+		log.WithError(err).WithField("accountIDSS58", accountIDSS58).Fatal("Can't decode accountIDSS58")
+	}
+
 	contract := &contract{
 		Contract:      rpcContract,
 		accountIDSS58: accountIDSS58,
 		metadata:      metadata,
+		account:       account,
 	}
 	contract.WithLogger(&NopLogger{})
 	return contract
@@ -90,6 +102,7 @@ func (c *contract) CallToRead(ctx api.Context, result interface{}, call []string
 }
 
 func (c *contract) CallToReadEncoded(ctx api.Context, call []string, args ...interface{}) (string, error) {
+
 	params := struct {
 		Origin    string `json:"origin"`
 		Dest      string `json:"dest"`
@@ -122,6 +135,20 @@ func (c *contract) CallToReadEncoded(ctx api.Context, call []string, args ...int
 	}
 
 	return res.Success.Data, nil
+}
+
+func (c *contract) CallToExec(ctx api.Context, value float64, gasLimit float64, call []string, args ...interface{}) (types.Hash, error) {
+	valueRaw := types.NewUCompactFromUInt(uint64(value * CERE))
+
+	var gasLimitRaw types.UCompact
+	if gasLimit < 0 {
+		gasLimitRaw = types.NewUCompactFromUInt(uint64(gasLimit * CERE))
+	} else {
+		gasLimitRaw = types.NewUCompactFromUInt(rpc.DefaultGasLimitForCall)
+	}
+
+	hash, err := c.Contract.CallToExec(ctx, c.account, valueRaw, gasLimitRaw, call, args)
+	return hash, err
 }
 
 func (c *contract) GetAccountIDSS58() string {

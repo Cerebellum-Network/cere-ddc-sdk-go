@@ -26,6 +26,7 @@ type ddcBucketContract struct {
 	lastAccessTime time.Time
 	apiUrl         string
 	accountId      string
+	keyringPair    signature.KeyringPair
 }
 
 func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract {
@@ -42,15 +43,16 @@ func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract 
 
 	log.WithFields(log.Fields{"apiUrl": apiUrl, "accountId": accountId}).Info("Ddc bucket contract configured")
 	return &ddcBucketContract{
-		contract:  CreateContract(smartContract, accountId, contractMetadata),
-		apiUrl:    apiUrl,
-		accountId: accountId,
+		contract:    CreateContract(smartContract, accountId, contractMetadata),
+		apiUrl:      apiUrl,
+		accountId:   accountId,
+		keyringPair: signature.KeyringPair{Address: accountId},
 	}
 }
 
 func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketStatus, error) {
 	req := types.U32(bucketId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(signature.KeyringPair{Address: d.contract.GetAccountIDSS58()})
+	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
 
 	data, err := d.contract.CallToReadEncoded(ctx, []string{"bucket_get"}, req)
 	if err != nil {
@@ -69,7 +71,7 @@ func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketStatus, error) {
 
 func (d *ddcBucketContract) ClusterGet(clusterId uint32) (*ClusterStatus, error) {
 	req := types.U32(clusterId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(signature.KeyringPair{Address: d.contract.GetAccountIDSS58()})
+	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
 
 	data, err := d.contract.CallToReadEncoded(ctx, []string{"cluster_get"}, req)
 	if err != nil {
@@ -88,7 +90,7 @@ func (d *ddcBucketContract) ClusterGet(clusterId uint32) (*ClusterStatus, error)
 
 func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
 	req := types.U32(nodeId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(signature.KeyringPair{Address: d.contract.GetAccountIDSS58()})
+	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
 
 	data, err := d.contract.CallToReadEncoded(ctx, []string{"node_get"}, req)
 	if err != nil {
