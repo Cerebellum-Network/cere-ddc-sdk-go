@@ -107,7 +107,7 @@ func (l *LogRecordList) ToDomain(pbLogRecordList *pb.LogRecordList) {
 		result = append(result, record)
 	}
 
-	l = &result
+	*l = result
 }
 
 func (l *LogRecord) requestToProto(pbLogRecord *pb.LogRecord) {
