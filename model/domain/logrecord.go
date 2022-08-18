@@ -8,6 +8,8 @@ import (
 )
 
 type (
+	LogRecordList []*LogRecord
+
 	LogRecord struct {
 		Request   IsRequest
 		Timestamp *time.Time
@@ -71,6 +73,41 @@ func (l *LogRecord) UnmarshalProto(logRecordAsBytes []byte) error {
 
 	l.ToDomain(pbLogRecord)
 	return nil
+}
+
+func (l *LogRecordList) MarshalProto() ([]byte, error) {
+	return proto.Marshal(l.ToProto())
+}
+
+func (l *LogRecordList) UnmarshalProto(logRecordAsBytes []byte) error {
+	pbLogRecords := &pb.LogRecordList{}
+	if err := proto.Unmarshal(logRecordAsBytes, pbLogRecords); err != nil {
+		return err
+	}
+
+	l.ToDomain(pbLogRecords)
+	return nil
+}
+
+func (l *LogRecordList) ToProto() *pb.LogRecordList {
+	list := *l
+	result := make([]*pb.LogRecord, 0, len(list))
+	for _, v := range list {
+		result = append(result, v.ToProto())
+	}
+
+	return &pb.LogRecordList{LogRecords: result}
+}
+
+func (l *LogRecordList) ToDomain(pbLogRecordList *pb.LogRecordList) {
+	result := LogRecordList(make([]*LogRecord, 0, len(pbLogRecordList.LogRecords)))
+	for _, v := range pbLogRecordList.LogRecords {
+		record := &LogRecord{}
+		record.ToDomain(v)
+		result = append(result, record)
+	}
+
+	l = &result
 }
 
 func (l *LogRecord) requestToProto(pbLogRecord *pb.LogRecord) {
