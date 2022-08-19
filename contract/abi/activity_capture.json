@@ -326,7 +326,7 @@
     },
     {
       "def": {
-        "primitive": "u8"
+        "tuple": []
       }
     }
   ]
