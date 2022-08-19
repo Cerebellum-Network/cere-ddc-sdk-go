@@ -21,14 +21,6 @@
           "new"
         ],
         "selector": "0x9bae9d5e"
-      },
-      {
-        "args": [],
-        "docs": [],
-        "name": [
-          "default"
-        ],
-        "selector": "0xed4b9d1b"
       }
     ],
     "docs": [],
