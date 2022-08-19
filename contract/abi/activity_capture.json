@@ -334,7 +334,7 @@
     },
     {
       "def": {
-        "primitive": "str"
+        "primitive": "u8"
       }
     }
   ]
