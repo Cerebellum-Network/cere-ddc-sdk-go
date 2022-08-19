@@ -147,7 +147,7 @@ func (c *contract) CallToExec(ctx api.Context, value float64, gasLimit float64, 
 		gasLimitRaw = types.NewUCompactFromUInt(rpc.DefaultGasLimitForCall)
 	}
 
-	hash, err := c.Contract.CallToExec(ctx, c.account, valueRaw, gasLimitRaw, call, args)
+	hash, err := c.Contract.CallToExec(ctx, c.account, valueRaw, gasLimitRaw, call, args...)
 	return hash, err
 }
 

@@ -21,7 +21,7 @@ type (
 		contract    Contract
 		apiUrl      string
 		accountId   string
-		account     types.AccountID
+		account     struct{ Account types.AccountID }
 		keyringPair signature.KeyringPair
 	}
 )
@@ -53,7 +53,7 @@ func CreateActivityCaptureContract(apiUrl string, contractAccountId string, secr
 		apiUrl:      apiUrl,
 		accountId:   contractAccountId,
 		keyringPair: keyringPair,
-		account:     account,
+		account:     struct{ Account types.AccountID }{Account: account},
 	}
 }
 
