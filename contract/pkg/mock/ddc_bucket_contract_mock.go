@@ -4,7 +4,10 @@ import (
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
+<<<<<<< HEAD
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
+=======
+>>>>>>> 6bddba91e878813e7fe287bc8c0e21f76b2498a2
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
