@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
-	patractTypes "github.com/patractlabs/go-patract/types"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
@@ -22,7 +22,7 @@ var writerIds = getAccountIDs([]string{
 	"5DoxVJMBeYHfukDQx5G4w9yoTc72cEhVpJD9v1KiTkkr4iJX",
 })
 
-var buckets = []*pkg.BucketStatus{
+var buckets = []*bucket.BucketStatus{
 	CreateBucket(1, `{"replication":1}`, writerIds),
 	CreateBucket(2, `{"replication":2}`, writerIds),
 	CreateBucket(3, `{"replication":3}`, writerIds),
@@ -48,7 +48,7 @@ type (
 	}
 )
 
-func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster) pkg.DdcBucketContract {
+func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster) bucket.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
 	return &ddcBucketContractMock{
 		accountId:      accountId,
@@ -59,7 +59,7 @@ func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, 
 	}
 }
 
-func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*pkg.BucketStatus, error) {
+func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	for _, bucket := range buckets {
 		if bucket.BucketId == bucketId {
 			return bucket, nil
@@ -69,12 +69,12 @@ func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*pkg.BucketStatus, e
 	return nil, errors.New("unknown bucket")
 }
 
-func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*pkg.ClusterStatus, error) {
+func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
 	for _, cluster := range d.clusters {
 		if cluster.Id == clusterId {
-			return &pkg.ClusterStatus{
+			return &bucket.ClusterStatus{
 				ClusterId: clusterId,
-				Cluster: pkg.Cluster{
+				Cluster: bucket.Cluster{
 					ManagerId:        types.AccountID{},
 					VNodes:           cluster.VNodes,
 					ResourcePerVNode: 32,
@@ -90,12 +90,12 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*pkg.ClusterStatus
 	return nil, errors.New("unknown cluster")
 }
 
-func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*pkg.NodeStatus, error) {
+func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
 	for _, node := range d.nodes {
 		if node.Id == nodeId {
-			return &pkg.NodeStatus{
+			return &bucket.NodeStatus{
 				NodeId: nodeId,
-				Node: pkg.Node{
+				Node: bucket.Node{
 					ProviderId:    types.AccountID{},
 					RentPerMonth:  types.NewU128(*big.NewInt(1)),
 					FreeResources: 100,
@@ -120,10 +120,10 @@ func (d *ddcBucketContractMock) GetLastAccessTime() time.Time {
 	return d.lastAccessTime
 }
 
-func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *pkg.BucketStatus {
-	return &pkg.BucketStatus{
+func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
+	return &bucket.BucketStatus{
 		BucketId: bucketId,
-		Bucket: pkg.Bucket{
+		Bucket: bucket.Bucket{
 			OwnerId:          writerIds[0],
 			ClusterId:        0,
 			ResourceReserved: 32,
@@ -134,10 +134,10 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 	}
 }
 
-func getAccountIDs(ss58Addresses []string) []patractTypes.AccountID {
-	accountIDs := make([]patractTypes.AccountID, len(ss58Addresses))
+func getAccountIDs(ss58Addresses []string) []types.AccountID {
+	accountIDs := make([]types.AccountID, len(ss58Addresses))
 	for i, address := range ss58Addresses {
-		if accountID, err := patractTypes.DecodeAccountIDFromSS58(address); err != nil {
+		if accountID, err := pkg.DecodeAccountIDFromSS58(address); err != nil {
 			log.Fatal("Failed decode private key ed25519")
 		} else {
 			accountIDs[i] = accountID

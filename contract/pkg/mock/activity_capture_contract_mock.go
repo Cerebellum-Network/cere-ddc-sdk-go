@@ -2,7 +2,7 @@ package mock
 
 import (
 	"encoding/hex"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/actcapture"
 	"math/rand"
 )
 
@@ -12,9 +12,9 @@ type (
 	}
 )
 
-var _ pkg.ActivityCaptureContract = (*activityCaptureContractMock)(nil)
+var _ actcapture.ActivityCaptureContract = (*activityCaptureContractMock)(nil)
 
-func CreateActivityCaptureContractMock() pkg.ActivityCaptureContract {
+func CreateActivityCaptureContractMock() actcapture.ActivityCaptureContract {
 	return &activityCaptureContractMock{}
 }
 

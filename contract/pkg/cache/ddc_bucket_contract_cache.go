@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/patrickmn/go-cache"
 	"strconv"
 	"time"
@@ -15,28 +15,28 @@ const (
 type (
 	DdcBucketContractCache interface {
 		Clear()
-		pkg.DdcBucketContract
+		bucket.DdcBucketContract
 	}
 
 	ddcBucketContractCached struct {
-		ddcBucketContract pkg.DdcBucketContract
+		ddcBucketContract bucket.DdcBucketContract
 		bucketCache       *cache.Cache
 		nodeCache         *cache.Cache
 	}
 )
 
-func CreateDdcBucketContractCache(ddcBucketContract pkg.DdcBucketContract) DdcBucketContractCache {
+func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract) DdcBucketContractCache {
 	bucketCache := cache.New(defaultExpiration, cleanupInterval)
 	nodeCache := cache.New(defaultExpiration, cleanupInterval)
 
 	return &ddcBucketContractCached{ddcBucketContract: ddcBucketContract, bucketCache: bucketCache, nodeCache: nodeCache}
 }
 
-func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*pkg.ClusterStatus, error) {
+func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
 	return d.ddcBucketContract.ClusterGet(clusterId)
 }
 
-func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*pkg.NodeStatus, error) {
+func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
 	key := toString(nodeId)
 	cached, ok := d.nodeCache.Get(key)
 
@@ -50,10 +50,10 @@ func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*pkg.NodeStatus, error
 		return value, nil
 	}
 
-	return cached.(*pkg.NodeStatus), nil
+	return cached.(*bucket.NodeStatus), nil
 }
 
-func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*pkg.BucketStatus, error) {
+func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	key := toString(bucketId)
 	cached, ok := d.bucketCache.Get(key)
 
@@ -67,7 +67,7 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*pkg.BucketStatus,
 		return value, nil
 	}
 
-	return cached.(*pkg.BucketStatus), nil
+	return cached.(*bucket.BucketStatus), nil
 }
 
 func (d *ddcBucketContractCached) Clear() {
@@ -75,12 +75,12 @@ func (d *ddcBucketContractCached) Clear() {
 	d.nodeCache.Flush()
 }
 
-func (d *ddcBucketContractCached) GetApiUrl() string {
-	return d.ddcBucketContract.GetApiUrl()
+func (d *ddcBucketContractCached) GetContractAddress() string {
+	return d.ddcBucketContract.GetContractAddress()
 }
 
-func (d *ddcBucketContractCached) GetAccountId() string {
-	return d.ddcBucketContract.GetAccountId()
+func (d *ddcBucketContractCached) GetLastAccessTime() time.Time {
+	return d.ddcBucketContract.GetLastAccessTime()
 }
 
 func toString(value uint32) string {
