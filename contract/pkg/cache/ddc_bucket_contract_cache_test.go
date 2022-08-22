@@ -6,20 +6,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
+	"time"
 )
 
 type mockedDdcBucketContract struct {
 	mock.Mock
 }
 
-func (m *mockedDdcBucketContract) GetApiUrl() string {
+func (m *mockedDdcBucketContract) GetContractAddress() string {
 	args := m.Called()
 	return args.String(0)
 }
 
-func (m *mockedDdcBucketContract) GetAccountId() string {
+func (m *mockedDdcBucketContract) GetLastAccessTime() time.Time {
 	args := m.Called()
-	return args.String(0)
+	return args.Get(0).(time.Time)
 }
 
 func (m *mockedDdcBucketContract) ClusterGet(clusterId uint32) (*pkg.ClusterStatus, error) {

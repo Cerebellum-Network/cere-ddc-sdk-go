@@ -2,117 +2,103 @@ package pkg
 
 import (
 	_ "embed"
+	"encoding/hex"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/abi"
-	"github.com/patractlabs/go-patract/metadata"
-	"github.com/patractlabs/go-patract/rpc"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"time"
 )
 
-type DdcBucketContract interface {
-	GetApiUrl() string
-	GetAccountId() string
+const bucketGetMethod = "3802cb77"
+const clusterGetMethod = "e75411f5"
+const nodeGetMethod = "847f3997"
 
-	BucketGet(bucketId uint32) (*BucketStatus, error)
-	ClusterGet(clusterId uint32) (*ClusterStatus, error)
-	NodeGet(nodeId uint32) (*NodeStatus, error)
-}
+type (
+	DdcBucketContract interface {
+		GetContractAddress() string
+		GetLastAccessTime() time.Time
 
-type ddcBucketContract struct {
-	contract       Contract
-	lastAccessTime time.Time
-	apiUrl         string
-	accountId      string
-	keyringPair    signature.KeyringPair
-}
+		BucketGet(bucketId uint32) (*BucketStatus, error)
+		ClusterGet(clusterId uint32) (*ClusterStatus, error)
+		NodeGet(nodeId uint32) (*NodeStatus, error)
+	}
 
-func CreateDdcBucketContract(apiUrl string, accountId string) DdcBucketContract {
-	smartContract, err := rpc.NewContractAPI(apiUrl)
+	ddcBucketContract struct {
+		contract            BlockchainClient
+		lastAccessTime      time.Time
+		contractAddressSS58 string
+		keyringPair         signature.KeyringPair
+		bucketGetMethodId   []byte
+		clusterGetMethodId  []byte
+		nodeGetMethodId     []byte
+	}
+)
+
+func CreateDdcBucketContract(client BlockchainClient, contractAddressSS58 string) DdcBucketContract {
+	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)
 	if err != nil {
-		log.WithError(err).WithField("apiUrl", apiUrl).Fatal("Can't initialize ddc bucket contract api")
+		log.WithError(err).WithField("method", bucketGetMethod).Fatal("Can't decode method bucketGetMethod")
 	}
 
-	if err := smartContract.WithMetaData(abi.DdcBucket); err != nil {
-		log.WithError(err).Fatal("Can't initialize ddc bucket contract metadata")
+	clusterGetMethodId, err := hex.DecodeString(clusterGetMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", clusterGetMethod).Fatal("Can't decode method clusterGetMethod")
 	}
 
-	contractMetadata, _ := metadata.New(abi.DdcBucket)
+	nodeGetMethodId, err := hex.DecodeString(nodeGetMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", nodeGetMethod).Fatal("Can't decode method nodeGetMethod")
+	}
 
-	log.WithFields(log.Fields{"apiUrl": apiUrl, "accountId": accountId}).Info("Ddc bucket contract configured")
 	return &ddcBucketContract{
-		contract:    CreateContract(smartContract, accountId, contractMetadata),
-		apiUrl:      apiUrl,
-		accountId:   accountId,
-		keyringPair: signature.KeyringPair{Address: accountId},
+		contract:            client,
+		contractAddressSS58: contractAddressSS58,
+		keyringPair:         signature.KeyringPair{Address: contractAddressSS58},
+		bucketGetMethodId:   bucketGetMethodId,
+		clusterGetMethodId:  clusterGetMethodId,
+		nodeGetMethodId:     nodeGetMethodId,
 	}
 }
 
 func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketStatus, error) {
-	req := types.U32(bucketId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
+	res := &BucketStatus{}
+	err := d.callToRead(res, d.bucketGetMethodId, types.U32(bucketId))
 
-	data, err := d.contract.CallToReadEncoded(ctx, []string{"bucket_get"}, req)
-	if err != nil {
-		return nil, err
-	}
-
-	d.lastAccessTime = time.Now()
-
-	res := Result{data: &BucketStatus{}}
-	if err = res.decodeDdcBucketContract(data); err != nil {
-		return nil, err
-	}
-
-	return res.data.(*BucketStatus), res.err
+	return res, err
 }
 
 func (d *ddcBucketContract) ClusterGet(clusterId uint32) (*ClusterStatus, error) {
-	req := types.U32(clusterId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
+	res := &ClusterStatus{}
+	err := d.callToRead(res, d.bucketGetMethodId, types.U32(clusterId))
 
-	data, err := d.contract.CallToReadEncoded(ctx, []string{"cluster_get"}, req)
-	if err != nil {
-		return nil, err
-	}
-
-	d.lastAccessTime = time.Now()
-
-	res := Result{data: &ClusterStatus{}}
-	if err = res.decodeDdcBucketContract(data); err != nil {
-		return nil, err
-	}
-
-	return res.data.(*ClusterStatus), res.err
+	return res, err
 }
 
 func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
-	req := types.U32(nodeId)
-	ctx := rpc.NewCtx(context.Background()).WithFrom(d.keyringPair)
+	res := &NodeStatus{}
+	err := d.callToRead(res, d.bucketGetMethodId, types.U32(nodeId))
 
-	data, err := d.contract.CallToReadEncoded(ctx, []string{"node_get"}, req)
+	return res, err
+}
+
+func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
+	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	d.lastAccessTime = time.Now()
 
-	res := Result{data: &NodeStatus{}}
+	res := Result{data: result}
 	if err = res.decodeDdcBucketContract(data); err != nil {
-		return nil, err
+		return err
 	}
 
-	return res.data.(*NodeStatus), res.err
+	return res.err
 }
 
-func (d *ddcBucketContract) GetApiUrl() string {
-	return d.apiUrl
-}
-
-func (d *ddcBucketContract) GetAccountId() string {
-	return d.accountId
+func (d *ddcBucketContract) GetContractAddress() string {
+	return d.contractAddressSS58
 }
 
 func (d *ddcBucketContract) GetLastAccessTime() time.Time {

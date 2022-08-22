@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
-	patractTypes "github.com/patractlabs/go-patract/types"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
@@ -134,10 +133,10 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 	}
 }
 
-func getAccountIDs(ss58Addresses []string) []patractTypes.AccountID {
-	accountIDs := make([]patractTypes.AccountID, len(ss58Addresses))
+func getAccountIDs(ss58Addresses []string) []types.AccountID {
+	accountIDs := make([]types.AccountID, len(ss58Addresses))
 	for i, address := range ss58Addresses {
-		if accountID, err := patractTypes.DecodeAccountIDFromSS58(address); err != nil {
+		if accountID, err := pkg.DecodeAccountIDFromSS58(address); err != nil {
 			log.Fatal("Failed decode private key ed25519")
 		} else {
 			accountIDs[i] = accountID

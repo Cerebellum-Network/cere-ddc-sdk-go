@@ -75,12 +75,12 @@ func (d *ddcBucketContractCached) Clear() {
 	d.nodeCache.Flush()
 }
 
-func (d *ddcBucketContractCached) GetApiUrl() string {
-	return d.ddcBucketContract.GetApiUrl()
+func (d *ddcBucketContractCached) GetContractAddress() string {
+	return d.ddcBucketContract.GetContractAddress()
 }
 
-func (d *ddcBucketContractCached) GetAccountId() string {
-	return d.ddcBucketContract.GetAccountId()
+func (d *ddcBucketContractCached) GetLastAccessTime() time.Time {
+	return d.ddcBucketContract.GetLastAccessTime()
 }
 
 func toString(value uint32) string {
