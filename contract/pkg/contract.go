@@ -6,6 +6,7 @@ import (
 	"github.com/patractlabs/go-patract/metadata"
 	"github.com/patractlabs/go-patract/rpc"
 	"github.com/patractlabs/go-patract/utils"
+	logger "github.com/patractlabs/go-patract/utils/log"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,14 +41,14 @@ func CreateContract(rpcContract *rpc.Contract, accountIDSS58 string, metadata *m
 	if err != nil {
 		log.WithError(err).WithField("accountIDSS58", accountIDSS58).Fatal("Can't decode accountIDSS58")
 	}
-
 	contract := &contract{
 		Contract:      rpcContract,
 		accountIDSS58: accountIDSS58,
 		metadata:      metadata,
 		account:       account,
 	}
-	contract.WithLogger(&NopLogger{})
+	contract.WithLogger(logger.NewLogger())
+
 	return contract
 }
 
@@ -147,7 +148,7 @@ func (c *contract) CallToExec(ctx api.Context, value float64, gasLimit float64, 
 		gasLimitRaw = types.NewUCompactFromUInt(rpc.DefaultGasLimitForCall)
 	}
 
-	hash, err := c.Contract.CallToExec(ctx, c.account, valueRaw, gasLimitRaw, call, args...)
+	hash, err := c.callToExec(ctx, c.account, valueRaw, gasLimitRaw, call, args...)
 	return hash, err
 }
 
