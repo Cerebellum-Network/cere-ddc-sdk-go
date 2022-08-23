@@ -4,10 +4,7 @@ import (
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
-<<<<<<< HEAD
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
-=======
->>>>>>> 6bddba91e878813e7fe287bc8c0e21f76b2498a2
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
@@ -121,6 +118,10 @@ func (d *ddcBucketContractMock) GetAccountId() string {
 
 func (d *ddcBucketContractMock) GetLastAccessTime() time.Time {
 	return d.lastAccessTime
+}
+
+func (d *ddcBucketContractMock) GetContractAddress() string {
+	return "mock_ddc_bucket"
 }
 
 func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
