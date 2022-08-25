@@ -18,6 +18,17 @@ func TestGoodDdcUri(t *testing.T) {
 		})
 
 	goodDdcUri(t,
+		"/ddc/buc/123/ipiece/cid123.js",
+		"",
+		DdcQuery{
+			Protocol:    "ipiece",
+			BucketId:    123,
+			BucketIdSet: true,
+			Cid:         "cid123",
+			Extension:   ".js",
+		})
+
+	goodDdcUri(t,
 		"  /ddc/buc/123/ipiece/cid123   ",
 		"/ddc/buc/123/ipiece/cid123", // canonical
 		DdcQuery{
@@ -57,6 +68,7 @@ func TestGoodDdcUri(t *testing.T) {
 			Protocol:     "file",
 			Path:         []string{"my_folder", "image.png"},
 			Options:      "option=yes",
+			Extension:    ".png",
 		})
 
 	goodDdcUri(t,
@@ -126,4 +138,18 @@ func TestBadWebUrl(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.Equal(t, err.Error(), "not a DDC URL (htts://cdn-ddc/buc/123)")
 	}
+}
+
+func TestSplitExtension(t *testing.T) {
+
+	check := func(name, expectBase, expectExt string) {
+		base, ext := splitExtension(name)
+		assert.Equal(t, expectBase, base)
+		assert.Equal(t, expectExt, ext)
+	}
+
+	check("", "", "")
+	check("name", "name", "")
+	check("name.js", "name", ".js")
+	check("name.", "name", ".")
 }
