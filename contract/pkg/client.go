@@ -7,6 +7,8 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
+	"sync"
 )
 
 const (
@@ -22,6 +24,7 @@ type (
 
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
+		connectMutex sync.Mutex
 	}
 
 	ContractCall struct {
@@ -73,7 +76,13 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 	}{}
 
 	err = b.Client.Call(&res, "contracts_call", params)
-	if err != nil {
+	if isClosedNetworkError(err) {
+		if b.reconnect() != nil {
+			return "", errors.Wrap(err, "call")
+		}
+
+		err = b.Client.Call(&res, "contracts_call", params)
+	} else if err != nil {
 		return "", errors.Wrap(err, "call")
 	}
 
@@ -96,11 +105,28 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	}
 
 	extrinsic, err := b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
-	if err != nil {
+	if isClosedNetworkError(err) {
+		if b.reconnect() != nil {
+			return types.Hash{}, err
+		}
+
+		extrinsic, err = b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
+	} else if err != nil {
 		return types.Hash{}, err
 	}
 
-	return b.SubmitAndWaitExtrinsic(ctx, extrinsic)
+	hash, err := b.SubmitAndWaitExtrinsic(ctx, extrinsic)
+	if isClosedNetworkError(err) {
+		if b.reconnect() != nil {
+			return types.Hash{}, err
+		}
+
+		hash, err = b.SubmitAndWaitExtrinsic(ctx, extrinsic)
+	} else if err != nil {
+		return types.Hash{}, err
+	}
+
+	return hash, err
 }
 
 func (b *blockchainClient) SubmitAndWaitExtrinsic(ctx context.Context, extrinsic types.Extrinsic) (types.Hash, error) {
@@ -174,4 +200,26 @@ func (b *blockchainClient) CreateExtrinsic(authKey signature.KeyringPair, args .
 	}
 
 	return ext, nil
+}
+
+func (b *blockchainClient) reconnect() error {
+	b.connectMutex.Lock()
+	defer b.connectMutex.Unlock()
+	_, err := b.RPC.State.GetRuntimeVersionLatest()
+	if !isClosedNetworkError(err) {
+		return nil
+	}
+
+	substrateAPI, err := gsrpc.NewSubstrateAPI(b.Client.URL())
+	if err != nil {
+		log.WithError(err).Warningf("Blockchain client can't reconnect to %s", b.Client.URL())
+		return err
+	}
+	b.SubstrateAPI = substrateAPI
+
+	return nil
+}
+
+func isClosedNetworkError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
 }
