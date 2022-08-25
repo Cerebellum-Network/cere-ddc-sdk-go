@@ -3,11 +3,12 @@ package actcapture
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
-	"strings"
+	"math/big"
 )
 
 const getCommitMethod = "5329f551"
@@ -17,8 +18,8 @@ type (
 	ActivityCaptureContract interface {
 		GetContractAddress() string
 
-		GetCommit() (string, error)
-		SetCommit(ctx context.Context, data string) (string, error)
+		GetCommit() (*Commit, error)
+		SetCommit(ctx context.Context, hash []byte, resources uint64) (string, error)
 	}
 
 	activityCaptureContract struct {
@@ -69,36 +70,38 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 	}
 }
 
-func (a *activityCaptureContract) GetCommit() (string, error) {
+func (a *activityCaptureContract) GetCommit() (*Commit, error) {
 	encoded, err := a.client.CallToReadEncoded(a.contractAddressSS58, a.keyringPair.Address, a.getCommitMethodId, a.account)
 	if err != nil {
-		return "", err
+		return nil, err
+	} else if len(encoded) == 0 {
+		return nil, errors.New("commit doesn't exist")
 	}
 
-	decoded, err := hex.DecodeString(strings.TrimPrefix(encoded, "0x"))
-	if err != nil {
-		return "", err
+	result := &Commit{}
+	if err = types.DecodeFromHexString(encoded, result); err != nil {
+		return nil, err
 	}
 
-	return string(decoded), nil
+	return result, nil
 }
 
-func (a *activityCaptureContract) SetCommit(ctx context.Context, data string) (string, error) {
+func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, resources uint64) (string, error) {
 	call := pkg.ContractCall{
 		ContractAddress: a.contractAddress,
 		From:            a.keyringPair,
 		Value:           0,
 		GasLimit:        -1,
 		Method:          a.setCommitMethodId,
-		Args:            []interface{}{a.account, types.Text(data)},
+		Args:            []interface{}{a.account, types.NewHash(hash), types.NewU128(*new(big.Int).SetUint64(resources))},
 	}
 
-	hash, err := a.client.CallToExec(ctx, call)
+	blockHash, err := a.client.CallToExec(ctx, call)
 	if err != nil {
 		return "", err
 	}
 
-	return hash.Hex(), nil
+	return blockHash.Hex(), nil
 }
 
 func (a *activityCaptureContract) GetContractAddress() string {

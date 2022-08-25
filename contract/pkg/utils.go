@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/decred/base58"
-	"github.com/vedhavyas/go-subkey/scale"
 	"golang.org/x/crypto/blake2b"
 )
 
