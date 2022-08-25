@@ -82,7 +82,8 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 		}
 
 		err = b.Client.Call(&res, "contracts_call", params)
-	} else if err != nil {
+	}
+	if err != nil {
 		return "", errors.Wrap(err, "call")
 	}
 
@@ -111,7 +112,8 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 		}
 
 		extrinsic, err = b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
-	} else if err != nil {
+	}
+	if err != nil {
 		return types.Hash{}, err
 	}
 
@@ -122,7 +124,8 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 		}
 
 		hash, err = b.SubmitAndWaitExtrinsic(ctx, extrinsic)
-	} else if err != nil {
+	}
+	if err != nil {
 		return types.Hash{}, err
 	}
 
