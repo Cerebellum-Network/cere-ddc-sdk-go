@@ -15,9 +15,10 @@ type DdcQuery struct {
 	BucketId    uint32
 	BucketIdSet bool
 
-	Protocol string
-	Cid      string
-	Path     []string
+	Protocol  string
+	Cid       string
+	Path      []string
+	Extension string
 
 	Options string
 }

@@ -2,6 +2,7 @@ package ddcuri
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -68,11 +69,12 @@ func consumeProtocol(q *DdcQuery, parts []string) error {
 		field := parts[0]
 		if field == IPIECE || field == IFILE {
 			q.Protocol = field
-			q.Cid = parts[1]
+			q.Cid, q.Extension = splitExtension(parts[1])
 			parts = parts[2:]
 		} else if field == PIECE || field == FILE {
 			q.Protocol = field
 			q.Path = parts[1:]
+			_, q.Extension = splitExtension(parts[len(parts)-1])
 			parts = nil
 		}
 	}
@@ -91,4 +93,13 @@ func consumeEnd(q *DdcQuery, parts []string) error {
 func startsWithDigit(s string) bool {
 	first, _ := utf8.DecodeRuneInString(s)
 	return unicode.IsDigit(first)
+}
+
+func splitExtension(name string) (string, string) {
+	ext := filepath.Ext(name)
+	if ext != "" {
+		// Remove the extension.
+		name = name[:len(name)-len(ext)]
+	}
+	return name, ext
 }

@@ -23,8 +23,8 @@ func (q *DdcQuery) toUri() string {
 	}
 
 	if q.Protocol == IPIECE || q.Protocol == IFILE {
-		parts = append(parts, q.Protocol, q.Cid)
-		// Example output: /ddc/org/my_org/buc/my_bucket/ifile/cid123
+		parts = append(parts, q.Protocol, q.Cid+q.Extension)
+		// Example output: /ddc/org/my_org/buc/my_bucket/ifile/cid123.js
 	} else if q.Protocol == PIECE || q.Protocol == FILE {
 		parts = append(parts, q.Protocol)
 		parts = append(parts, q.Path...)
