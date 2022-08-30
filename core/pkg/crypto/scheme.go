@@ -20,18 +20,17 @@ type (
 
 var ErrSchemeNotExist = errors.New("scheme doesn't exist")
 
-func CreateScheme(schemeName SchemeName, privateKeyHex string) (Scheme, error) {
-	privateKey, err := hex.DecodeString(strings.TrimPrefix(privateKeyHex, "0x"))
-	if err != nil {
-		return nil, err
-	}
-
+func CreateScheme(schemeName SchemeName, seed string) (Scheme, error) {
 	switch schemeName {
 	case Sr25519, "": // Default.
-		return createSr25519Scheme(privateKey)
+		return createSr25519SchemeFromString(seed)
 	case Ed25519:
-		return createEd25519Scheme(privateKey), nil
+		return createSr25519SchemeFromString(seed)
 	case Secp256k1:
+		privateKey, err := hex.DecodeString(strings.TrimPrefix(seed, "0x"))
+		if err != nil {
+			return nil, err
+		}
 		return createSecp256k1Scheme(privateKey)
 	default:
 		return nil, ErrSchemeNotExist

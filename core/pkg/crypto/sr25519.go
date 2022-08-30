@@ -1,35 +1,33 @@
 package crypto
 
 import (
+	"encoding/hex"
 	"github.com/ChainSafe/go-schnorrkel"
 	log "github.com/sirupsen/logrus"
+	"github.com/vedhavyas/go-subkey"
+	"github.com/vedhavyas/go-subkey/sr25519"
 )
 
 type sr25519Scheme struct {
-	privateKey *schnorrkel.SecretKey
-	publicKey  []byte
+	keyPair   subkey.KeyPair
+	publicKey []byte
 }
 
 const Sr25519 SchemeName = "sr25519"
 
 var signingContext = []byte("substrate")
 
-func createSr25519Scheme(privateKey []byte) (Scheme, error) {
-	key := [schnorrkel.SecretKeySize]byte{}
-	nonce := [schnorrkel.PublicKeySize]byte{}
+func createSr25519Scheme(seed []byte) (Scheme, error) {
+	return createSr25519SchemeFromString(hex.EncodeToString(seed))
+}
 
-	copy(key[:], privateKey[:32])
-	copy(nonce[:], privateKey[32:])
-
-	secretKey := schnorrkel.NewSecretKey(key, nonce)
-	public, err := secretKey.Public()
+func createSr25519SchemeFromString(seed string) (Scheme, error) {
+	kyr, err := subkey.DeriveKeyPair(sr25519.Scheme{}, seed)
 	if err != nil {
 		return nil, err
 	}
 
-	publicKey := public.Encode()
-
-	return &sr25519Scheme{privateKey: secretKey, publicKey: publicKey[:]}, nil
+	return &sr25519Scheme{keyPair: kyr, publicKey: kyr.Public()[:]}, nil
 }
 
 func (s *sr25519Scheme) Name() string {
@@ -37,21 +35,19 @@ func (s *sr25519Scheme) Name() string {
 }
 
 func (s *sr25519Scheme) PublicKey() []byte {
-	return s.publicKey
+	return s.publicKey[:]
 }
 
 func (s *sr25519Scheme) Sign(data []byte) ([]byte, error) {
 	if err := validateSafeMessage(data); err != nil {
 		return nil, err
 	}
-	transcript := schnorrkel.NewSigningContext(signingContext, data)
-	signature, err := s.privateKey.Sign(transcript)
+	signature, err := s.keyPair.Sign(data)
 	if err != nil {
 		return nil, err
 	}
 
-	result := signature.Encode()
-	return result[:], nil
+	return signature, nil
 }
 
 func (s *sr25519Scheme) Verify(data []byte, signature []byte) bool {
