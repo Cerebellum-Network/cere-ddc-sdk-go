@@ -1,4 +1,4 @@
-package pkg
+package bucket
 
 import (
 	"errors"

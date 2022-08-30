@@ -21,19 +21,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+//
+//A log record is a record for logging activity of each request to node.
 type LogRecord struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// request's metadata
+	//
 	// Types that are assignable to Request:
 	//	*LogRecord_WriteRequest
 	//	*LogRecord_ReadRequest
 	//	*LogRecord_QueryRequest
-	Request   isLogRecord_Request    `protobuf_oneof:"request"`
+	Request isLogRecord_Request `protobuf_oneof:"request"`
+	// timestamp of request
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Address   string                 `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
-	Resources uint32                 `protobuf:"varint,6,opt,name=resources,proto3" json:"resources,omitempty"`
+	// ip address of user who sent request
+	Address string `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	// number of used resources for processing request
+	Resources uint32 `protobuf:"varint,6,opt,name=resources,proto3" json:"resources,omitempty"`
 }
 
 func (x *LogRecord) Reset() {
@@ -122,14 +129,17 @@ type isLogRecord_Request interface {
 }
 
 type LogRecord_WriteRequest struct {
+	// write request metadata
 	WriteRequest *WriteRequest `protobuf:"bytes,1,opt,name=writeRequest,proto3,oneof"`
 }
 
 type LogRecord_ReadRequest struct {
+	// read request metadata
 	ReadRequest *ReadRequest `protobuf:"bytes,2,opt,name=readRequest,proto3,oneof"`
 }
 
 type LogRecord_QueryRequest struct {
+	// search request metadata
 	QueryRequest *QueryRequest `protobuf:"bytes,3,opt,name=queryRequest,proto3,oneof"`
 }
 
@@ -139,21 +149,76 @@ func (*LogRecord_ReadRequest) isLogRecord_Request() {}
 
 func (*LogRecord_QueryRequest) isLogRecord_Request() {}
 
+//
+// A log records list
+type LogRecordList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	LogRecords []*LogRecord `protobuf:"bytes,1,rep,name=logRecords,proto3" json:"logRecords,omitempty"`
+}
+
+func (x *LogRecordList) Reset() {
+	*x = LogRecordList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_log_record_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LogRecordList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogRecordList) ProtoMessage() {}
+
+func (x *LogRecordList) ProtoReflect() protoreflect.Message {
+	mi := &file_log_record_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogRecordList.ProtoReflect.Descriptor instead.
+func (*LogRecordList) Descriptor() ([]byte, []int) {
+	return file_log_record_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *LogRecordList) GetLogRecords() []*LogRecord {
+	if x != nil {
+		return x.LogRecords
+	}
+	return nil
+}
+
+//
+// A write request is a container of metadata for upload piece requests
 type WriteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Cid       string     `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
-	BucketId  uint32     `protobuf:"varint,2,opt,name=bucketId,proto3" json:"bucketId,omitempty"`
-	Size      uint32     `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	// CID of saved piece
+	Cid string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	// bucket identifier where was stored piece
+	BucketId uint32 `protobuf:"varint,2,opt,name=bucketId,proto3" json:"bucketId,omitempty"`
+	// size of stored piece
+	Size uint32 `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	// piece signature
 	Signature *Signature `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 }
 
 func (x *WriteRequest) Reset() {
 	*x = WriteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_log_record_proto_msgTypes[1]
+		mi := &file_log_record_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -166,7 +231,7 @@ func (x *WriteRequest) String() string {
 func (*WriteRequest) ProtoMessage() {}
 
 func (x *WriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_log_record_proto_msgTypes[1]
+	mi := &file_log_record_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +244,7 @@ func (x *WriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteRequest.ProtoReflect.Descriptor instead.
 func (*WriteRequest) Descriptor() ([]byte, []int) {
-	return file_log_record_proto_rawDescGZIP(), []int{1}
+	return file_log_record_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *WriteRequest) GetCid() string {
@@ -210,19 +275,23 @@ func (x *WriteRequest) GetSignature() *Signature {
 	return nil
 }
 
+//
+// A read request is a container of metadata for download piece requests
 type ReadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Cid      string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	// CID of requested piece
+	Cid string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	// bucket identifier of requested piece
 	BucketId uint32 `protobuf:"varint,2,opt,name=bucketId,proto3" json:"bucketId,omitempty"`
 }
 
 func (x *ReadRequest) Reset() {
 	*x = ReadRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_log_record_proto_msgTypes[2]
+		mi := &file_log_record_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -235,7 +304,7 @@ func (x *ReadRequest) String() string {
 func (*ReadRequest) ProtoMessage() {}
 
 func (x *ReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_log_record_proto_msgTypes[2]
+	mi := &file_log_record_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +317,7 @@ func (x *ReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadRequest.ProtoReflect.Descriptor instead.
 func (*ReadRequest) Descriptor() ([]byte, []int) {
-	return file_log_record_proto_rawDescGZIP(), []int{2}
+	return file_log_record_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReadRequest) GetCid() string {
@@ -265,18 +334,21 @@ func (x *ReadRequest) GetBucketId() uint32 {
 	return 0
 }
 
+//
+// A query request is a container of metadata for search requests
 type QueryRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// query for search
 	Query *Query `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 }
 
 func (x *QueryRequest) Reset() {
 	*x = QueryRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_log_record_proto_msgTypes[3]
+		mi := &file_log_record_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -289,7 +361,7 @@ func (x *QueryRequest) String() string {
 func (*QueryRequest) ProtoMessage() {}
 
 func (x *QueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_log_record_proto_msgTypes[3]
+	mi := &file_log_record_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +374,7 @@ func (x *QueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryRequest.ProtoReflect.Descriptor instead.
 func (*QueryRequest) Descriptor() ([]byte, []int) {
-	return file_log_record_proto_rawDescGZIP(), []int{3}
+	return file_log_record_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *QueryRequest) GetQuery() *Query {
@@ -339,7 +411,11 @@ var file_log_record_proto_rawDesc = []byte{
 	0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x1c, 0x0a, 0x09,
 	0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0d, 0x52,
 	0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x42, 0x09, 0x0a, 0x07, 0x72, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x7d, 0x0a, 0x0c, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x3e, 0x0a, 0x0d, 0x4c, 0x6f, 0x67, 0x52, 0x65, 0x63, 0x6f,
+	0x72, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x2d, 0x0a, 0x0a, 0x6c, 0x6f, 0x67, 0x52, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x2e,
+	0x4c, 0x6f, 0x67, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x0a, 0x6c, 0x6f, 0x67, 0x52, 0x65,
+	0x63, 0x6f, 0x72, 0x64, 0x73, 0x22, 0x7d, 0x0a, 0x0c, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52, 0x65,
 	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x62, 0x75, 0x63, 0x6b, 0x65,
 	0x74, 0x49, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x08, 0x62, 0x75, 0x63, 0x6b, 0x65,
@@ -370,28 +446,30 @@ func file_log_record_proto_rawDescGZIP() []byte {
 	return file_log_record_proto_rawDescData
 }
 
-var file_log_record_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_log_record_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_log_record_proto_goTypes = []interface{}{
 	(*LogRecord)(nil),             // 0: pb.LogRecord
-	(*WriteRequest)(nil),          // 1: pb.WriteRequest
-	(*ReadRequest)(nil),           // 2: pb.ReadRequest
-	(*QueryRequest)(nil),          // 3: pb.QueryRequest
-	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
-	(*Signature)(nil),             // 5: pb.Signature
-	(*Query)(nil),                 // 6: pb.Query
+	(*LogRecordList)(nil),         // 1: pb.LogRecordList
+	(*WriteRequest)(nil),          // 2: pb.WriteRequest
+	(*ReadRequest)(nil),           // 3: pb.ReadRequest
+	(*QueryRequest)(nil),          // 4: pb.QueryRequest
+	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
+	(*Signature)(nil),             // 6: pb.Signature
+	(*Query)(nil),                 // 7: pb.Query
 }
 var file_log_record_proto_depIdxs = []int32{
-	1, // 0: pb.LogRecord.writeRequest:type_name -> pb.WriteRequest
-	2, // 1: pb.LogRecord.readRequest:type_name -> pb.ReadRequest
-	3, // 2: pb.LogRecord.queryRequest:type_name -> pb.QueryRequest
-	4, // 3: pb.LogRecord.timestamp:type_name -> google.protobuf.Timestamp
-	5, // 4: pb.WriteRequest.signature:type_name -> pb.Signature
-	6, // 5: pb.QueryRequest.query:type_name -> pb.Query
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	2, // 0: pb.LogRecord.writeRequest:type_name -> pb.WriteRequest
+	3, // 1: pb.LogRecord.readRequest:type_name -> pb.ReadRequest
+	4, // 2: pb.LogRecord.queryRequest:type_name -> pb.QueryRequest
+	5, // 3: pb.LogRecord.timestamp:type_name -> google.protobuf.Timestamp
+	0, // 4: pb.LogRecordList.logRecords:type_name -> pb.LogRecord
+	6, // 5: pb.WriteRequest.signature:type_name -> pb.Signature
+	7, // 6: pb.QueryRequest.query:type_name -> pb.Query
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_log_record_proto_init() }
@@ -415,7 +493,7 @@ func file_log_record_proto_init() {
 			}
 		}
 		file_log_record_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WriteRequest); i {
+			switch v := v.(*LogRecordList); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -427,7 +505,7 @@ func file_log_record_proto_init() {
 			}
 		}
 		file_log_record_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReadRequest); i {
+			switch v := v.(*WriteRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -439,6 +517,18 @@ func file_log_record_proto_init() {
 			}
 		}
 		file_log_record_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReadRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_log_record_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*QueryRequest); i {
 			case 0:
 				return &v.state
@@ -462,7 +552,7 @@ func file_log_record_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_log_record_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
