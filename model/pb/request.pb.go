@@ -31,7 +31,7 @@ type Request struct {
 	Body []byte `protobuf:"bytes,1,opt,name=body,proto3" json:"body,omitempty"`
 	// User public key
 	PublicKey []byte `protobuf:"bytes,3,opt,name=publicKey,proto3" json:"publicKey,omitempty"`
-	// User signature sign(CID(varint body + body + varint sessionId size + sessionId))
+	// User signature sign(CID(HTTP method size + HTTP method + url size + url + varint body size + body + varint sessionId size + sessionId))
 	Signature []byte `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
 	// The name of the signature scheme (sr25519, ed25519).
 	// Default and recommended value: "" or "sr25519".
