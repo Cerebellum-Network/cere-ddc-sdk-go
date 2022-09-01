@@ -15,6 +15,8 @@ type (
 		Timestamp *time.Time
 		Address   string
 		Resources uint32
+		PublicKey []byte
+		SessionId []byte
 	}
 
 	WriteRequest struct {
@@ -45,6 +47,8 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 		Timestamp: timestamppb.New(*l.Timestamp),
 		Address:   l.Address,
 		Resources: l.Resources,
+		SessionId: l.SessionId,
+		PublicKey: l.PublicKey,
 	}
 
 	l.requestToProto(result)
@@ -58,6 +62,8 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 
 	l.Address = pbLogRecord.Address
 	l.Resources = pbLogRecord.Resources
+	l.SessionId = pbLogRecord.SessionId
+	l.PublicKey = pbLogRecord.PublicKey
 	l.Request = requestToDomain(pbLogRecord)
 }
 
