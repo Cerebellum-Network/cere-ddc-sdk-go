@@ -43,7 +43,7 @@ func doTestStoreRequest(t *testing.T, vectorFile string) {
 	err = sp.UnmarshalProto(spSerial)
 	require.NoError(t, err)
 
-	cid, err := sp.Verify()
+	cid, _, err := sp.Verify()
 	require.NoError(t, err)
 
 	require.Equal(t, request.Cid, cid)
