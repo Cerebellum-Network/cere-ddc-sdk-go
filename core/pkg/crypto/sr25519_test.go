@@ -12,7 +12,7 @@ import (
 const (
 	privKeySr25519 = "6e40d467e86ec447ae0088c81072feff8c860eebcff7dc44017b1b15746cce0d"
 
-	signatureSr25519 = "04803a00dfbf383d146251dc898167b78719c23a1e2f0b2b20ba2b4b5a714a242042b377c829129d4cfbf5eb51d0ac97ece10e54a0b0d9c2149def4c77f87489"
+	signatureSr25519 = "ba4a02f174694ee29a6a38b4ad2c16ff59f590da38694b556299197d1b352f464db889d93d1e3d86b068522aabb3585f50c129e1565a48b653336014a5fe158f"
 )
 
 var signatureSr25519Bytes []byte
@@ -31,8 +31,7 @@ func initTestSubjectSr25519() Scheme {
 
 	scheme, err := createSr25519Scheme(decodeString)
 	if err != nil {
-		log.WithError(err).Info("ERROR")
-		log.Fatal("Failed create scheme sr25519")
+		log.WithError(err).Fatal("Failed create scheme sr25519")
 	}
 
 	return scheme

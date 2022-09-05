@@ -27,7 +27,13 @@ func initTestSubjectEd25519() Scheme {
 	if err != nil {
 		log.Fatal("Failed decode private key ed25519")
 	}
-	return createEd25519Scheme(decodeString)
+
+	scheme, err := createEd25519Scheme(decodeString)
+	if err != nil {
+		log.WithError(err).Fatal("Failed create scheme ed25519")
+	}
+
+	return scheme
 }
 
 func TestPublicKeyEd25519(t *testing.T) {

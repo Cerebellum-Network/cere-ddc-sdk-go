@@ -2,21 +2,30 @@ package crypto
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	log "github.com/sirupsen/logrus"
+	"github.com/vedhavyas/go-subkey"
+	ed25519Subkey "github.com/vedhavyas/go-subkey/ed25519"
 )
 
 type ed25519Scheme struct {
-	privateKey ed25519.PrivateKey
-	publicKey  []byte
+	keyPair   subkey.KeyPair
+	publicKey []byte
 }
 
 const Ed25519 SchemeName = "ed25519"
 
-func createEd25519Scheme(privateKey []byte) Scheme {
-	privKey := ed25519.NewKeyFromSeed(privateKey)
-	publicKey := privKey.Public().(ed25519.PublicKey)
+func createEd25519Scheme(seed []byte) (Scheme, error) {
+	return createEd25519SchemeFromString(hex.EncodeToString(seed))
+}
 
-	return &ed25519Scheme{privateKey: privKey, publicKey: publicKey}
+func createEd25519SchemeFromString(seed string) (Scheme, error) {
+	kyr, err := subkey.DeriveKeyPair(ed25519Subkey.Scheme{}, seed)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ed25519Scheme{keyPair: kyr, publicKey: kyr.Public()[:]}, nil
 }
 
 func (e *ed25519Scheme) PublicKey() []byte {
@@ -31,7 +40,12 @@ func (e *ed25519Scheme) Sign(data []byte) ([]byte, error) {
 	if err := validateSafeMessage(data); err != nil {
 		return nil, err
 	}
-	return ed25519.Sign(e.privateKey, data), nil
+	signature, err := e.keyPair.Sign(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return signature, nil
 }
 
 func (e *ed25519Scheme) Verify(data []byte, signature []byte) bool {

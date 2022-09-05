@@ -109,27 +109,27 @@ func (sp *SignedPiece) SetSignature(sig []byte) {
 
 var ErrInvalidSignature = errors.New("invalid signature")
 
-func (sp *SignedPiece) Verify() (pieceCid string, err error) {
+func (sp *SignedPiece) Verify() (string, []byte, error) {
 	sig, err := sp.Signature.DecodedValue()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	signer, err := sp.Signature.DecodedSigner()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	signeable, pieceCid, err := sp.SigneableCid()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if ok, err := crypto.Verify(crypto.SchemeName(sp.Signature.Scheme), signer, signeable, sig); err != nil {
-		return "", err
+		return "", nil, err
 	} else if !ok {
-		return "", ErrInvalidSignature
+		return "", nil, ErrInvalidSignature
 	}
 
-	return pieceCid, nil
+	return pieceCid, signeable, nil
 }
 
 // Format the time the same way as JavaScript Date.toISOString()
