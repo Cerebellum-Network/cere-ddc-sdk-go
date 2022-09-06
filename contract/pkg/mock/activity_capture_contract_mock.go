@@ -35,6 +35,13 @@ func (a *activityCaptureContractMock) SetCommit(ctx context.Context, hash []byte
 	return hex.EncodeToString(token), nil
 }
 
+func (a *activityCaptureContractMock) GetEraSettings() (*actcapture.EraConfig, error) {
+	return &actcapture.EraConfig{
+		Start:    1662393565900,
+		Interval: 600000,
+	}, nil
+}
+
 func (a *activityCaptureContractMock) GetContractAddress() string {
 	return "mock_activity_capture"
 }
