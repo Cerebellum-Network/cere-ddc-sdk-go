@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-const (
-	defaultExpiration = 8 * time.Hour
-	cleanupInterval   = 1 * time.Hour
-)
-
 type (
 	DdcBucketContractCache interface {
 		Clear()
@@ -25,7 +20,7 @@ type (
 	}
 )
 
-func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract) DdcBucketContractCache {
+func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, cleanupInterval, defaultExpiration time.Duration) DdcBucketContractCache {
 	bucketCache := cache.New(defaultExpiration, cleanupInterval)
 	nodeCache := cache.New(defaultExpiration, cleanupInterval)
 

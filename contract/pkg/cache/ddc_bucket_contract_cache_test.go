@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	defaultExpiration = 8 * time.Hour
+	cleanupInterval   = 1 * time.Hour
+)
+
 type mockedDdcBucketContract struct {
 	mock.Mock
 }
