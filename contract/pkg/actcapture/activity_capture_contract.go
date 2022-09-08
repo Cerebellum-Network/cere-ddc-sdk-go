@@ -11,8 +11,11 @@ import (
 	"math/big"
 )
 
-const getCommitMethod = "5329f551"
-const setCommitMethod = "e445e1fd"
+const (
+	getCommitMethod = "5329f551"
+	setCommitMethod = "e445e1fd"
+	getEraSettings  = "84b61468"
+)
 
 type (
 	ActivityCaptureContract interface {
@@ -20,16 +23,18 @@ type (
 
 		GetCommit() (*Commit, error)
 		SetCommit(ctx context.Context, hash []byte, resources uint64) (string, error)
+		GetEraSettings() (*EraConfig, error)
 	}
 
 	activityCaptureContract struct {
-		client              pkg.BlockchainClient
-		account             types.AccountID
-		keyringPair         signature.KeyringPair
-		contractAddress     types.AccountID
-		contractAddressSS58 string
-		getCommitMethodId   []byte
-		setCommitMethodId   []byte
+		client                 pkg.BlockchainClient
+		account                types.AccountID
+		keyringPair            signature.KeyringPair
+		contractAddress        types.AccountID
+		contractAddressSS58    string
+		getCommitMethodId      []byte
+		setCommitMethodId      []byte
+		getEraSettingsMethodId []byte
 	}
 )
 
@@ -54,19 +59,25 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 		log.WithError(err).WithField("method", setCommitMethod).Fatal("Can't decode method setCommitMethod")
 	}
 
+	getEraSettingsMethodId, err := hex.DecodeString(getEraSettings)
+	if err != nil {
+		log.WithError(err).WithField("method", getEraSettings).Fatal("Can't decode method getEraSettingsMethod")
+	}
+
 	contractAddress, err := pkg.DecodeAccountIDFromSS58(contractAddressSS58)
 	if err != nil {
 		log.WithError(err).WithField("contractAddressSS58", contractAddressSS58).Fatal("Can't decode contract address SS58")
 	}
 
 	return &activityCaptureContract{
-		client:              client,
-		keyringPair:         keyringPair,
-		account:             account,
-		contractAddress:     contractAddress,
-		contractAddressSS58: contractAddressSS58,
-		getCommitMethodId:   getCommitMethodId,
-		setCommitMethodId:   setCommitMethodId,
+		client:                 client,
+		keyringPair:            keyringPair,
+		account:                account,
+		contractAddress:        contractAddress,
+		contractAddressSS58:    contractAddressSS58,
+		getCommitMethodId:      getCommitMethodId,
+		setCommitMethodId:      setCommitMethodId,
+		getEraSettingsMethodId: getEraSettingsMethodId,
 	}
 }
 
@@ -102,6 +113,20 @@ func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, re
 	}
 
 	return blockHash.Hex(), nil
+}
+
+func (a *activityCaptureContract) GetEraSettings() (*EraConfig, error) {
+	encoded, err := a.client.CallToReadEncoded(a.contractAddressSS58, a.keyringPair.Address, a.getEraSettingsMethodId)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &EraConfig{}
+	if err = types.DecodeFromHexString(encoded, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (a *activityCaptureContract) GetContractAddress() string {
