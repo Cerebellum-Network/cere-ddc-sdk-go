@@ -13,7 +13,7 @@ type (
 		Request   IsRequest
 		Timestamp *time.Time
 		Address   string
-		Resources uint32
+		Gas       uint32
 		PublicKey []byte
 		SessionId []byte
 	}
@@ -45,7 +45,7 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
 		Timestamp: uint64(l.Timestamp.Unix()),
 		Address:   l.Address,
-		Resources: l.Resources,
+		Gas:       l.Gas,
 		SessionId: l.SessionId,
 		PublicKey: l.PublicKey,
 	}
@@ -60,7 +60,7 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	l.Timestamp = &timestamp
 
 	l.Address = pbLogRecord.Address
-	l.Resources = pbLogRecord.Resources
+	l.Gas = pbLogRecord.Gas
 	l.SessionId = pbLogRecord.SessionId
 	l.PublicKey = pbLogRecord.PublicKey
 	l.Request = requestToDomain(pbLogRecord)
