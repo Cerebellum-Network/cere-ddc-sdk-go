@@ -3,7 +3,6 @@ package domain
 import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
 
@@ -44,7 +43,7 @@ var _ Protobufable = (*LogRecord)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp: timestamppb.New(*l.Timestamp),
+		Timestamp: uint64(l.Timestamp.Unix()),
 		Address:   l.Address,
 		Resources: l.Resources,
 		SessionId: l.SessionId,
@@ -57,7 +56,7 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 }
 
 func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
-	timestamp := pbLogRecord.Timestamp.AsTime()
+	timestamp := time.UnixMilli(int64(pbLogRecord.Timestamp))
 	l.Timestamp = &timestamp
 
 	l.Address = pbLogRecord.Address

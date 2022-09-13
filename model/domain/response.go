@@ -30,7 +30,7 @@ type (
 		PublicKey     []byte
 		Signature     []byte
 		Scheme        string
-		Resources     uint32
+		Gas           uint32
 		ResponseCode  Code
 		MultiHashType uint64
 	}
@@ -60,7 +60,7 @@ func (r *Response) ToProto() *pb.Response {
 		Scheme:        r.Scheme,
 		MultiHashType: r.MultiHashType,
 		ResponseCode:  r.ResponseCode,
-		Resources:     r.Resources,
+		Gas:           r.Gas,
 	}
 }
 
@@ -71,5 +71,5 @@ func (r *Response) ToDomain(pbRequest *pb.Response) {
 	r.Scheme = pbRequest.Scheme
 	r.MultiHashType = pbRequest.MultiHashType
 	r.ResponseCode = pbRequest.ResponseCode
-	r.Resources = pbRequest.Resources
+	r.Gas = pbRequest.Gas
 }

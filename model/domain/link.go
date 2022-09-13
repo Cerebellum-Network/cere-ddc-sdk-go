@@ -8,7 +8,7 @@ import (
 type Link struct {
 	Cid  string
 	Size uint64
-	Name *string
+	Name string
 }
 
 var _ Protobufable = (*Link)(nil)
