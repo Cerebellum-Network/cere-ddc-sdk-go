@@ -43,7 +43,7 @@ var _ Protobufable = (*LogRecord)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp: uint64(l.Timestamp.Unix()),
+		Timestamp: uint64(l.Timestamp.UnixMilli()),
 		Address:   l.Address,
 		Gas:       l.Gas,
 		SessionId: l.SessionId,
