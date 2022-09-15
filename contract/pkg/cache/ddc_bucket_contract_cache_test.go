@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-const (
-	defaultExpiration = 8 * time.Hour
-	cleanupInterval   = 1 * time.Hour
-)
-
 type mockedDdcBucketContract struct {
 	mock.Mock
 }
@@ -41,6 +36,11 @@ func (m *mockedDdcBucketContract) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 func (m *mockedDdcBucketContract) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	args := m.Called(bucketId)
 	return args.Get(0).(*bucket.BucketStatus), args.Error(1)
+}
+
+func (m *mockedDdcBucketContract) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
+	args := m.Called(bucketId)
+	return args.Get(0).(uint64), args.Error(1)
 }
 
 func TestBucketGet(t *testing.T) {
