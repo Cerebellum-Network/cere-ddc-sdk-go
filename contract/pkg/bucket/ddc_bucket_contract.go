@@ -10,9 +10,12 @@ import (
 	"time"
 )
 
-const bucketGetMethod = "3802cb77"
-const clusterGetMethod = "e75411f5"
-const nodeGetMethod = "847f3997"
+const (
+	bucketGetMethod              = "3802cb77"
+	clusterGetMethod             = "e75411f5"
+	nodeGetMethod                = "847f3997"
+	bucketCalculatePrepaidMethod = "d50fcaa2"
+)
 
 type (
 	DdcBucketContract interface {
@@ -22,16 +25,18 @@ type (
 		BucketGet(bucketId uint32) (*BucketStatus, error)
 		ClusterGet(clusterId uint32) (*ClusterStatus, error)
 		NodeGet(nodeId uint32) (*NodeStatus, error)
+		BucketCalculatePrepaid(bucketId uint32) (uint64, error)
 	}
 
 	ddcBucketContract struct {
-		contract            pkg.BlockchainClient
-		lastAccessTime      time.Time
-		contractAddressSS58 string
-		keyringPair         signature.KeyringPair
-		bucketGetMethodId   []byte
-		clusterGetMethodId  []byte
-		nodeGetMethodId     []byte
+		contract                       pkg.BlockchainClient
+		lastAccessTime                 time.Time
+		contractAddressSS58            string
+		keyringPair                    signature.KeyringPair
+		bucketGetMethodId              []byte
+		clusterGetMethodId             []byte
+		nodeGetMethodId                []byte
+		bucketCalculatePrepaidMethodId []byte
 	}
 )
 
@@ -51,13 +56,19 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", nodeGetMethod).Fatal("Can't decode method nodeGetMethod")
 	}
 
+	bucketCalculatePrepaidMethodId, err := hex.DecodeString(bucketCalculatePrepaidMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketCalculatePrepaidMethod).Fatal("Can't decode method bucketCalculatePrepaidMethod")
+	}
+
 	return &ddcBucketContract{
-		contract:            client,
-		contractAddressSS58: contractAddressSS58,
-		keyringPair:         signature.KeyringPair{Address: contractAddressSS58},
-		bucketGetMethodId:   bucketGetMethodId,
-		clusterGetMethodId:  clusterGetMethodId,
-		nodeGetMethodId:     nodeGetMethodId,
+		contract:                       client,
+		contractAddressSS58:            contractAddressSS58,
+		keyringPair:                    signature.KeyringPair{Address: contractAddressSS58},
+		bucketGetMethodId:              bucketGetMethodId,
+		clusterGetMethodId:             clusterGetMethodId,
+		nodeGetMethodId:                nodeGetMethodId,
+		bucketCalculatePrepaidMethodId: bucketCalculatePrepaidMethodId,
 	}
 }
 
@@ -80,6 +91,15 @@ func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
 	err := d.callToRead(res, d.nodeGetMethodId, types.U32(nodeId))
 
 	return res, err
+}
+
+func (d *ddcBucketContract) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
+	var res types.U128
+	if err := d.callToRead(&res, d.bucketGetMethodId, types.U32(bucketId)); err != nil {
+		return 0, err
+	}
+
+	return res.Uint64(), nil
 }
 
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
