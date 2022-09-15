@@ -108,6 +108,16 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 	return nil, errors.New("unknown node")
 }
 
+func (d *ddcBucketContractMock) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
+	for _, bucket := range buckets {
+		if bucket.BucketId == bucketId {
+			return 100, nil
+		}
+	}
+
+	return 0, errors.New("bucket doesn't exist")
+}
+
 func (d *ddcBucketContractMock) GetApiUrl() string {
 	return d.apiUrl
 }
