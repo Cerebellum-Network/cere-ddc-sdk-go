@@ -10,6 +10,7 @@ type SessionStatus struct {
 	Gas        uint32
 	SessionId  []byte
 	EndOfEpoch uint64
+	BucketId   uint32
 }
 
 var _ Protobufable = (*SessionStatus)(nil)
@@ -34,6 +35,7 @@ func (s *SessionStatus) ToProto() *pb.SessionStatus {
 		Gas:        s.Gas,
 		SessionId:  s.SessionId,
 		EndOfEpoch: s.EndOfEpoch,
+		BucketId:   s.BucketId,
 	}
 }
 
@@ -42,4 +44,5 @@ func (s *SessionStatus) ToDomain(pbSessionStatus *pb.SessionStatus) {
 	s.Gas = pbSessionStatus.Gas
 	s.SessionId = pbSessionStatus.SessionId
 	s.EndOfEpoch = pbSessionStatus.EndOfEpoch
+	s.BucketId = pbSessionStatus.BucketId
 }
