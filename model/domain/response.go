@@ -20,6 +20,7 @@ const (
 	Code_BUCKET_NO_ACCESS      Code = 11
 	Code_INTERNAL_ERROR        Code = 12
 	Code_BAD_GATEWAY           Code = 13
+	Code_INVALID_SESSION_ID    Code = 14
 )
 
 type (
