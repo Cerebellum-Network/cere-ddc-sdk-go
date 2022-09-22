@@ -20,6 +20,7 @@ const (
 	Code_BUCKET_NO_ACCESS      Code = 11
 	Code_INTERNAL_ERROR        Code = 12
 	Code_BAD_GATEWAY           Code = 13
+	Code_INVALID_SESSION_ID    Code = 14
 )
 
 type (
@@ -30,7 +31,7 @@ type (
 		PublicKey     []byte
 		Signature     []byte
 		Scheme        string
-		Resources     uint32
+		Gas           uint32
 		ResponseCode  Code
 		MultiHashType uint64
 	}
@@ -60,7 +61,7 @@ func (r *Response) ToProto() *pb.Response {
 		Scheme:        r.Scheme,
 		MultiHashType: r.MultiHashType,
 		ResponseCode:  r.ResponseCode,
-		Resources:     r.Resources,
+		Gas:           r.Gas,
 	}
 }
 
@@ -71,5 +72,5 @@ func (r *Response) ToDomain(pbRequest *pb.Response) {
 	r.Scheme = pbRequest.Scheme
 	r.MultiHashType = pbRequest.MultiHashType
 	r.ResponseCode = pbRequest.ResponseCode
-	r.Resources = pbRequest.Resources
+	r.Gas = pbRequest.Gas
 }
