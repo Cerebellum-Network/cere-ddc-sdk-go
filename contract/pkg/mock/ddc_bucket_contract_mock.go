@@ -154,9 +154,10 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
-			OwnerId:          writerIds[0],
-			ClusterId:        0,
-			ResourceReserved: 32,
+			OwnerId:            writerIds[0],
+			ClusterId:          0,
+			ResourceReserved:   32,
+			PublicAvailability: bucketId%2 == 0,
 		},
 		Params:             bucketParams,
 		WriterIds:          writerIds,
