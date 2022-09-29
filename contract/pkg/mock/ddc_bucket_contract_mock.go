@@ -28,6 +28,12 @@ var buckets = []*bucket.BucketStatus{
 	CreateBucket(3, `{"replication":3}`, writerIds),
 }
 
+var accounts = []*bucket.Account{
+	CreateAccount("5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy"),
+	CreateAccount("5G1Jb8qPFxPrNb7C9L4d3QWsjiKpfpwTBX1L6M1Wqb5t3oUk"),
+	CreateAccount("5DoxVJMBeYHfukDQx5G4w9yoTc72cEhVpJD9v1KiTkkr4iJX"),
+}
+
 type (
 	Node struct {
 		Id  uint32
@@ -108,14 +114,15 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 	return nil, errors.New("unknown node")
 }
 
-func (d *ddcBucketContractMock) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
-	for _, bucket := range buckets {
-		if bucket.BucketId == bucketId {
-			return 100, nil
+func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Account, error) {
+	for _, acc := range accounts {
+		//ToDo add correct check
+		if true {
+			return acc, nil
 		}
 	}
 
-	return 0, errors.New("bucket doesn't exist")
+	return nil, errors.New("account doesn't exist")
 }
 
 func (d *ddcBucketContractMock) GetApiUrl() string {
@@ -132,6 +139,15 @@ func (d *ddcBucketContractMock) GetLastAccessTime() time.Time {
 
 func (d *ddcBucketContractMock) GetContractAddress() string {
 	return "mock_ddc_bucket"
+}
+
+func CreateAccount(address string) *bucket.Account {
+	_, err := pkg.DecodeAccountIDFromSS58(address)
+	if err != nil {
+		return nil
+	}
+	//ToDo add logic
+	return nil
 }
 
 func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {

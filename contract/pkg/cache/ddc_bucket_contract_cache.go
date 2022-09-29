@@ -21,11 +21,10 @@ type (
 	}
 
 	ddcBucketContractCached struct {
-		ddcBucketContract  bucket.DdcBucketContract
-		bucketCache        *cache.Cache
-		nodeCache          *cache.Cache
-		bucketPrepaidCache *cache.Cache
-		accountGetCache    *cache.Cache
+		ddcBucketContract bucket.DdcBucketContract
+		bucketCache       *cache.Cache
+		nodeCache         *cache.Cache
+		accountGetCache   *cache.Cache
 	}
 
 	BucketCacheParameters struct {
