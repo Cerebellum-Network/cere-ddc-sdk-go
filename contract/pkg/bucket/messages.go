@@ -34,9 +34,11 @@ type NodeStatus struct {
 }
 
 type Bucket struct {
-	OwnerId          types.AccountID
-	ClusterId        uint32
-	ResourceReserved uint32
+	OwnerId            types.AccountID
+	ClusterId          uint32
+	ResourceReserved   uint32
+	PublicAvailability bool
+	GasConsumptionCap  uint32
 }
 
 type Schedule struct {
@@ -52,14 +54,23 @@ type BucketStatus struct {
 	RentCoveredUntilMs uint64
 }
 
-func (s *BucketStatus) RentExpired() bool {
-	return s.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
+type Account struct {
+	//ToDo fill account struct
 }
 
-func (s *BucketStatus) HasWriteAccess(publicKey []byte) (bool, error) {
+func (a *Account) HasBalance() bool {
+	//ToDo add logic
+	return true
+}
+
+func (b *BucketStatus) RentExpired() bool {
+	return b.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
+}
+
+func (b *BucketStatus) HasWriteAccess(publicKey []byte) (bool, error) {
 	address := types.NewAddressFromAccountID(publicKey)
 
-	for _, writerId := range s.WriterIds {
+	for _, writerId := range b.WriterIds {
 		if writerId == address.AsAccountID {
 			return true, nil
 		}

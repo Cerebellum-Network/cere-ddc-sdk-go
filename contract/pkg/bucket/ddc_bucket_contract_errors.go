@@ -9,6 +9,7 @@ const (
 	transferFailed
 )
 
+//ToDo update error regarding latest contract
 var (
 	ErrBucketDoesNotExist   = errors.New("bucket doesn't exist")
 	ErrProviderDoesNotExist = errors.New("provider doesn't exist")
