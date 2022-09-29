@@ -20,6 +20,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+//
+//Session status update request
 type SessionStatus struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -104,6 +106,8 @@ func (x *SessionStatus) GetBucketId() uint32 {
 	return 0
 }
 
+//
+//Session status record in storage
 type SessionStatusRecord struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
