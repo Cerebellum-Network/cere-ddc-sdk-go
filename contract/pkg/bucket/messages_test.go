@@ -20,9 +20,8 @@ func TestBucketWriteAccess(t *testing.T) {
 	bucketStatus := &BucketStatus{WriterIds: []types.AccountID{accountID}}
 
 	//when
-	hasWriteAccess, err := bucketStatus.HasWriteAccess(publicKeyB)
+	hasWriteAccess := bucketStatus.HasWriteAccess(publicKeyB)
 
 	//then
-	assert.NoError(t, err)
 	assert.True(t, hasWriteAccess)
 }
