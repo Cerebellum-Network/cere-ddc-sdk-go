@@ -1,7 +1,6 @@
 package bucket
 
 import (
-	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"time"
 )
@@ -67,14 +66,20 @@ func (b *BucketStatus) RentExpired() bool {
 	return b.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
 }
 
-func (b *BucketStatus) HasWriteAccess(publicKey []byte) (bool, error) {
+func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
 	address := types.NewAddressFromAccountID(publicKey)
 
 	for _, writerId := range b.WriterIds {
 		if writerId == address.AsAccountID {
-			return true, nil
+			return true
 		}
 	}
 
-	return false, errors.New("no write access")
+	return false
+}
+
+func (b *BucketStatus) IsOwner(publicKey []byte) bool {
+	address := types.NewAddressFromAccountID(publicKey)
+
+	return b.Bucket.OwnerId == address.AsAccountID
 }
