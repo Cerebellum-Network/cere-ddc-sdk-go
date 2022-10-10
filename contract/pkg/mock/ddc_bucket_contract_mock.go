@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var writerIds = getAccountIDs([]string{
+var accounts = []string{
 	// ed 25519
 	// privateKey "0x38a538d3d890bfe8f76dc9bf578e215af16fd3d684666f72db0bc0a22bc1d05b"
 	"5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy",
@@ -20,18 +20,13 @@ var writerIds = getAccountIDs([]string{
 	// ed 25519
 	// privateKey "0x93e0153dc0f0bbee868dc00d8d05ddae260e01d418746443fa190c8eacd9544c"
 	"5DoxVJMBeYHfukDQx5G4w9yoTc72cEhVpJD9v1KiTkkr4iJX",
-})
+}
 
+var writerIds = getAccountIDs(accounts)
 var buckets = []*bucket.BucketStatus{
 	CreateBucket(1, `{"replication":1}`, writerIds),
 	CreateBucket(2, `{"replication":2}`, writerIds),
 	CreateBucket(3, `{"replication":3}`, writerIds),
-}
-
-var accounts = []*bucket.Account{
-	CreateAccount("5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy"),
-	CreateAccount("5G1Jb8qPFxPrNb7C9L4d3QWsjiKpfpwTBX1L6M1Wqb5t3oUk"),
-	CreateAccount("5DoxVJMBeYHfukDQx5G4w9yoTc72cEhVpJD9v1KiTkkr4iJX"),
 }
 
 type (
@@ -115,10 +110,12 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 }
 
 func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Account, error) {
-	for _, acc := range accounts {
-		//ToDo add correct check
-		if true {
-			return acc, nil
+	for _, acc := range writerIds {
+		if acc == account {
+			return &bucket.Account{
+				Bonded:            types.NewU128(*big.NewInt(100000)),
+				UnbondedTimestamp: uint64(time.Now().UnixMilli()),
+			}, nil
 		}
 	}
 
@@ -139,15 +136,6 @@ func (d *ddcBucketContractMock) GetLastAccessTime() time.Time {
 
 func (d *ddcBucketContractMock) GetContractAddress() string {
 	return "mock_ddc_bucket"
-}
-
-func CreateAccount(address string) *bucket.Account {
-	_, err := pkg.DecodeAccountIDFromSS58(address)
-	if err != nil {
-		return nil
-	}
-	//ToDo add logic
-	return nil
 }
 
 func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {

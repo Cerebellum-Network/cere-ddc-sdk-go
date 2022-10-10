@@ -2,64 +2,82 @@ package bucket
 
 import (
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"math/big"
 	"time"
 )
 
+type (
+	Balance      = types.U128
+	Cash         = Balance
+	Resource     = uint32
+	NodeId       = uint32
+	ClusterId    = uint32
+	AccountId    = types.AccountID
+	ProviderId   = AccountId
+	BucketId     = uint32
+	Params       = string
+	BucketParams = Params
+)
+
 type Cluster struct {
-	ManagerId        types.AccountID
-	VNodes           []uint32
-	ResourcePerVNode uint32
-	ResourceUsed     uint32
-	Revenues         types.U128
-	TotalRent        types.U128
+	ManagerId        AccountId
+	VNodes           []NodeId
+	ResourcePerVNode Resource
+	ResourceUsed     Resource
+	Revenues         Cash
+	TotalRent        Balance
 }
 
 type ClusterStatus struct {
-	ClusterId uint32
+	ClusterId ClusterId
 	Cluster   Cluster
-	Params    string
+	Params    Params
 }
 
 type Node struct {
-	ProviderId    types.AccountID
-	RentPerMonth  types.U128
-	FreeResources uint32
+	ProviderId    ProviderId
+	RentPerMonth  Balance
+	FreeResources Resource
 }
 
 type NodeStatus struct {
-	NodeId uint32
+	NodeId NodeId
 	Node   Node
 	Params string
 }
 
 type Bucket struct {
-	OwnerId            types.AccountID
-	ClusterId          uint32
-	ResourceReserved   uint32
+	OwnerId            AccountId
+	ClusterId          ClusterId
+	ResourceReserved   Resource
 	PublicAvailability bool
-	GasConsumptionCap  uint32
+	GasConsumptionCap  Resource
 }
 
 type Schedule struct {
-	Rate   types.U128
-	Offset types.U128
+	Rate   Balance
+	Offset Balance
 }
 
 type BucketStatus struct {
-	BucketId           uint32
+	BucketId           BucketId
 	Bucket             Bucket
-	Params             string
-	WriterIds          []types.AccountID
+	Params             BucketParams
+	WriterIds          []AccountId
 	RentCoveredUntilMs uint64
 }
 
 type Account struct {
-	//ToDo fill account struct
+	Deposit           Cash
+	Bonded            Cash
+	Negative          Cash
+	UnboundedAmount   Cash
+	UnbondedTimestamp uint64
+	PayableSchedule   Schedule
 }
 
 func (a *Account) HasBalance() bool {
-	//ToDo add logic
-	return true
+	return a.Bonded.Cmp(big.NewInt(0)) > 0
 }
 
 func (b *BucketStatus) RentExpired() bool {
