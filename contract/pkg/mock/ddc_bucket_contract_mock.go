@@ -6,6 +6,7 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	log "github.com/sirupsen/logrus"
+	"math"
 	"math/big"
 	"time"
 )
@@ -146,6 +147,7 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 			ClusterId:          0,
 			ResourceReserved:   32,
 			PublicAvailability: bucketId%2 == 0,
+			GasConsumptionCap:  math.MaxUint32,
 		},
 		Params:             bucketParams,
 		WriterIds:          writerIds,
