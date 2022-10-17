@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"encoding/hex"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/patrickmn/go-cache"
 	"strconv"
@@ -19,10 +21,10 @@ type (
 	}
 
 	ddcBucketContractCached struct {
-		ddcBucketContract  bucket.DdcBucketContract
-		bucketCache        *cache.Cache
-		nodeCache          *cache.Cache
-		bucketPrepaidCache *cache.Cache
+		ddcBucketContract bucket.DdcBucketContract
+		bucketCache       *cache.Cache
+		nodeCache         *cache.Cache
+		accountGetCache   *cache.Cache
 	}
 
 	BucketCacheParameters struct {
@@ -32,21 +34,21 @@ type (
 		NodeCacheExpiration time.Duration
 		NodeCacheCleanUp    time.Duration
 
-		BucketPrepaidCacheExpiration time.Duration
-		BucketPrepaidCacheCleanUp    time.Duration
+		AccountGetCacheExpiration time.Duration
+		AccountGetCacheCleanUp    time.Duration
 	}
 )
 
 func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, parameters BucketCacheParameters) DdcBucketContractCache {
 	bucketCache := cache.New(cacheDurationOrDefault(parameters.BucketCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.BucketCacheCleanUp, cleanupInterval))
 	nodeCache := cache.New(cacheDurationOrDefault(parameters.NodeCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.NodeCacheCleanUp, cleanupInterval))
-	bucketPrepaidCache := cache.New(cacheDurationOrDefault(parameters.BucketPrepaidCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.BucketPrepaidCacheCleanUp, cleanupInterval))
+	accountGetCache := cache.New(cacheDurationOrDefault(parameters.AccountGetCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountGetCacheCleanUp, cleanupInterval))
 
 	return &ddcBucketContractCached{
-		ddcBucketContract:  ddcBucketContract,
-		bucketCache:        bucketCache,
-		nodeCache:          nodeCache,
-		bucketPrepaidCache: bucketPrepaidCache,
+		ddcBucketContract: ddcBucketContract,
+		bucketCache:       bucketCache,
+		nodeCache:         nodeCache,
+		accountGetCache:   accountGetCache,
 	}
 }
 
@@ -88,21 +90,21 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStat
 	return cached.(*bucket.BucketStatus), nil
 }
 
-func (d *ddcBucketContractCached) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
-	key := toString(bucketId)
-	cached, ok := d.bucketPrepaidCache.Get(key)
+func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.Account, error) {
+	key := hex.EncodeToString(account[:])
+	cached, ok := d.accountGetCache.Get(key)
 
 	if !ok {
-		value, err := d.ddcBucketContract.BucketCalculatePrepaid(bucketId)
+		value, err := d.ddcBucketContract.AccountGet(account)
 		if err != nil {
-			return 0, err
+			return &bucket.Account{}, err
 		}
 
-		d.bucketPrepaidCache.SetDefault(key, value)
+		d.accountGetCache.SetDefault(key, value)
 		return value, nil
 	}
 
-	return cached.(uint64), nil
+	return cached.(*bucket.Account), nil
 }
 
 func (d *ddcBucketContractCached) Clear() {

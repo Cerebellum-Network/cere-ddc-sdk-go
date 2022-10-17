@@ -6,11 +6,12 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	log "github.com/sirupsen/logrus"
+	"math"
 	"math/big"
 	"time"
 )
 
-var writerIds = getAccountIDs([]string{
+var accounts = []string{
 	// ed 25519
 	// privateKey "0x38a538d3d890bfe8f76dc9bf578e215af16fd3d684666f72db0bc0a22bc1d05b"
 	"5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy",
@@ -20,8 +21,9 @@ var writerIds = getAccountIDs([]string{
 	// ed 25519
 	// privateKey "0x93e0153dc0f0bbee868dc00d8d05ddae260e01d418746443fa190c8eacd9544c"
 	"5DoxVJMBeYHfukDQx5G4w9yoTc72cEhVpJD9v1KiTkkr4iJX",
-})
+}
 
+var writerIds = getAccountIDs(accounts)
 var buckets = []*bucket.BucketStatus{
 	CreateBucket(1, `{"replication":1}`, writerIds),
 	CreateBucket(2, `{"replication":2}`, writerIds),
@@ -108,14 +110,17 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 	return nil, errors.New("unknown node")
 }
 
-func (d *ddcBucketContractMock) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
-	for _, bucket := range buckets {
-		if bucket.BucketId == bucketId {
-			return 100, nil
+func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Account, error) {
+	for _, acc := range writerIds {
+		if acc == account {
+			return &bucket.Account{
+				Bonded:            types.NewU128(*big.NewInt(100000)),
+				UnbondedTimestamp: uint64(time.Now().UnixMilli()),
+			}, nil
 		}
 	}
 
-	return 0, errors.New("bucket doesn't exist")
+	return nil, errors.New("account doesn't exist")
 }
 
 func (d *ddcBucketContractMock) GetApiUrl() string {
@@ -138,9 +143,11 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
-			OwnerId:          writerIds[0],
-			ClusterId:        0,
-			ResourceReserved: 32,
+			OwnerId:            writerIds[0],
+			ClusterId:          0,
+			ResourceReserved:   32,
+			PublicAvailability: bucketId%2 == 0,
+			GasConsumptionCap:  math.MaxUint32,
 		},
 		Params:             bucketParams,
 		WriterIds:          writerIds,

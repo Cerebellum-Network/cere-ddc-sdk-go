@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	bucketGetMethod              = "3802cb77"
-	clusterGetMethod             = "e75411f5"
-	nodeGetMethod                = "847f3997"
-	bucketCalculatePrepaidMethod = "d50fcaa2"
+	bucketGetMethod  = "3802cb77"
+	clusterGetMethod = "e75411f5"
+	nodeGetMethod    = "847f3997"
+	accountGetMethod = "1d4220fa"
 )
 
 type (
@@ -25,18 +25,18 @@ type (
 		BucketGet(bucketId uint32) (*BucketStatus, error)
 		ClusterGet(clusterId uint32) (*ClusterStatus, error)
 		NodeGet(nodeId uint32) (*NodeStatus, error)
-		BucketCalculatePrepaid(bucketId uint32) (uint64, error)
+		AccountGet(account types.AccountID) (*Account, error)
 	}
 
 	ddcBucketContract struct {
-		contract                       pkg.BlockchainClient
-		lastAccessTime                 time.Time
-		contractAddressSS58            string
-		keyringPair                    signature.KeyringPair
-		bucketGetMethodId              []byte
-		clusterGetMethodId             []byte
-		nodeGetMethodId                []byte
-		bucketCalculatePrepaidMethodId []byte
+		contract            pkg.BlockchainClient
+		lastAccessTime      time.Time
+		contractAddressSS58 string
+		keyringPair         signature.KeyringPair
+		bucketGetMethodId   []byte
+		clusterGetMethodId  []byte
+		nodeGetMethodId     []byte
+		accountGetMethodId  []byte
 	}
 )
 
@@ -56,19 +56,19 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", nodeGetMethod).Fatal("Can't decode method nodeGetMethod")
 	}
 
-	bucketCalculatePrepaidMethodId, err := hex.DecodeString(bucketCalculatePrepaidMethod)
+	accountGetMethodId, err := hex.DecodeString(accountGetMethod)
 	if err != nil {
-		log.WithError(err).WithField("method", bucketCalculatePrepaidMethod).Fatal("Can't decode method bucketCalculatePrepaidMethod")
+		log.WithError(err).WithField("method", accountGetMethod).Fatal("Can't decode method accountGetMethod")
 	}
 
 	return &ddcBucketContract{
-		contract:                       client,
-		contractAddressSS58:            contractAddressSS58,
-		keyringPair:                    signature.KeyringPair{Address: contractAddressSS58},
-		bucketGetMethodId:              bucketGetMethodId,
-		clusterGetMethodId:             clusterGetMethodId,
-		nodeGetMethodId:                nodeGetMethodId,
-		bucketCalculatePrepaidMethodId: bucketCalculatePrepaidMethodId,
+		contract:            client,
+		contractAddressSS58: contractAddressSS58,
+		keyringPair:         signature.KeyringPair{Address: contractAddressSS58},
+		bucketGetMethodId:   bucketGetMethodId,
+		clusterGetMethodId:  clusterGetMethodId,
+		nodeGetMethodId:     nodeGetMethodId,
+		accountGetMethodId:  accountGetMethodId,
 	}
 }
 
@@ -93,13 +93,13 @@ func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
 	return res, err
 }
 
-func (d *ddcBucketContract) BucketCalculatePrepaid(bucketId uint32) (uint64, error) {
-	var res types.U128
-	if err := d.callToRead(&res, d.bucketGetMethodId, types.U32(bucketId)); err != nil {
-		return 0, err
+func (d *ddcBucketContract) AccountGet(account types.AccountID) (*Account, error) {
+	res := &Account{}
+	if err := d.callToRead(res, d.accountGetMethodId, account); err != nil {
+		return nil, err
 	}
 
-	return res.Uint64(), nil
+	return res, nil
 }
 
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
