@@ -19,7 +19,12 @@ type (
 var _ actcapture.ActivityCaptureContract = (*activityCaptureContractMock)(nil)
 
 func CreateActivityCaptureContractMock() actcapture.ActivityCaptureContract {
-	return &activityCaptureContractMock{}
+	return &activityCaptureContractMock{
+		commit: &actcapture.Commit{
+			From: 0,
+			To:   1,
+		},
+	}
 }
 
 func (a *activityCaptureContractMock) GetCommit() (*actcapture.Commit, error) {
