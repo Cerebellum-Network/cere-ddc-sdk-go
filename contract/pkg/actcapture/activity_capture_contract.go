@@ -20,9 +20,8 @@ const (
 type (
 	ActivityCaptureContract interface {
 		GetContractAddress() string
-
 		GetCommit() (*Commit, error)
-		SetCommit(ctx context.Context, hash []byte, resources uint64) (string, error)
+		SetCommit(ctx context.Context, hash []byte, gas, from, to uint64) (string, error)
 		GetEraSettings() (*EraConfig, error)
 	}
 
@@ -97,14 +96,18 @@ func (a *activityCaptureContract) GetCommit() (*Commit, error) {
 	return result, nil
 }
 
-func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, resources uint64) (string, error) {
+func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, gas, from, to uint64) (string, error) {
+	Gas := types.NewU128(*new(big.Int).SetUint64(gas))
+	From := types.U64(from)
+	To := types.U64(to)
+
 	call := pkg.ContractCall{
 		ContractAddress: a.contractAddress,
 		From:            a.keyringPair,
 		Value:           0,
 		GasLimit:        -1,
 		Method:          a.setCommitMethodId,
-		Args:            []interface{}{a.account, types.NewHash(hash), types.NewU128(*new(big.Int).SetUint64(resources))},
+		Args:            []interface{}{a.account, types.NewHash(hash), Gas, From, To},
 	}
 
 	blockHash, err := a.client.CallToExec(ctx, call)
