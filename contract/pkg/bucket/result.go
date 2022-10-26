@@ -3,7 +3,8 @@ package bucket
 
 import (
 	"errors"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"strings"
 )
 
@@ -20,7 +21,7 @@ type Result struct {
 func (result *Result) decodeDdcBucketContract(encodedData string) error {
 	if strings.HasPrefix(encodedData, okPrefix) {
 		encodedData = strings.TrimPrefix(encodedData, okPrefix)
-		if err := types.DecodeFromHexString(encodedData, result.data); err != nil {
+		if err := codec.DecodeFromHex(encodedData, result.data); err != nil {
 			return err
 		}
 		return nil
@@ -29,7 +30,7 @@ func (result *Result) decodeDdcBucketContract(encodedData string) error {
 	if strings.HasPrefix(encodedData, errPrefix) {
 		encodedData = strings.TrimPrefix(encodedData, errPrefix)
 		var errRes types.U8
-		if err := types.DecodeFromHexString(encodedData, &errRes); err != nil {
+		if err := codec.DecodeFromHex(encodedData, &errRes); err != nil {
 			return err
 		}
 

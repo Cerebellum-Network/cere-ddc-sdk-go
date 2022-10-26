@@ -3,8 +3,8 @@ package bucket
 import (
 	_ "embed"
 	"encoding/hex"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
 	"time"

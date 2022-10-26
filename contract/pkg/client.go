@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"context"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -66,13 +67,17 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 		return "", errors.Wrap(err, "getMessagesData")
 	}
 
-	params.InputData = types.HexEncodeToString(data)
+	params.InputData = codec.HexEncodeToString(data)
 
 	res := struct {
-		Success struct {
-			Data  string `json:"data"`
-			Flags int    `json:"flags"`
-		} `json:"success"`
+		DebugMessage string `json:"debugMessage"`
+		GasConsumed  int    `json:"gasConsumed"`
+		Result       struct {
+			Ok struct {
+				Data  string `json:"data"`
+				Flags int    `json:"flags"`
+			} `json:"Ok"`
+		} `json:"result"`
 	}{}
 
 	err = b.Client.Call(&res, "contracts_call", params)
@@ -87,7 +92,7 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 		return "", errors.Wrap(err, "call")
 	}
 
-	return res.Success.Data, nil
+	return res.Result.Ok.Data, nil
 }
 
 func (b *blockchainClient) CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error) {
@@ -105,25 +110,26 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 		return types.Hash{}, err
 	}
 
-	extrinsic, err := b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
-	if isClosedNetworkError(err) {
+	multiAddress := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
+	extrinsic, err := b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, data)
+	/*	if isClosedNetworkError(err) {
 		if b.reconnect() != nil {
 			return types.Hash{}, err
 		}
 
-		extrinsic, err = b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
-	}
+		extrinsic, err = b.CreateExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, data)
+	}*/
 	if err != nil {
 		return types.Hash{}, err
 	}
 
-	hash, err := b.SubmitAndWaitExtrinsic(ctx, extrinsic)
+	hash, err := b.submitAndWaitExtrinsic(ctx, extrinsic)
 	if isClosedNetworkError(err) {
 		if b.reconnect() != nil {
 			return types.Hash{}, err
 		}
 
-		hash, err = b.SubmitAndWaitExtrinsic(ctx, extrinsic)
+		hash, err = b.submitAndWaitExtrinsic(ctx, extrinsic)
 	}
 	if err != nil {
 		return types.Hash{}, err
@@ -132,7 +138,7 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	return hash, err
 }
 
-func (b *blockchainClient) SubmitAndWaitExtrinsic(ctx context.Context, extrinsic types.Extrinsic) (types.Hash, error) {
+func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic types.Extrinsic) (types.Hash, error) {
 	sub, err := b.RPC.Author.SubmitAndWatchExtrinsic(extrinsic)
 	if err != nil {
 		return types.Hash{}, errors.Wrap(err, "submit error")
@@ -153,7 +159,7 @@ func (b *blockchainClient) SubmitAndWaitExtrinsic(ctx context.Context, extrinsic
 	}
 }
 
-func (b *blockchainClient) CreateExtrinsic(authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
+func (b *blockchainClient) createExtrinsic(authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
 	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return types.Extrinsic{}, errors.Wrap(err, "get metadata lastest error")

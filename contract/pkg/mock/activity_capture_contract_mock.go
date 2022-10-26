@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 	"encoding/hex"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/actcapture"
 	"math/big"
 	"math/rand"

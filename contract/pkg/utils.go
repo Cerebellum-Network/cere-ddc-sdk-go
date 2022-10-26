@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/decred/base58"
 	"golang.org/x/crypto/blake2b"
 )
@@ -41,7 +41,12 @@ func DecodeAccountIDFromSS58(address string) (types.AccountID, error) {
 		h := hash.Sum(nil)
 
 		if (a[addressLength-2] == h[0]) && (a[addressLength-1] == h[1]) {
-			return types.NewAccountID(a[1:]), nil
+			id, err := types.NewAccountID(a[1:33])
+			if err != nil {
+				return types.AccountID{}, err
+			}
+
+			return *id, nil
 		}
 
 		return types.AccountID{},

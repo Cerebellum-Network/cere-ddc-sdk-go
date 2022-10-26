@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -43,7 +44,7 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 		log.WithError(err).Fatal("Can't initialize keyring pair for activity capture contract")
 	}
 
-	account, err := pkg.DecodeAccountIDFromSS58(keyringPair.Address)
+	account, err := types.NewAccountID(keyringPair.PublicKey)
 	if err != nil {
 		log.WithError(err).WithField("account", keyringPair.Address).Fatal("Can't decode accountIDSS58")
 	}
@@ -71,7 +72,7 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 	return &activityCaptureContract{
 		client:                 client,
 		keyringPair:            keyringPair,
-		account:                account,
+		account:                *account,
 		contractAddress:        contractAddress,
 		contractAddressSS58:    contractAddressSS58,
 		getCommitMethodId:      getCommitMethodId,
@@ -89,7 +90,7 @@ func (a *activityCaptureContract) GetCommit() (*Commit, error) {
 	}
 
 	result := &Commit{}
-	if err = types.DecodeFromHexString(encoded, result); err != nil {
+	if err = codec.DecodeFromHex(encoded, result); err != nil {
 		return nil, err
 	}
 
@@ -125,7 +126,7 @@ func (a *activityCaptureContract) GetEraSettings() (*EraConfig, error) {
 	}
 
 	result := &EraConfig{}
-	if err = types.DecodeFromHexString(encoded, result); err != nil {
+	if err = codec.DecodeFromHex(encoded, result); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,7 @@
 package bucket
 
 import (
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"math/big"
 	"time"
 )
@@ -85,7 +85,10 @@ func (b *BucketStatus) RentExpired() bool {
 }
 
 func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
-	address := types.NewAddressFromAccountID(publicKey)
+	address, err := types.NewAddressFromAccountID(publicKey)
+	if err != nil {
+		return false
+	}
 
 	for _, writerId := range b.WriterIds {
 		if writerId == address.AsAccountID {
@@ -97,7 +100,10 @@ func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
 }
 
 func (b *BucketStatus) IsOwner(publicKey []byte) bool {
-	address := types.NewAddressFromAccountID(publicKey)
+	address, err := types.NewAddressFromAccountID(publicKey)
+	if err != nil {
+		return false
+	}
 
 	return b.Bucket.OwnerId == address.AsAccountID
 }
