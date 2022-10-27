@@ -111,14 +111,14 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	}
 
 	multiAddress := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
-	extrinsic, err := b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, data)
-	/*	if isClosedNetworkError(err) {
+	extrinsic, err := b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
+	if isClosedNetworkError(err) {
 		if b.reconnect() != nil {
 			return types.Hash{}, err
 		}
 
-		extrinsic, err = b.CreateExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, data)
-	}*/
+		extrinsic, err = b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
+	}
 	if err != nil {
 		return types.Hash{}, err
 	}
