@@ -8,6 +8,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/decred/base58"
 	"golang.org/x/crypto/blake2b"
+	"strings"
 )
 
 const addressLength = 32 + 1 + 2
@@ -69,4 +70,8 @@ func GetContractData(method []byte, args ...interface{}) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func isClosedNetworkError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
 }

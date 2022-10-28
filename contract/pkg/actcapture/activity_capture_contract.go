@@ -103,12 +103,13 @@ func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, ga
 	To := types.U64(to)
 
 	call := pkg.ContractCall{
-		ContractAddress: a.contractAddress,
-		From:            a.keyringPair,
-		Value:           0,
-		GasLimit:        -1,
-		Method:          a.setCommitMethodId,
-		Args:            []interface{}{a.account, types.NewHash(hash), Gas, From, To},
+		ContractAddress:     a.contractAddress,
+		ContractAddressSS58: a.contractAddressSS58,
+		From:                a.keyringPair,
+		Value:               0,
+		GasLimit:            -1,
+		Method:              a.setCommitMethodId,
+		Args:                []interface{}{a.account, types.NewHash(hash), Gas, From, To},
 	}
 
 	blockHash, err := a.client.CallToExec(ctx, call)
