@@ -1,8 +1,7 @@
 name: 'Triggers on releases'
 on:
   release:
-    - released
-    - prereleased
+    - types: [released, prereleased]
 jobs:
   run:
     runs-on: ubuntu-22.04
@@ -12,5 +11,6 @@ jobs:
           curl \
           -X POST \
           -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.TRIGGER_GITHUB_TOKEN }}" \
           https://api.github.com/repos/Cerebellum-Network/ddc-e2e-tests/dispatches \
           -d '{"event_type":"sdk_release","client_payload":{"sdk":"golang"}}'
