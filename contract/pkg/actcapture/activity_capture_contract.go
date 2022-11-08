@@ -3,7 +3,6 @@ package actcapture
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
@@ -84,12 +83,12 @@ func (a *activityCaptureContract) GetCommit() (*Commit, error) {
 	encoded, err := a.client.CallToReadEncoded(a.contractAddressSS58, a.keyringPair.Address, a.getCommitMethodId, a.account)
 	if err != nil {
 		return nil, err
-	} else if len(encoded) == 0 {
-		return nil, errors.New("commit doesn't exist")
 	}
 
 	result := &Commit{}
-	if err = types.DecodeFromHexString(encoded, result); err != nil {
+	if len(encoded) == 0 {
+		return &Commit{}, nil
+	} else if err = types.DecodeFromHexString(encoded, result); err != nil {
 		return nil, err
 	}
 
