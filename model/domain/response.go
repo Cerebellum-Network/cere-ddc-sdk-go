@@ -22,6 +22,7 @@ const (
 	Code_BAD_GATEWAY                Code = 13
 	Code_INVALID_SESSION_ID         Code = 14
 	Code_ACCOUNT_DEPOSIT_REQUIRED   Code = 15
+	Code_GAS_EXPIRED                Code = 16
 )
 
 type (
