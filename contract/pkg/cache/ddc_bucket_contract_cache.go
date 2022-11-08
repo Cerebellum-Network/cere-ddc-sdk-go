@@ -24,11 +24,11 @@ type (
 	ddcBucketContractCached struct {
 		ddcBucketContract   bucket.DdcBucketContract
 		bucketCache         *cache.Cache
-		bucketSingleFlight  *singleflight.Group
+		bucketSingleFlight  singleflight.Group
 		nodeCache           *cache.Cache
-		nodeSingleFlight    *singleflight.Group
+		nodeSingleFlight    singleflight.Group
 		accountCache        *cache.Cache
-		accountSingleFlight *singleflight.Group
+		accountSingleFlight singleflight.Group
 	}
 
 	BucketCacheParameters struct {
@@ -49,13 +49,10 @@ func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, pa
 	accountCache := cache.New(cacheDurationOrDefault(parameters.AccountCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountCacheCleanUp, cleanupInterval))
 
 	return &ddcBucketContractCached{
-		ddcBucketContract:   ddcBucketContract,
-		bucketCache:         bucketCache,
-		bucketSingleFlight:  &singleflight.Group{},
-		nodeCache:           nodeCache,
-		nodeSingleFlight:    &singleflight.Group{},
-		accountCache:        accountCache,
-		accountSingleFlight: &singleflight.Group{},
+		ddcBucketContract: ddcBucketContract,
+		bucketCache:       bucketCache,
+		nodeCache:         nodeCache,
+		accountCache:      accountCache,
 	}
 }
 
