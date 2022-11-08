@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
+	"github.com/golang/groupcache/singleflight"
 	"github.com/patrickmn/go-cache"
 	"strconv"
 	"time"
@@ -21,10 +22,13 @@ type (
 	}
 
 	ddcBucketContractCached struct {
-		ddcBucketContract bucket.DdcBucketContract
-		bucketCache       *cache.Cache
-		nodeCache         *cache.Cache
-		accountGetCache   *cache.Cache
+		ddcBucketContract   bucket.DdcBucketContract
+		bucketCache         *cache.Cache
+		bucketSingleFlight  *singleflight.Group
+		nodeCache           *cache.Cache
+		nodeSingleFlight    *singleflight.Group
+		accountGetCache     *cache.Cache
+		accountSingleFlight *singleflight.Group
 	}
 
 	BucketCacheParameters struct {
@@ -45,10 +49,13 @@ func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, pa
 	accountGetCache := cache.New(cacheDurationOrDefault(parameters.AccountGetCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountGetCacheCleanUp, cleanupInterval))
 
 	return &ddcBucketContractCached{
-		ddcBucketContract: ddcBucketContract,
-		bucketCache:       bucketCache,
-		nodeCache:         nodeCache,
-		accountGetCache:   accountGetCache,
+		ddcBucketContract:   ddcBucketContract,
+		bucketCache:         bucketCache,
+		bucketSingleFlight:  &singleflight.Group{},
+		nodeCache:           nodeCache,
+		nodeSingleFlight:    &singleflight.Group{},
+		accountGetCache:     accountGetCache,
+		accountSingleFlight: &singleflight.Group{},
 	}
 }
 
@@ -58,9 +65,11 @@ func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterS
 
 func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
 	key := toString(nodeId)
-	cached, ok := d.nodeCache.Get(key)
+	result, err := d.nodeSingleFlight.Do(key, func() (interface{}, error) {
+		if cached, ok := d.nodeCache.Get(key); ok {
+			return cached, nil
+		}
 
-	if !ok {
 		value, err := d.ddcBucketContract.NodeGet(nodeId)
 		if err != nil {
 			return nil, err
@@ -68,16 +77,22 @@ func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 
 		d.nodeCache.SetDefault(key, value)
 		return value, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return cached.(*bucket.NodeStatus), nil
+	return result.(*bucket.NodeStatus), err
 }
 
 func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	key := toString(bucketId)
-	cached, ok := d.bucketCache.Get(key)
+	result, err := d.bucketSingleFlight.Do(key, func() (interface{}, error) {
+		if cached, ok := d.bucketCache.Get(key); ok {
+			return cached, nil
+		}
 
-	if !ok {
 		value, err := d.ddcBucketContract.BucketGet(bucketId)
 		if err != nil {
 			return nil, err
@@ -85,16 +100,22 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStat
 
 		d.bucketCache.SetDefault(key, value)
 		return value, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return cached.(*bucket.BucketStatus), nil
+	return result.(*bucket.BucketStatus), err
 }
 
 func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.Account, error) {
 	key := hex.EncodeToString(account[:])
-	cached, ok := d.accountGetCache.Get(key)
+	result, err := d.accountSingleFlight.Do(key, func() (interface{}, error) {
+		if cached, ok := d.accountGetCache.Get(key); ok {
+			return cached, nil
+		}
 
-	if !ok {
 		value, err := d.ddcBucketContract.AccountGet(account)
 		if err != nil {
 			return &bucket.Account{}, err
@@ -102,9 +123,14 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 
 		d.accountGetCache.SetDefault(key, value)
 		return value, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return cached.(*bucket.Account), nil
+	return result.(*bucket.Account), nil
+
 }
 
 func (d *ddcBucketContractCached) Clear() {
