@@ -27,7 +27,7 @@ type (
 		bucketSingleFlight  *singleflight.Group
 		nodeCache           *cache.Cache
 		nodeSingleFlight    *singleflight.Group
-		accountGetCache     *cache.Cache
+		accountCache        *cache.Cache
 		accountSingleFlight *singleflight.Group
 	}
 
@@ -38,15 +38,15 @@ type (
 		NodeCacheExpiration time.Duration
 		NodeCacheCleanUp    time.Duration
 
-		AccountGetCacheExpiration time.Duration
-		AccountGetCacheCleanUp    time.Duration
+		AccountCacheExpiration time.Duration
+		AccountCacheCleanUp    time.Duration
 	}
 )
 
 func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, parameters BucketCacheParameters) DdcBucketContractCache {
 	bucketCache := cache.New(cacheDurationOrDefault(parameters.BucketCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.BucketCacheCleanUp, cleanupInterval))
 	nodeCache := cache.New(cacheDurationOrDefault(parameters.NodeCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.NodeCacheCleanUp, cleanupInterval))
-	accountGetCache := cache.New(cacheDurationOrDefault(parameters.AccountGetCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountGetCacheCleanUp, cleanupInterval))
+	accountCache := cache.New(cacheDurationOrDefault(parameters.AccountCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountCacheCleanUp, cleanupInterval))
 
 	return &ddcBucketContractCached{
 		ddcBucketContract:   ddcBucketContract,
@@ -54,7 +54,7 @@ func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, pa
 		bucketSingleFlight:  &singleflight.Group{},
 		nodeCache:           nodeCache,
 		nodeSingleFlight:    &singleflight.Group{},
-		accountGetCache:     accountGetCache,
+		accountCache:        accountCache,
 		accountSingleFlight: &singleflight.Group{},
 	}
 }
@@ -112,7 +112,7 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStat
 func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.Account, error) {
 	key := hex.EncodeToString(account[:])
 	result, err := d.accountSingleFlight.Do(key, func() (interface{}, error) {
-		if cached, ok := d.accountGetCache.Get(key); ok {
+		if cached, ok := d.accountCache.Get(key); ok {
 			return cached, nil
 		}
 
@@ -121,7 +121,7 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 			return &bucket.Account{}, err
 		}
 
-		d.accountGetCache.SetDefault(key, value)
+		d.accountCache.SetDefault(key, value)
 		return value, nil
 	})
 
@@ -136,6 +136,7 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 func (d *ddcBucketContractCached) Clear() {
 	d.bucketCache.Flush()
 	d.nodeCache.Flush()
+	d.accountCache.Flush()
 }
 
 func (d *ddcBucketContractCached) GetContractAddress() string {
