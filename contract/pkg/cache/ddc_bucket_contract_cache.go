@@ -76,11 +76,8 @@ func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 		return value, nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return result.(*bucket.NodeStatus), err
+	resp, _ := result.(*bucket.NodeStatus)
+	return resp, err
 }
 
 func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
@@ -99,11 +96,8 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStat
 		return value, nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return result.(*bucket.BucketStatus), err
+	resp, _ := result.(*bucket.BucketStatus)
+	return resp, err
 }
 
 func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.Account, error) {
@@ -122,12 +116,8 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 		return value, nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	return result.(*bucket.Account), nil
-
+	resp, _ := result.(*bucket.Account)
+	return resp, err
 }
 
 func (d *ddcBucketContractCached) Clear() {
