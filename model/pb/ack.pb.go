@@ -27,7 +27,7 @@ type Ack struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// timestamp of request in UNIX milliseconds.
+	// user timestamp of request in UNIX milliseconds.
 	Timestamp uint64 `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// node public key where gas was used
 	PublicKey []byte `protobuf:"bytes,2,opt,name=publicKey,proto3" json:"publicKey,omitempty"`
@@ -106,7 +106,7 @@ type AckRecord struct {
 	Ack *Ack `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
 	// user public key
 	PublicKey []byte `protobuf:"bytes,2,opt,name=publicKey,proto3" json:"publicKey,omitempty"`
-	// timestamp of request in UNIX nanoseconds.
+	// timestamp when record was saved in UNIX nanoseconds
 	Timestamp uint64 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 }
 

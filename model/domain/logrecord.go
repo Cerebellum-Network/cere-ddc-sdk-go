@@ -118,7 +118,11 @@ func (l *LogRecordList) ToDomain(pbLogRecordList *pb.LogRecordList) {
 func (l *LogRecord) requestToProto(pbLogRecord *pb.LogRecord) {
 	switch record := l.Request.(type) {
 	case *WriteRequest:
-		signature := record.Signature.ToProto()
+		var signature *pb.Signature
+		if record.Signature != nil {
+			signature = record.Signature.ToProto()
+		}
+
 		pbLogRecord.Request = &pb.LogRecord_WriteRequest{WriteRequest: &pb.WriteRequest{
 			BucketId:  record.BucketId,
 			Size:      record.Size,
@@ -131,8 +135,13 @@ func (l *LogRecord) requestToProto(pbLogRecord *pb.LogRecord) {
 			BucketId: record.BucketId,
 		}}
 	case *QueryRequest:
+		var query *pb.Query
+		if record.Query != nil {
+			query = record.Query.ToProto()
+		}
+
 		pbLogRecord.Request = &pb.LogRecord_QueryRequest{QueryRequest: &pb.QueryRequest{
-			Query: record.Query.ToProto(),
+			Query: query,
 		}}
 	}
 }
@@ -142,8 +151,11 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 	case *pb.LogRecord_WriteRequest:
 		writeRecord := record.WriteRequest
 
-		signature := &Signature{}
-		signature.ToDomain(writeRecord.Signature)
+		var signature *Signature
+		if writeRecord.Signature != nil {
+			signature = &Signature{}
+			signature.ToDomain(writeRecord.Signature)
+		}
 
 		return &WriteRequest{
 			BucketId:  writeRecord.BucketId,
@@ -156,8 +168,13 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId}
 	case *pb.LogRecord_QueryRequest:
 		queryRecord := record.QueryRequest
-		query := &Query{}
-		query.ToDomain(queryRecord.Query)
+
+		var query *Query
+		if queryRecord.Query != nil {
+			query = &Query{}
+			query.ToDomain(queryRecord.Query)
+		}
+
 		return &QueryRequest{Query: query}
 	}
 
