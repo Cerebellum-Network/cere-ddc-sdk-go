@@ -23,6 +23,7 @@ const (
 	Code_INVALID_SESSION_ID         Code = 14
 	Code_ACCOUNT_DEPOSIT_REQUIRED   Code = 15
 	Code_GAS_EXPIRED                Code = 16
+	Code_REQUEST_TOO_LARGE          Code = 17
 )
 
 type (
