@@ -33,4 +33,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
+replace github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.10.16
+
 go 1.18
