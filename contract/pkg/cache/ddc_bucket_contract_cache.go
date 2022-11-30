@@ -2,7 +2,7 @@ package cache
 
 import (
 	"encoding/hex"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/patrickmn/go-cache"
