@@ -40,6 +40,7 @@ type (
 )
 
 var _ Protobufable = (*LogRecord)(nil)
+var _ Protobufable = (*LogRecordList)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
