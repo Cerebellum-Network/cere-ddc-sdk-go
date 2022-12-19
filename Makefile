@@ -4,7 +4,7 @@ test:
 	go test ${packages}
 
 lint:
-	docker run --rm -v ${PWD}:/app -w /app golangci/golangci-lint:v1.45.2 golangci-lint run ${packages}
+	docker run --rm -v ${PWD}:/app -w /app golangci/golangci-lint:v1.50 golangci-lint run ${packages}
 
 protobuf:
 	docker run --rm       									\

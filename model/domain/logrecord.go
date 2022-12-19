@@ -40,10 +40,11 @@ type (
 )
 
 var _ Protobufable = (*LogRecord)(nil)
+var _ Protobufable = (*LogRecordList)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
 	result := &pb.LogRecord{
-		Timestamp: uint64(l.Timestamp.UnixMilli()),
+		Timestamp: uint64(l.Timestamp.UnixNano()),
 		Address:   l.Address,
 		Gas:       l.Gas,
 		SessionId: l.SessionId,
@@ -56,7 +57,7 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 }
 
 func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
-	timestamp := time.UnixMilli(int64(pbLogRecord.Timestamp))
+	timestamp := time.Unix(0, int64(pbLogRecord.Timestamp))
 	l.Timestamp = &timestamp
 
 	l.Address = pbLogRecord.Address

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -103,7 +102,7 @@ func (c *contentAddressableStorage) sendRequest(ctx context.Context, method stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return nil, fmt.Errorf("fail status %s", resp.Status)
 	}
 

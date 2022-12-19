@@ -2,18 +2,17 @@ package pkg
 
 import (
 	"context"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"strings"
 	"sync"
 )
 
 const (
-	CERE            = 10_000_000_000
-	DefaultGasLimit = 500_000_000_000
+	CERE = 10_000_000_000
 )
 
 type (
@@ -28,12 +27,32 @@ type (
 	}
 
 	ContractCall struct {
-		ContractAddress types.AccountID
-		From            signature.KeyringPair
-		Value           float64
-		GasLimit        float64
-		Method          []byte
-		Args            []interface{}
+		ContractAddress     types.AccountID
+		ContractAddressSS58 string
+		From                signature.KeyringPair
+		Value               float64
+		GasLimit            float64
+		Method              []byte
+		Args                []interface{}
+	}
+
+	Response struct {
+		DebugMessage string `json:"debugMessage"`
+		GasConsumed  int    `json:"gasConsumed"`
+		Result       struct {
+			Ok struct {
+				Data  string `json:"data"`
+				Flags int    `json:"flags"`
+			} `json:"Ok"`
+		} `json:"result"`
+	}
+
+	Request struct {
+		Origin    string `json:"origin"`
+		Dest      string `json:"dest"`
+		GasLimit  uint   `json:"gasLimit"`
+		InputData string `json:"inputData"`
+		Value     int    `json:"value"`
 	}
 )
 
@@ -49,82 +68,68 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
-	params := struct {
-		Origin    string `json:"origin"`
-		Dest      string `json:"dest"`
-		GasLimit  uint   `json:"gasLimit"`
-		InputData string `json:"inputData"`
-		Value     int    `json:"value"`
-	}{
-		Origin:   fromAddress,
-		Dest:     contractAddressSS58,
-		GasLimit: DefaultGasLimit,
-	}
-
 	data, err := GetContractData(method, args...)
 	if err != nil {
 		return "", errors.Wrap(err, "getMessagesData")
 	}
 
-	params.InputData = types.HexEncodeToString(data)
-
-	res := struct {
-		Success struct {
-			Data  string `json:"data"`
-			Flags int    `json:"flags"`
-		} `json:"success"`
-	}{}
-
-	err = b.Client.Call(&res, "contracts_call", params)
-	if isClosedNetworkError(err) {
-		if b.reconnect() != nil {
-			return "", errors.Wrap(err, "call")
-		}
-
-		err = b.Client.Call(&res, "contracts_call", params)
-	}
+	res, err := b.callToRead(contractAddressSS58, fromAddress, data)
 	if err != nil {
-		return "", errors.Wrap(err, "call")
+		return "", err
 	}
 
-	return res.Success.Data, nil
+	return res.Result.Ok.Data, nil
+}
+
+func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
+	params := Request{
+		Origin:    fromAddress,
+		Dest:      contractAddressSS58,
+		GasLimit:  500_000_000_000,
+		InputData: codec.HexEncodeToString(data),
+	}
+
+	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
+		res := Response{}
+		return res, b.Client.Call(&res, "contracts_call", params)
+	})
+	if err != nil {
+		return Response{}, errors.Wrap(err, "call")
+	}
+
+	return res, nil
 }
 
 func (b *blockchainClient) CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error) {
-	valueRaw := types.NewUCompactFromUInt(uint64(contractCall.Value * CERE))
-
-	var gasLimitRaw types.UCompact
-	if contractCall.GasLimit > 0 {
-		gasLimitRaw = types.NewUCompactFromUInt(uint64(contractCall.GasLimit * CERE))
-	} else {
-		gasLimitRaw = types.NewUCompactFromUInt(DefaultGasLimit)
-	}
-
 	data, err := GetContractData(contractCall.Method, contractCall.Args...)
 	if err != nil {
 		return types.Hash{}, err
 	}
 
-	extrinsic, err := b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
-	if isClosedNetworkError(err) {
-		if b.reconnect() != nil {
+	valueRaw := types.NewUCompactFromUInt(uint64(contractCall.Value * CERE))
+	var gasLimitRaw types.UCompact
+	if contractCall.GasLimit > 0 {
+		gasLimitRaw = types.NewUCompactFromUInt(uint64(contractCall.GasLimit * CERE))
+	} else {
+		resp, err := b.callToRead(contractCall.ContractAddressSS58, contractCall.From.Address, data)
+		if err != nil {
 			return types.Hash{}, err
 		}
 
-		extrinsic, err = b.CreateExtrinsic(contractCall.From, int8(-1), contractCall.ContractAddress, valueRaw, gasLimitRaw, data)
+		gasLimitRaw = types.NewUCompactFromUInt(uint64(resp.GasConsumed))
 	}
+
+	multiAddress := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
+	extrinsic, err := withRetryOnClosedNetwork(b, func() (types.Extrinsic, error) {
+		return b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
+	})
 	if err != nil {
 		return types.Hash{}, err
 	}
 
-	hash, err := b.SubmitAndWaitExtrinsic(ctx, extrinsic)
-	if isClosedNetworkError(err) {
-		if b.reconnect() != nil {
-			return types.Hash{}, err
-		}
-
-		hash, err = b.SubmitAndWaitExtrinsic(ctx, extrinsic)
-	}
+	hash, err := withRetryOnClosedNetwork(b, func() (types.Hash, error) {
+		return b.submitAndWaitExtrinsic(ctx, extrinsic)
+	})
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -132,28 +137,7 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	return hash, err
 }
 
-func (b *blockchainClient) SubmitAndWaitExtrinsic(ctx context.Context, extrinsic types.Extrinsic) (types.Hash, error) {
-	sub, err := b.RPC.Author.SubmitAndWatchExtrinsic(extrinsic)
-	if err != nil {
-		return types.Hash{}, errors.Wrap(err, "submit error")
-	}
-	defer sub.Unsubscribe()
-
-	for {
-		select {
-		case status := <-sub.Chan():
-			if status.IsInBlock {
-				return status.AsInBlock, nil
-			}
-		case err := <-sub.Err():
-			return types.Hash{}, errors.Wrap(err, "subscribe error")
-		case <-ctx.Done():
-			return types.Hash{}, ctx.Err()
-		}
-	}
-}
-
-func (b *blockchainClient) CreateExtrinsic(authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
+func (b *blockchainClient) createExtrinsic(authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
 	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return types.Extrinsic{}, errors.Wrap(err, "get metadata lastest error")
@@ -205,6 +189,39 @@ func (b *blockchainClient) CreateExtrinsic(authKey signature.KeyringPair, args .
 	return ext, nil
 }
 
+func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic types.Extrinsic) (types.Hash, error) {
+	sub, err := b.RPC.Author.SubmitAndWatchExtrinsic(extrinsic)
+	if err != nil {
+		return types.Hash{}, errors.Wrap(err, "submit error")
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		select {
+		case status := <-sub.Chan():
+			if status.IsInBlock {
+				return status.AsInBlock, nil
+			}
+		case err := <-sub.Err():
+			return types.Hash{}, errors.Wrap(err, "subscribe error")
+		case <-ctx.Done():
+			return types.Hash{}, ctx.Err()
+		}
+	}
+}
+
+func withRetryOnClosedNetwork[T any](b *blockchainClient, f func() (T, error)) (T, error) {
+	result, err := f()
+	if isClosedNetworkError(err) {
+		if b.reconnect() != nil {
+			return result, err
+		}
+
+		result, err = f()
+	}
+	return result, err
+}
+
 func (b *blockchainClient) reconnect() error {
 	b.connectMutex.Lock()
 	defer b.connectMutex.Unlock()
@@ -221,8 +238,4 @@ func (b *blockchainClient) reconnect() error {
 	b.SubstrateAPI = substrateAPI
 
 	return nil
-}
-
-func isClosedNetworkError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
 }

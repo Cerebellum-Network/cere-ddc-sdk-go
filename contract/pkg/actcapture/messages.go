@@ -1,6 +1,6 @@
 package actcapture
 
-import "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+import "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 
 type Commit struct {
 	Hash types.Hash
@@ -10,6 +10,8 @@ type Commit struct {
 }
 
 type EraConfig struct {
-	Start    types.U64 // milliseconds
-	Interval types.U64 // milliseconds
+	Start              types.U64 // milliseconds
+	Interval           types.U64 // milliseconds
+	CommitDeadline     types.U64 // milliseconds
+	ValidationDeadline types.U64 // milliseconds
 }

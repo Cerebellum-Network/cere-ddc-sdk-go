@@ -3,8 +3,9 @@ package actcapture
 import (
 	"context"
 	"encoding/hex"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -42,7 +43,7 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 		log.WithError(err).Fatal("Can't initialize keyring pair for activity capture contract")
 	}
 
-	account, err := pkg.DecodeAccountIDFromSS58(keyringPair.Address)
+	account, err := types.NewAccountID(keyringPair.PublicKey)
 	if err != nil {
 		log.WithError(err).WithField("account", keyringPair.Address).Fatal("Can't decode accountIDSS58")
 	}
@@ -70,7 +71,7 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 	return &activityCaptureContract{
 		client:                 client,
 		keyringPair:            keyringPair,
-		account:                account,
+		account:                *account,
 		contractAddress:        contractAddress,
 		contractAddressSS58:    contractAddressSS58,
 		getCommitMethodId:      getCommitMethodId,
@@ -86,10 +87,10 @@ func (a *activityCaptureContract) GetCommit() (*Commit, error) {
 	}
 
 	result := &Commit{}
-	if len(encoded) == 0 {
-		return &Commit{}, nil
-	} else if err = types.DecodeFromHexString(encoded, result); err != nil {
-		return nil, err
+	if len(encoded) != 0 {
+		if err = codec.DecodeFromHex(encoded, result); err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil
@@ -101,12 +102,13 @@ func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, ga
 	To := types.U64(to)
 
 	call := pkg.ContractCall{
-		ContractAddress: a.contractAddress,
-		From:            a.keyringPair,
-		Value:           0,
-		GasLimit:        -1,
-		Method:          a.setCommitMethodId,
-		Args:            []interface{}{a.account, types.NewHash(hash), Gas, From, To},
+		ContractAddress:     a.contractAddress,
+		ContractAddressSS58: a.contractAddressSS58,
+		From:                a.keyringPair,
+		Value:               0,
+		GasLimit:            -1,
+		Method:              a.setCommitMethodId,
+		Args:                []interface{}{a.account, types.NewHash(hash), Gas, From, To},
 	}
 
 	blockHash, err := a.client.CallToExec(ctx, call)
@@ -124,7 +126,7 @@ func (a *activityCaptureContract) GetEraSettings() (*EraConfig, error) {
 	}
 
 	result := &EraConfig{}
-	if err = types.DecodeFromHexString(encoded, result); err != nil {
+	if err = codec.DecodeFromHex(encoded, result); err != nil {
 		return nil, err
 	}
 
