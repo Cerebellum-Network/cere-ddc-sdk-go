@@ -64,6 +64,7 @@ type BucketStatus struct {
 	Bucket             Bucket
 	Params             BucketParams
 	WriterIds          []AccountId
+	ReaderIds          []AccountId
 	RentCoveredUntilMs uint64
 }
 
@@ -88,6 +89,35 @@ func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
 	address, err := types.NewAddressFromAccountID(publicKey)
 	if err != nil {
 		return false
+	}
+
+	if b.IsOwner(publicKey) {
+		return true
+	}
+
+	for _, writerId := range b.WriterIds {
+		if writerId == address.AsAccountID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
+	address, err := types.NewAddressFromAccountID(publicKey)
+	if err != nil {
+		return false
+	}
+
+	if b.IsOwner(publicKey) {
+		return true
+	}
+
+	for _, readerId := range b.ReaderIds {
+		if readerId == address.AsAccountID {
+			return true
+		}
 	}
 
 	for _, writerId := range b.WriterIds {
