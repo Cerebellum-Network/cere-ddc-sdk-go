@@ -91,17 +91,7 @@ func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
 		return false
 	}
 
-	if b.IsOwner(publicKey) {
-		return true
-	}
-
-	for _, writerId := range b.WriterIds {
-		if writerId == address.AsAccountID {
-			return true
-		}
-	}
-
-	return false
+	return b.isOwner(address) || b.isWriter(address)
 }
 
 func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
@@ -110,16 +100,23 @@ func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
 		return false
 	}
 
-	if b.IsOwner(publicKey) {
-		return true
+	return b.isOwner(address) || b.isWriter(address) || b.isReader(address)
+}
+
+func (b *BucketStatus) IsOwner(publicKey []byte) bool {
+	address, err := types.NewAddressFromAccountID(publicKey)
+	if err != nil {
+		return false
 	}
 
-	for _, readerId := range b.ReaderIds {
-		if readerId == address.AsAccountID {
-			return true
-		}
-	}
+	return b.isOwner(address)
+}
 
+func (b *BucketStatus) isOwner(address types.Address) bool {
+	return b.Bucket.OwnerId == address.AsAccountID
+}
+
+func (b *BucketStatus) isWriter(address types.Address) bool {
 	for _, writerId := range b.WriterIds {
 		if writerId == address.AsAccountID {
 			return true
@@ -129,11 +126,12 @@ func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
 	return false
 }
 
-func (b *BucketStatus) IsOwner(publicKey []byte) bool {
-	address, err := types.NewAddressFromAccountID(publicKey)
-	if err != nil {
-		return false
+func (b *BucketStatus) isReader(address types.Address) bool {
+	for _, readerId := range b.ReaderIds {
+		if readerId == address.AsAccountID {
+			return true
+		}
 	}
 
-	return b.Bucket.OwnerId == address.AsAccountID
+	return false
 }
