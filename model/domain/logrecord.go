@@ -16,6 +16,7 @@ type (
 		Gas       uint32
 		PublicKey []byte
 		SessionId []byte
+		RequestId string
 	}
 
 	WriteRequest struct {
@@ -49,6 +50,7 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 		Gas:       l.Gas,
 		SessionId: l.SessionId,
 		PublicKey: l.PublicKey,
+		RequestId: l.RequestId,
 	}
 
 	l.requestToProto(result)
@@ -64,6 +66,7 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	l.Gas = pbLogRecord.Gas
 	l.SessionId = pbLogRecord.SessionId
 	l.PublicKey = pbLogRecord.PublicKey
+	l.RequestId = pbLogRecord.RequestId
 	l.Request = requestToDomain(pbLogRecord)
 }
 
