@@ -11,6 +11,7 @@ type Ack struct {
 	Gas       uint64
 	PublicKey []byte
 	Nonce     []byte
+	RequestId string
 }
 
 var _ Protobufable = (*Ack)(nil)
@@ -36,6 +37,7 @@ func (a *Ack) ToDomain(ack *pb.Ack) {
 	a.PublicKey = ack.PublicKey
 	a.Gas = ack.Gas
 	a.Nonce = ack.Nonce
+	a.RequestId = ack.RequestId
 }
 
 func (a *Ack) ToProto() *pb.Ack {
@@ -43,6 +45,7 @@ func (a *Ack) ToProto() *pb.Ack {
 		PublicKey: a.PublicKey,
 		Gas:       a.Gas,
 		Nonce:     a.Nonce,
+		RequestId: a.RequestId,
 		Timestamp: uint64(a.Timestamp.UnixMilli()),
 	}
 }
