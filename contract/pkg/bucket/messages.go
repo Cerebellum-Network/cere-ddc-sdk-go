@@ -11,6 +11,7 @@ type (
 	Cash         = Balance
 	Resource     = uint32
 	NodeId       = uint32
+	Token        = uint64
 	ClusterId    = uint32
 	AccountId    = types.AccountID
 	ProviderId   = AccountId
@@ -21,10 +22,11 @@ type (
 
 type Cluster struct {
 	ManagerId        AccountId
-	VNodes           []NodeId
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
+	VNodes           [][]Token
+	Nodes            []NodeId
 	TotalRent        Balance
 }
 
