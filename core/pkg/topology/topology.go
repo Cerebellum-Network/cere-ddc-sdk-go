@@ -40,9 +40,9 @@ func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 	}
 }
 
-func (t *ring) Tokens(nodeId uint32) []uint64 {
+func (r *ring) Tokens(nodeId uint32) []uint64 {
 	result := make([]uint64, 0)
-	for _, vNode := range t.vNodes {
+	for _, vNode := range r.vNodes {
 		if nodeId == vNode.nodeId {
 			result = append(result, vNode.token)
 		}
@@ -51,49 +51,53 @@ func (t *ring) Tokens(nodeId uint32) []uint64 {
 	return result
 }
 
-func (t *ring) Replicas(token uint64) []*VNode {
-	searchIndex := t.search(token)
-	if len(t.vNodes) == searchIndex || t.vNodes[searchIndex].token != token {
-		searchIndex = t.prevIndex(searchIndex)
+func (r *ring) Replicas(token uint64) []*VNode {
+	searchIndex := r.search(token)
+	if len(r.vNodes) == searchIndex || r.vNodes[searchIndex].token != token {
+		searchIndex = r.prevIndex(searchIndex)
 	}
 
-	nodes := make([]*VNode, 0, t.replicaFactor)
-	for i := searchIndex; uint(len(nodes)) < t.replicaFactor; i = t.nextIndex(i) {
-		nodes = append(nodes, t.vNodes[i])
+	nodes := make([]*VNode, 0, r.replicaFactor)
+	for i := searchIndex; uint(len(nodes)) < r.replicaFactor; i = r.nextIndex(i) {
+		nodes = append(nodes, r.vNodes[i])
 	}
 
 	return nodes
 }
 
-func (t *ring) Neighbours(token uint64) (prev *VNode, next *VNode) {
-	searchIndex := t.search(token)
-	prev = t.vNodes[t.prevIndex(searchIndex)]
+func (r *ring) Neighbours(token uint64) (prev *VNode, next *VNode) {
+	searchIndex := r.search(token)
+	prev = r.vNodes[r.prevIndex(searchIndex)]
 
-	if searchIndex == len(t.vNodes) || t.vNodes[searchIndex].token == token {
-		next = t.vNodes[t.nextIndex(searchIndex)]
+	if searchIndex == len(r.vNodes) || r.vNodes[searchIndex].token == token {
+		next = r.vNodes[r.nextIndex(searchIndex)]
 	} else {
-		next = t.vNodes[searchIndex]
+		next = r.vNodes[searchIndex]
 	}
 
 	return
 }
 
-func (t *ring) search(token uint64) int {
-	return sort.Search(len(t.vNodes), func(i int) bool { return t.vNodes[i].token >= token })
+func (r *ring) VNodes() []*VNode {
+	return r.vNodes
 }
 
-func (t *ring) prevIndex(i int) int {
+func (r *ring) search(token uint64) int {
+	return sort.Search(len(r.vNodes), func(i int) bool { return r.vNodes[i].token >= token })
+}
+
+func (r *ring) prevIndex(i int) int {
 	i--
 	if i < 0 {
-		return len(t.vNodes) - 1
+		return len(r.vNodes) - 1
 	}
 
 	return i
 }
 
-func (t *ring) nextIndex(i int) int {
+func (r *ring) nextIndex(i int) int {
 	i++
-	if i >= len(t.vNodes) {
+	if i >= len(r.vNodes) {
 		return 0
 	}
 
