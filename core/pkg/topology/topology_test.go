@@ -10,7 +10,7 @@ var clusters = []struct {
 	name          string
 	nodeIds       []uint32
 	vNodes        [][]uint64
-	replicaFactor int
+	replicaFactor uint
 }{
 	{"2", []uint32{1, 2}, [][]uint64{{9223372036854775806, 3074457345618258602, 15372286728091293010}, {12297829382473034408, 6148914691236517204, 18446744073709551612}}, 2},
 	{"3", []uint32{1, 2, 3}, [][]uint64{{12297829382473034408, 3074457345618258602}, {6148914691236517204, 15372286728091293010}, {18446744073709551612, 9223372036854775806}}, 3},
@@ -95,7 +95,7 @@ func TestReplicas(t *testing.T) {
 			replicas := testSubject.Replicas(test.token)
 
 			//then
-			assert.Len(t, replicas, cluster.replicaFactor)
+			assert.Len(t, replicas, int(cluster.replicaFactor))
 			for i, vNode := range replicas {
 				assert.Equal(t, test.replicas[i], *vNode)
 			}

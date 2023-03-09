@@ -13,11 +13,11 @@ type (
 
 	ring struct {
 		vNodes        []*VNode
-		replicaFactor int
+		replicaFactor uint
 	}
 )
 
-func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor int) Ring {
+func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 	topologyVNodes := make([]*VNode, 0)
 	for i, nodeId := range nodeIds {
 		for _, token := range vNodes[i] {
@@ -58,7 +58,7 @@ func (t *ring) Replicas(token uint64) []*VNode {
 	}
 
 	nodes := make([]*VNode, 0, t.replicaFactor)
-	for i := searchIndex; len(nodes) < t.replicaFactor; i = t.nextIndex(i) {
+	for i := searchIndex; uint(len(nodes)) < t.replicaFactor; i = t.nextIndex(i) {
 		nodes = append(nodes, t.vNodes[i])
 	}
 

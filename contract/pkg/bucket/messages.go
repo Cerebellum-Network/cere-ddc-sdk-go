@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"encoding/json"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"math/big"
 	"time"
@@ -81,6 +82,20 @@ type Account struct {
 
 func (a *Account) HasBalance() bool {
 	return a.Bonded.Cmp(big.NewInt(0)) > 0
+}
+
+type ClusterParams struct {
+	ReplicationFactor int `json:"replicationFactor"`
+}
+
+func (c *ClusterStatus) ReplicationFactor() uint {
+	params := &ClusterParams{}
+	err := json.Unmarshal([]byte(c.Params), params)
+	if err != nil || params.ReplicationFactor <= 0 {
+		return 0
+	}
+
+	return uint(params.ReplicationFactor)
 }
 
 func (b *BucketStatus) RentExpired() bool {
