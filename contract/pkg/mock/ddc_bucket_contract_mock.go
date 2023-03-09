@@ -40,6 +40,7 @@ type (
 		Id     uint32
 		VNodes [][]uint64
 		Nodes  []uint32
+		Params string
 	}
 
 	ddcBucketContractMock struct {
@@ -86,7 +87,7 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				Params: "{\"replicationFactor\": 3}",
+				Params: cluster.Params,
 			}, nil
 		}
 	}
