@@ -83,7 +83,7 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Nodes:            cluster.Nodes,
 					VNodes:           cluster.VNodes,
 					ResourcePerVNode: 32,
-					ResourceUsed:     1,
+					ResourceUsed:     0,
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
@@ -147,7 +147,7 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
-			ClusterId:          0,
+			ClusterId:          1,
 			ResourceReserved:   32,
 			PublicAvailability: bucketId%2 == 0,
 			GasConsumptionCap:  math.MaxUint32,
