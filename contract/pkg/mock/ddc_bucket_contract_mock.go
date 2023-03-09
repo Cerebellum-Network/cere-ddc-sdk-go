@@ -83,7 +83,7 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Nodes:            cluster.Nodes,
 					VNodes:           cluster.VNodes,
 					ResourcePerVNode: 32,
-					ResourceUsed:     0,
+					ResourceUsed:     1,
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
