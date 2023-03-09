@@ -9,6 +9,7 @@ type (
 		Tokens(nodeId uint32) []uint64
 		Neighbours(token uint64) (*VNode, *VNode)
 		Replicas(token uint64) []*VNode
+		VNodes() []*VNode
 	}
 
 	ring struct {
