@@ -62,14 +62,14 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", nodeGetMethod).Fatal("Can't decode method nodeGetMethod")
 	}
 
-	cdnClusterGetMethodId, err := hex.DecodeString(clusterGetMethod)
+	cdnClusterGetMethodId, err := hex.DecodeString(cdnClusterGetMethod)
 	if err != nil {
-		log.WithError(err).WithField("method", clusterGetMethod).Fatal("Can't decode method cdnClusterGetMethod")
+		log.WithError(err).WithField("method", cdnClusterGetMethod).Fatal("Can't decode method cdnClusterGetMethod")
 	}
 
-	cdnNodeGetMethodId, err := hex.DecodeString(nodeGetMethod)
+	cdnNodeGetMethodId, err := hex.DecodeString(cdnNodeGetMethod)
 	if err != nil {
-		log.WithError(err).WithField("method", nodeGetMethod).Fatal("Can't decode method cdnNodeGetMethod")
+		log.WithError(err).WithField("method", cdnNodeGetMethod).Fatal("Can't decode method cdnNodeGetMethod")
 	}
 
 	accountGetMethodId, err := hex.DecodeString(accountGetMethod)
