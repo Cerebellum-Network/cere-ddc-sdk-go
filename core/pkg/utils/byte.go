@@ -31,3 +31,25 @@ func Uint64ToBytes(number uint64) []byte {
 	binary.BigEndian.PutUint64(bytes, number)
 	return bytes
 }
+
+func Xor(left []byte, right []byte) []byte {
+	var big, small []byte
+	if len(left) >= len(right) {
+		big, small = left, right
+	} else {
+		big, small = right, left
+	}
+
+	result := make([]byte, len(big))
+	lastIndex := 0
+	for i, v := range small {
+		result[i] = v ^ big[i]
+		lastIndex++
+	}
+
+	for i := lastIndex; i < len(big); i++ {
+		result[i] ^= big[i]
+	}
+
+	return result
+}
