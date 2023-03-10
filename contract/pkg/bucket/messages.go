@@ -34,6 +34,19 @@ type ClusterStatus struct {
 	Params    Params
 }
 
+type CDNCluster struct {
+	ManagerId    AccountId
+	CDNNodes     []NodeId
+	ResourceUsed Resource
+	Revenues     Cash
+	UsdPerGb     Balance
+}
+
+type CDNClusterStatus struct {
+	ClusterId  ClusterId
+	CDNCluster CDNCluster
+}
+
 type Node struct {
 	ProviderId    ProviderId
 	RentPerMonth  Balance
@@ -44,6 +57,23 @@ type NodeStatus struct {
 	NodeId NodeId
 	Node   Node
 	Params string
+}
+
+type CDNNode struct {
+	ProviderId           ProviderId
+	UndistributedPayment Balance
+}
+
+type CDNNodeParams struct {
+	Url      string
+	Size     uint8
+	Location string
+}
+
+type CDNNodeStatus struct {
+	NodeId NodeId
+	Node   CDNNode
+	Params CDNNodeParams
 }
 
 type Bucket struct {
