@@ -19,6 +19,14 @@ type (
 	BucketId     = uint32
 	Params       = string
 	BucketParams = Params
+	NodeTag      = byte
+)
+
+const (
+	ACTIVE NodeTag = iota
+	ADDING
+	DELETING
+	OFFLINE
 )
 
 type Cluster struct {
@@ -26,8 +34,8 @@ type Cluster struct {
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
-	VNodes           [][]Token
 	Nodes            []NodeId
+	VNodes           [][]Token
 	TotalRent        Balance
 }
 
@@ -41,6 +49,7 @@ type Node struct {
 	ProviderId    ProviderId
 	RentPerMonth  Balance
 	FreeResources Resource
+	NodeTag       NodeTag
 }
 
 type NodeStatus struct {
