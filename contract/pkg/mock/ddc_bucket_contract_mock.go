@@ -39,7 +39,9 @@ type (
 
 	Cluster struct {
 		Id     uint32
-		VNodes []uint32
+		VNodes [][]uint64
+		Nodes  []uint32
+		Params string
 	}
 
 	CDNNode struct {
@@ -95,13 +97,14 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 				ClusterId: clusterId,
 				Cluster: bucket.Cluster{
 					ManagerId:        types.AccountID{},
+					Nodes:            cluster.Nodes,
 					VNodes:           cluster.VNodes,
 					ResourcePerVNode: 32,
 					ResourceUsed:     0,
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				Params: "",
+				Params: cluster.Params,
 			}, nil
 		}
 	}
@@ -201,7 +204,7 @@ func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.Accoun
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
-			ClusterId:          0,
+			ClusterId:          1,
 			ResourceReserved:   32,
 			PublicAvailability: bucketId%2 == 0,
 			GasConsumptionCap:  math.MaxUint32,
