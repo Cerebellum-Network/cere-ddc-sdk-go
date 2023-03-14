@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
@@ -42,10 +43,10 @@ type (
 	}
 
 	CDNNode struct {
-		Id       uint32
-		Url      string
-		Size     uint8
-		Location string
+		Id       uint32 `json:"-"`
+		Url      string `json:"url"`
+		Size     uint8  `json:"size"`
+		Location string `json:"location"`
 	}
 
 	CDNCluster struct {
@@ -148,17 +149,17 @@ func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClus
 func (d *ddcBucketContractMock) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
 	for _, node := range d.cdnNodes {
 		if node.Id == nodeId {
+			params, err := json.Marshal(node)
+			if err != nil {
+				return nil, err
+			}
 			return &bucket.CDNNodeStatus{
 				NodeId: nodeId,
 				Node: bucket.CDNNode{
 					ProviderId:           types.AccountID{},
 					UndistributedPayment: types.NewU128(*big.NewInt(1)),
 				},
-				Params: bucket.CDNNodeParams{
-					Url:      node.Url,
-					Size:     node.Size,
-					Location: node.Location,
-				},
+				Params: string(params),
 			}, nil
 		}
 	}

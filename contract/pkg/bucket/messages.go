@@ -64,16 +64,10 @@ type CDNNode struct {
 	UndistributedPayment Balance
 }
 
-type CDNNodeParams struct {
-	Url      string
-	Size     uint8
-	Location string
-}
-
 type CDNNodeStatus struct {
 	NodeId NodeId
 	Node   CDNNode
-	Params CDNNodeParams
+	Params string
 }
 
 type Bucket struct {
