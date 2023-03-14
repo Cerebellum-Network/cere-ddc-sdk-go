@@ -18,7 +18,7 @@ const (
 type (
 	DdcBucketContractCache interface {
 		Flush()
-		EvictCluster(clusterId uint32)
+		ClusterFlush()
 		bucket.DdcBucketContract
 	}
 
@@ -84,8 +84,8 @@ func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterS
 	return resp, err
 }
 
-func (d *ddcBucketContractCached) EvictCluster(clusterId uint32) {
-	d.clusterCache.Delete(toString(clusterId))
+func (d *ddcBucketContractCached) ClusterFlush() {
+	d.clusterCache.Flush()
 }
 
 func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
