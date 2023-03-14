@@ -17,7 +17,8 @@ const (
 
 type (
 	DdcBucketContractCache interface {
-		Clear()
+		Flush()
+		EvictCluster(clusterId uint32)
 		bucket.DdcBucketContract
 	}
 
@@ -29,6 +30,8 @@ type (
 		nodeSingleFlight    singleflight.Group
 		accountCache        *cache.Cache
 		accountSingleFlight singleflight.Group
+		clusterCache        *cache.Cache
+		clusterSingleFlight singleflight.Group
 	}
 
 	BucketCacheParameters struct {
@@ -40,6 +43,9 @@ type (
 
 		AccountCacheExpiration time.Duration
 		AccountCacheCleanUp    time.Duration
+
+		ClusterCacheExpiration time.Duration
+		ClusterCacheCleanUp    time.Duration
 	}
 )
 
@@ -47,17 +53,39 @@ func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, pa
 	bucketCache := cache.New(cacheDurationOrDefault(parameters.BucketCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.BucketCacheCleanUp, cleanupInterval))
 	nodeCache := cache.New(cacheDurationOrDefault(parameters.NodeCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.NodeCacheCleanUp, cleanupInterval))
 	accountCache := cache.New(cacheDurationOrDefault(parameters.AccountCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.AccountCacheCleanUp, cleanupInterval))
+	clusterCache := cache.New(cacheDurationOrDefault(parameters.ClusterCacheExpiration, defaultExpiration), cacheDurationOrDefault(parameters.ClusterCacheCleanUp, cleanupInterval))
 
 	return &ddcBucketContractCached{
 		ddcBucketContract: ddcBucketContract,
 		bucketCache:       bucketCache,
 		nodeCache:         nodeCache,
 		accountCache:      accountCache,
+		clusterCache:      clusterCache,
 	}
 }
 
 func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
-	return d.ddcBucketContract.ClusterGet(clusterId)
+	key := toString(clusterId)
+	result, err := d.clusterSingleFlight.Do(key, func() (interface{}, error) {
+		if cached, ok := d.clusterCache.Get(key); ok {
+			return cached, nil
+		}
+
+		value, err := d.ddcBucketContract.ClusterGet(clusterId)
+		if err != nil {
+			return nil, err
+		}
+
+		d.clusterCache.SetDefault(key, value)
+		return value, nil
+	})
+
+	resp, _ := result.(*bucket.ClusterStatus)
+	return resp, err
+}
+
+func (d *ddcBucketContractCached) EvictCluster(clusterId uint32) {
+	d.clusterCache.Delete(toString(clusterId))
 }
 
 func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
@@ -120,10 +148,11 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 	return resp, err
 }
 
-func (d *ddcBucketContractCached) Clear() {
+func (d *ddcBucketContractCached) Flush() {
 	d.bucketCache.Flush()
 	d.nodeCache.Flush()
 	d.accountCache.Flush()
+	d.clusterCache.Flush()
 }
 
 func (d *ddcBucketContractCached) GetContractAddress() string {
