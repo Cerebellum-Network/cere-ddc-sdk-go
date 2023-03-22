@@ -3,12 +3,23 @@ package crypto
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"encoding/hex"
+	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/vedhavyas/go-subkey"
 )
 
 type secp256k1Scheme struct {
 	privateKey *ecdsa.PrivateKey
 	publicKey  []byte
+}
+
+func (s *secp256k1Scheme) Address() (string, error) {
+	return subkey.SS58Address(s.publicKey, 42)
+}
+
+func (s *secp256k1Scheme) PublicKeyHex() string {
+	return fmt.Sprintf("0x%s", hex.EncodeToString(s.publicKey))
 }
 
 const Secp256k1 SchemeName = "secp256k1"
