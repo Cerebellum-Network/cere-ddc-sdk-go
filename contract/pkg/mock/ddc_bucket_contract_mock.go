@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
@@ -43,22 +44,38 @@ type (
 		Params string
 	}
 
+	CDNNode struct {
+		Id       uint32 `json:"-"`
+		Url      string `json:"url"`
+		Size     uint8  `json:"size"`
+		Location string `json:"location"`
+	}
+
+	CDNCluster struct {
+		Id    uint32
+		Nodes []uint32
+	}
+
 	ddcBucketContractMock struct {
 		accountId      string
 		apiUrl         string
 		lastAccessTime time.Time
 		nodes          []Node
 		clusters       []Cluster
+		cdnNodes       []CDNNode
+		cdnClusters    []CDNCluster
 	}
 )
 
-func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster) bucket.DdcBucketContract {
+func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster, cdnNodes []CDNNode, cdnClusters []CDNCluster) bucket.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
 	return &ddcBucketContractMock{
 		accountId:      accountId,
 		apiUrl:         apiUrl,
 		nodes:          nodes,
 		clusters:       clusters,
+		cdnClusters:    cdnClusters,
+		cdnNodes:       cdnNodes,
 		lastAccessTime: time.Now(),
 	}
 }
@@ -106,6 +123,46 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 					FreeResources: 100,
 				},
 				Params: `{"url":"` + node.Url + `"}`,
+			}, nil
+		}
+	}
+
+	return nil, errors.New("unknown node")
+}
+
+func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
+	for _, cluster := range d.clusters {
+		if cluster.Id == clusterId {
+			return &bucket.CDNClusterStatus{
+				ClusterId: clusterId,
+				CDNCluster: bucket.CDNCluster{
+					ManagerId:    types.AccountID{},
+					CDNNodes:     make([]bucket.NodeId, 0),
+					ResourceUsed: 0,
+					Revenues:     types.NewU128(*big.NewInt(1)),
+					UsdPerGb:     types.NewU128(*big.NewInt(1)),
+				},
+			}, nil
+		}
+	}
+
+	return nil, errors.New("unknown cluster")
+}
+
+func (d *ddcBucketContractMock) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
+	for _, node := range d.cdnNodes {
+		if node.Id == nodeId {
+			params, err := json.Marshal(node)
+			if err != nil {
+				return nil, err
+			}
+			return &bucket.CDNNodeStatus{
+				NodeId: nodeId,
+				Node: bucket.CDNNode{
+					ProviderId:           types.AccountID{},
+					UndistributedPayment: types.NewU128(*big.NewInt(1)),
+				},
+				Params: string(params),
 			}, nil
 		}
 	}

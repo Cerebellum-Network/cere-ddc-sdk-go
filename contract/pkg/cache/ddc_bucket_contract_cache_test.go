@@ -34,6 +34,16 @@ func (m *mockedDdcBucketContract) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 	return args.Get(0).(*bucket.NodeStatus), args.Error(1)
 }
 
+func (m *mockedDdcBucketContract) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
+	args := m.Called(clusterId)
+	return args.Get(0).(*bucket.CDNClusterStatus), args.Error(1)
+}
+
+func (m *mockedDdcBucketContract) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
+	args := m.Called(nodeId)
+	return args.Get(0).(*bucket.CDNNodeStatus), args.Error(1)
+}
+
 func (m *mockedDdcBucketContract) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	args := m.Called(bucketId)
 	return args.Get(0).(*bucket.BucketStatus), args.Error(1)

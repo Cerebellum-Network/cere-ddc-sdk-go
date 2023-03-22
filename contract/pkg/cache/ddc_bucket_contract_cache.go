@@ -80,6 +80,14 @@ func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 	return resp, err
 }
 
+func (d *ddcBucketContractCached) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
+	return d.ddcBucketContract.CDNClusterGet(clusterId)
+}
+
+func (d *ddcBucketContractCached) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
+	return d.ddcBucketContract.CDNNodeGet(nodeId)
+}
+
 func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
 	key := toString(bucketId)
 	result, err := d.bucketSingleFlight.Do(key, func() (interface{}, error) {
