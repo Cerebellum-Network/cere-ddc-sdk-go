@@ -17,8 +17,8 @@ type (
 	}
 
 	ring struct {
-		vNodes        []VNode
-		replicaFactor uint
+		vNodes            []VNode
+		replicationFactor uint
 	}
 )
 
@@ -44,8 +44,8 @@ func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 	})
 
 	return &ring{
-		vNodes:        topologyVNodes,
-		replicaFactor: replicaFactor,
+		vNodes:            topologyVNodes,
+		replicationFactor: replicaFactor,
 	}
 }
 
@@ -64,8 +64,8 @@ func (r *ring) Replicas(token uint64) []VNode {
 		searchIndex = r.prevIndex(searchIndex)
 	}
 
-	nodes := make([]VNode, 0, r.replicaFactor)
-	for i := searchIndex; uint(len(nodes)) < r.replicaFactor; i = r.nextIndex(i) {
+	nodes := make([]VNode, 0, r.replicationFactor)
+	for i := searchIndex; uint(len(nodes)) < r.replicationFactor; i = r.nextIndex(i) {
 		nodes = append(nodes, r.vNodes[i])
 	}
 
@@ -88,11 +88,11 @@ func (r *ring) Neighbours(token uint64) (prev VNode, next VNode) {
 func (r *ring) Partitions(nodeId uint32) []Partition {
 	result := make([]Partition, 0)
 	r.vNodeDo(nodeId, func(i int, vNode VNode) {
-		for j := uint(1); j < r.replicaFactor; j++ {
+		for j := uint(1); j < r.replicationFactor; j++ {
 			i = r.prevIndex(i)
 		}
 
-		for j := uint(0); j < r.replicaFactor; j++ {
+		for j := uint(0); j < r.replicationFactor; j++ {
 			from := r.vNodes[i].Token()
 			i = r.nextIndex(i)
 			partition := Partition{From: from, To: r.vNodes[i].Token() - 1}
@@ -121,6 +121,10 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 
 func (r *ring) VNodes() []VNode {
 	return r.vNodes
+}
+
+func (r *ring) ReplicationFactor() uint {
+	return r.replicationFactor
 }
 
 func (r *ring) search(token uint64) int {
