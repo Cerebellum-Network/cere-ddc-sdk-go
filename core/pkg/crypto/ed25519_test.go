@@ -85,6 +85,17 @@ func TestContentVerificationWhenSignatureIsInvalidEd25519(t *testing.T) {
 	assert.False(t, result)
 }
 
+func TestAddressEd25519Scheme(t *testing.T) {
+	addr, err := testEd25519Scheme.Address()
+	assert.NoError(t, err)
+	assert.Equal(t, address, addr)
+}
+
+func TestPublicKeyHexEd25519Scheme(t *testing.T) {
+	keyHex := testEd25519Scheme.PublicKeyHex()
+	assert.Equal(t, pubKeyHex, keyHex)
+}
+
 func getContentSignatureEd25519(content string) []byte {
 	privKeyAsBytes, _ := hex.DecodeString(strings.TrimPrefix(privKeyEd25519, "0x"))
 	privKey := ed25519.NewKeyFromSeed(privKeyAsBytes)

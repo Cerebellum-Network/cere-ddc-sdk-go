@@ -3,6 +3,7 @@ package crypto
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/vedhavyas/go-subkey"
 	ed25519Subkey "github.com/vedhavyas/go-subkey/ed25519"
@@ -50,6 +51,14 @@ func (e *ed25519Scheme) Sign(data []byte) ([]byte, error) {
 
 func (e *ed25519Scheme) Verify(data []byte, signature []byte) bool {
 	return verifyEd25519(e.publicKey, data, signature)
+}
+
+func (e *ed25519Scheme) Address() (string, error) {
+	return subkey.SS58Address(e.publicKey, 42)
+}
+
+func (e *ed25519Scheme) PublicKeyHex() string {
+	return fmt.Sprintf("0x%s", hex.EncodeToString(e.publicKey))
 }
 
 func verifyEd25519(publicKey []byte, data []byte, signature []byte) bool {

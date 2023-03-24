@@ -15,6 +15,8 @@ type (
 		Sign(data []byte) ([]byte, error)
 		Name() string
 		PublicKey() []byte
+		Address() (string, error)
+		PublicKeyHex() string
 	}
 )
 
@@ -25,7 +27,7 @@ func CreateScheme(schemeName SchemeName, seed string) (Scheme, error) {
 	case Sr25519, "": // Default.
 		return createSr25519SchemeFromString(seed)
 	case Ed25519:
-		return createSr25519SchemeFromString(seed)
+		return createEd25519SchemeFromString(seed)
 	case Secp256k1:
 		privateKey, err := hex.DecodeString(strings.TrimPrefix(seed, "0x"))
 		if err != nil {

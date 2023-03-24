@@ -59,3 +59,14 @@ func TestSignSecp256k1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, signatureSecp256k1Bytes, sign)
 }
+
+func TestSecp256k1_Address(t *testing.T) {
+	expAddress, err := testEd25519Scheme.Address()
+	assert.NoError(t, err)
+	assert.Equal(t, expAddress, address)
+}
+
+func TestSecp256k1_PublicKeyHex(t *testing.T) {
+	publicKeyHex := testEd25519Scheme.PublicKeyHex()
+	assert.Equal(t, publicKeyHex, pubKeyHex)
+}
