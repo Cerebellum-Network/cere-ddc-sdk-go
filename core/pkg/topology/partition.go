@@ -5,6 +5,8 @@ import "fmt"
 type Partition struct {
 	From uint64
 	To   uint64
+	//NodeId with main replica
+	NodeId uint32
 }
 
 func (p Partition) Belongs(token uint64) bool {
@@ -19,5 +21,5 @@ func (p Partition) Belongs(token uint64) bool {
 }
 
 func (p Partition) String() string {
-	return fmt.Sprintf("{\"from\":%d,\"to\":%d}", p.From, p.To)
+	return fmt.Sprintf("{\"from\":%d,\"to\":%d,\"nodeId\":%d}", p.From, p.To, p.NodeId)
 }

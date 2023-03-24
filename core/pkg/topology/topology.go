@@ -14,6 +14,7 @@ type (
 		ExcessPartitions(nodeId uint32) []Partition
 
 		VNodes() []VNode
+		ReplicationFactor() uint
 	}
 
 	ring struct {
@@ -93,9 +94,10 @@ func (r *ring) Partitions(nodeId uint32) []Partition {
 		}
 
 		for j := uint(0); j < r.replicationFactor; j++ {
-			from := r.vNodes[i].Token()
+			vNode := r.vNodes[i]
+			from := vNode.Token()
 			i = r.nextIndex(i)
-			partition := Partition{From: from, To: r.vNodes[i].Token() - 1}
+			partition := Partition{From: from, To: r.vNodes[i].Token() - 1, NodeId: vNode.NodeId()}
 			result = append(result, partition)
 		}
 	})
@@ -113,7 +115,7 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 			continue
 		}
 
-		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1})
+		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1, NodeId: nodeId})
 	}
 
 	return result
