@@ -179,3 +179,32 @@ func TestExcessPartitions(t *testing.T) {
 
 	}
 }
+
+func TestRemoveVNode(t *testing.T) {
+	tests := []struct {
+		clusterId       int
+		token           uint64
+		expectIsRemoved bool
+		expected        []VNode
+	}{
+		{0, 100, false, []VNode{{token: 3074457345618258602, nodeId: 1}, {token: 6148914691236517204, nodeId: 2}, {token: 9223372036854775806, nodeId: 1}, {token: 12297829382473034408, nodeId: 2}, {token: 15372286728091293010, nodeId: 1}, {token: 18446744073709551612, nodeId: 2}}},
+		{0, 9223372036854775806, true, []VNode{{token: 3074457345618258602, nodeId: 1}, {token: 6148914691236517204, nodeId: 2}, {token: 12297829382473034408, nodeId: 2}, {token: 15372286728091293010, nodeId: 1}, {token: 18446744073709551612, nodeId: 2}}},
+		{0, 12297829382473034408, true, []VNode{{token: 3074457345618258602, nodeId: 1}, {token: 6148914691236517204, nodeId: 2}, {token: 9223372036854775806, nodeId: 1}, {token: 15372286728091293010, nodeId: 1}, {token: 18446744073709551612, nodeId: 2}}},
+	}
+	for _, test := range tests {
+		cluster := clusters[test.clusterId]
+		t.Run(cluster.name, func(t *testing.T) {
+			//given
+			testSubject := NewTopology(cluster.nodeIds, cluster.vNodes, cluster.replicaFactor)
+
+			//when
+			ok := testSubject.RemoveVNode(test.token)
+
+			//then
+			assert.Equal(t, test.expectIsRemoved, ok)
+			for i, vnode := range testSubject.VNodes() {
+				assert.Equal(t, test.expected[i], vnode)
+			}
+		})
+	}
+}

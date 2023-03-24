@@ -13,6 +13,8 @@ type (
 		Partitions(nodeId uint32) []Partition
 		ExcessPartitions(nodeId uint32) []Partition
 
+		RemoveVNode(token uint64) bool
+
 		VNodes() []VNode
 		ReplicationFactor() uint
 	}
@@ -119,6 +121,19 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 	}
 
 	return result
+}
+
+func (r *ring) RemoveVNode(token uint64) bool {
+	vNodeId := r.search(token)
+	if vNodeId >= len(r.vNodes) || r.vNodes[vNodeId].Token() != token {
+		return false
+	}
+
+	copy(r.vNodes[vNodeId:], r.vNodes[vNodeId+1:])
+	r.vNodes[len(r.vNodes)-1] = VNode{}
+	r.vNodes = r.vNodes[:len(r.vNodes)-1]
+
+	return true
 }
 
 func (r *ring) VNodes() []VNode {
