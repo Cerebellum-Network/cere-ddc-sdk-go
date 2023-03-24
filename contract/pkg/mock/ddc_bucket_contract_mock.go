@@ -25,11 +25,6 @@ var accounts = []string{
 }
 
 var writerIds = getAccountIDs(accounts)
-var buckets = []*bucket.BucketStatus{
-	CreateBucket(1, `{"replication":1}`, writerIds),
-	CreateBucket(2, `{"replication":2}`, writerIds),
-	CreateBucket(3, `{"replication":3}`, writerIds),
-}
 
 type (
 	Node struct {
@@ -81,13 +76,11 @@ func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, 
 }
 
 func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
-	for _, bucket := range buckets {
-		if bucket.BucketId == bucketId {
-			return bucket, nil
-		}
+	if bucketId == 0 || len(d.clusters)*2 < int(bucketId) {
+		return nil, errors.New("unknown bucket")
 	}
 
-	return nil, errors.New("unknown bucket")
+	return CreateBucket(bucketId, "", writerIds, int(bucketId) > len(d.clusters)), nil
 }
 
 func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
@@ -199,14 +192,14 @@ func (d *ddcBucketContractMock) GetContractAddress() string {
 	return "mock_ddc_bucket"
 }
 
-func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
+func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID, public bool) *bucket.BucketStatus {
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
-			ClusterId:          1,
+			ClusterId:          bucketId,
 			ResourceReserved:   32,
-			PublicAvailability: bucketId%2 == 0,
+			PublicAvailability: public,
 			GasConsumptionCap:  math.MaxUint32,
 		},
 		Params:             bucketParams,
