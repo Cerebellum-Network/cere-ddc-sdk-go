@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/utils"
 	"sort"
 )
 
@@ -129,9 +130,7 @@ func (r *ring) RemoveVNode(token uint64) bool {
 		return false
 	}
 
-	copy(r.vNodes[vNodeId:], r.vNodes[vNodeId+1:])
-	r.vNodes[len(r.vNodes)-1] = VNode{}
-	r.vNodes = r.vNodes[:len(r.vNodes)-1]
+	r.vNodes = utils.RemoveSorted(r.vNodes, vNodeId)
 
 	return true
 }
