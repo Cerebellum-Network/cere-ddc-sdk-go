@@ -3,9 +3,9 @@ package topology
 import "fmt"
 
 type Partition struct {
-	From    uint64
-	To      uint64
-	NodeIds []uint32
+	From   uint64
+	To     uint64
+	VNodes []VNode
 }
 
 func (p Partition) Belongs(token uint64) bool {
@@ -20,5 +20,5 @@ func (p Partition) Belongs(token uint64) bool {
 }
 
 func (p Partition) String() string {
-	return fmt.Sprintf("{\"from\":%d,\"to\":%d,\"nodeId\":%v}", p.From, p.To, p.NodeIds)
+	return fmt.Sprintf("{\"from\":%d,\"to\":%d,\"vNodes\":%v}", p.From, p.To, p.VNodes)
 }

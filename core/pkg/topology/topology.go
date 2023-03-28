@@ -98,13 +98,8 @@ func (r *ring) Partitions(nodeId uint32) []Partition {
 
 		for j := uint(0); j < r.replicationFactor; j++ {
 			vNodes := r.Replicas(r.vNodes[i].Token())
-			nodeIds := make([]uint32, 0, len(vNodes))
-			for _, n := range vNodes {
-				nodeIds = append(nodeIds, n.NodeId())
-			}
-
 			i = r.nextIndex(i)
-			partition := Partition{From: vNodes[0].Token(), To: r.vNodes[i].Token() - 1, NodeIds: nodeIds}
+			partition := Partition{From: vNodes[0].Token(), To: r.vNodes[i].Token() - 1, VNodes: vNodes}
 			result = append(result, partition)
 		}
 	})
@@ -122,7 +117,7 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 			continue
 		}
 
-		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1, NodeIds: []uint32{nodeId}})
+		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1})
 	}
 
 	return result
