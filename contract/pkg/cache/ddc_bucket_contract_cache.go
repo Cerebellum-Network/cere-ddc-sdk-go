@@ -18,6 +18,9 @@ const (
 type (
 	DdcBucketContractCache interface {
 		Clear()
+		ClearNodes()
+		ClearBuckets()
+		ClearAccounts()
 		bucket.DdcBucketContract
 	}
 
@@ -129,9 +132,9 @@ func (d *ddcBucketContractCached) AccountGet(account types.AccountID) (*bucket.A
 }
 
 func (d *ddcBucketContractCached) Clear() {
-	d.bucketCache.Flush()
-	d.nodeCache.Flush()
-	d.accountCache.Flush()
+	d.ClearBuckets()
+	d.ClearNodes()
+	d.ClearAccounts()
 }
 
 func (d *ddcBucketContractCached) GetContractAddress() string {
@@ -140,6 +143,18 @@ func (d *ddcBucketContractCached) GetContractAddress() string {
 
 func (d *ddcBucketContractCached) GetLastAccessTime() time.Time {
 	return d.ddcBucketContract.GetLastAccessTime()
+}
+
+func (d *ddcBucketContractCached) ClearNodes() {
+	d.nodeCache.Flush()
+}
+
+func (d *ddcBucketContractCached) ClearBuckets() {
+	d.bucketCache.Flush()
+}
+
+func (d *ddcBucketContractCached) ClearAccounts() {
+	d.accountCache.Flush()
 }
 
 func cacheDurationOrDefault(duration time.Duration, defaultDuration time.Duration) time.Duration {
