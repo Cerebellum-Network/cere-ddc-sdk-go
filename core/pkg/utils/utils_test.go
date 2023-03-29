@@ -2,10 +2,8 @@ package utils
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 	"net/http"
 	"strconv"
 	"testing"
@@ -66,10 +64,21 @@ func TestRemoveSorted(t *testing.T) {
 }
 
 func TestRandomInt64(t *testing.T) {
-	for n := int64(128); n < 140; n++ {
-		b := new(big.Int).SetInt64(int64(n))
-		if i, err := rand.Int(rand.Reader, b); err != nil {
-			t.Fatalf("Can't generate random value: %v, %v", i, err)
-		}
+	tests := []struct {
+		max int64
+	}{
+		{1},
+		{100},
+		{500000},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%d", test.max), func(t *testing.T) {
+			//when
+			result, err := RandomInt64(test.max)
+
+			//then
+			assert.NoError(t, err)
+			assert.Less(t, result, test.max)
+		})
 	}
 }
