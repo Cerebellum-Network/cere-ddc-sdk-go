@@ -2,10 +2,40 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"math/big"
+	"net/http"
+	"strconv"
 	"testing"
 )
+
+func TestIsSuccessHttpStatus(t *testing.T) {
+	tests := []struct {
+		code   int
+		expect bool
+	}{
+		{http.StatusOK, true},
+		{http.StatusCreated, true},
+		{http.StatusAccepted, true},
+		{299, true},
+		{300, false},
+		{199, false},
+		{http.StatusBadRequest, false},
+		{http.StatusBadGateway, false},
+		{http.StatusInternalServerError, false},
+	}
+	for _, test := range tests {
+		t.Run(strconv.FormatInt(int64(test.code), 10), func(t *testing.T) {
+			//when
+			result := IsSuccessHttpStatus(test.code)
+
+			//then
+			assert.Equal(t, test.expect, result)
+		})
+	}
+}
 
 func TestRemoveSorted(t *testing.T) {
 	tests := []struct {
@@ -31,6 +61,15 @@ func TestRemoveSorted(t *testing.T) {
 			assert.Equal(t, cap(test.expected), cap(result))
 			assert.Equal(t, len(test.expected), len(result))
 			assert.True(t, bytes.Equal(test.expected, result))
+		}
+	}
+}
+
+func TestRandomInt64(t *testing.T) {
+	for n := int64(128); n < 140; n++ {
+		b := new(big.Int).SetInt64(int64(n))
+		if i, err := rand.Int(rand.Reader, b); err != nil {
+			t.Fatalf("Can't generate random value: %v, %v", i, err)
 		}
 	}
 }
