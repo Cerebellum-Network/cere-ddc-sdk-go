@@ -29,6 +29,13 @@ const (
 	OFFLINE
 )
 
+var NodeTags = map[string]byte{
+	"ACTIVE":   ACTIVE,
+	"ADDING":   ADDING,
+	"DELETING": DELETING,
+	"OFFLINE":  OFFLINE,
+}
+
 type Cluster struct {
 	ManagerId        AccountId
 	ResourcePerVNode Resource
