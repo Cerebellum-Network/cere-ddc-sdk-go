@@ -3,6 +3,7 @@ package topology
 import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/utils"
 	"sort"
+	"sync"
 )
 
 type (
@@ -23,6 +24,7 @@ type (
 	ring struct {
 		vNodes            []VNode
 		replicationFactor uint
+		mutex             sync.RWMutex
 	}
 )
 
@@ -55,14 +57,20 @@ func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 
 func (r *ring) Tokens(nodeId uint32) []uint64 {
 	result := make([]uint64, 0)
+	r.mutex.RLock()
+
 	r.vNodeDo(nodeId, func(i int, vNode VNode) {
 		result = append(result, vNode.token)
 	})
+
+	r.mutex.RUnlock()
 
 	return result
 }
 
 func (r *ring) Replicas(token uint64) []VNode {
+	r.mutex.RLock()
+
 	searchIndex := r.search(token)
 	if len(r.vNodes) == searchIndex || r.vNodes[searchIndex].token != token {
 		searchIndex = r.prevIndex(searchIndex)
@@ -73,10 +81,14 @@ func (r *ring) Replicas(token uint64) []VNode {
 		nodes = append(nodes, r.vNodes[i])
 	}
 
+	r.mutex.RUnlock()
+
 	return nodes
 }
 
 func (r *ring) Neighbours(token uint64) (prev VNode, next VNode) {
+	r.mutex.RLock()
+
 	searchIndex := r.search(token)
 	prev = r.vNodes[r.prevIndex(searchIndex)]
 
@@ -86,11 +98,15 @@ func (r *ring) Neighbours(token uint64) (prev VNode, next VNode) {
 		next = r.vNodes[searchIndex]
 	}
 
+	r.mutex.RUnlock()
+
 	return
 }
 
 func (r *ring) Partitions(nodeId uint32) []Partition {
 	result := make([]Partition, 0)
+	r.mutex.RLock()
+
 	r.vNodeDo(nodeId, func(i int, vNode VNode) {
 		for j := uint(1); j < r.replicationFactor; j++ {
 			i = r.prevIndex(i)
@@ -104,10 +120,13 @@ func (r *ring) Partitions(nodeId uint32) []Partition {
 		}
 	})
 
+	r.mutex.RUnlock()
+
 	return result
 }
 
 func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
+	r.mutex.RLock()
 	partitions := r.Partitions(nodeId)
 
 	result := make([]Partition, 0)
@@ -120,16 +139,21 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1})
 	}
 
+	r.mutex.RLock()
+
 	return result
 }
 
 func (r *ring) RemoveVNode(token uint64) bool {
+	r.mutex.Lock()
 	vNodeId := r.search(token)
 	if vNodeId >= len(r.vNodes) || r.vNodes[vNodeId].Token() != token {
 		return false
 	}
 
 	r.vNodes = utils.RemoveSorted(r.vNodes, vNodeId)
+
+	r.mutex.Unlock()
 
 	return true
 }
