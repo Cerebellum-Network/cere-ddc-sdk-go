@@ -3,7 +3,6 @@ package topology
 import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/utils"
 	"sort"
-	"sync"
 )
 
 type (
@@ -24,7 +23,6 @@ type (
 	ring struct {
 		vNodes            []VNode
 		replicationFactor uint
-		mutex             sync.RWMutex
 	}
 )
 
