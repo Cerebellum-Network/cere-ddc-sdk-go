@@ -19,11 +19,11 @@ type (
 	BucketId     = uint32
 	Params       = string
 	BucketParams = Params
-	NodeTag      = byte
+	NodeState    = byte
 )
 
 const (
-	ACTIVE NodeTag = iota
+	ACTIVE NodeState = iota
 	ADDING
 	DELETING
 	OFFLINE
@@ -69,7 +69,7 @@ type Node struct {
 	ProviderId    ProviderId
 	RentPerMonth  Balance
 	FreeResources Resource
-	NodeTag       NodeTag
+	NodeState     NodeState
 }
 
 type NodeStatus struct {

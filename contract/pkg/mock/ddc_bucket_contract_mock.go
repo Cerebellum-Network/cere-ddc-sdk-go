@@ -114,7 +114,7 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 				Node: bucket.Node{
 					ProviderId:    types.AccountID{},
 					RentPerMonth:  types.NewU128(*big.NewInt(1)),
-					NodeTag:       bucket.NodeTags[node.Tag],
+					NodeState:     bucket.NodeTags[node.Tag],
 					FreeResources: 100,
 				},
 				Params: `{"url":"` + node.Url + `"}`,
