@@ -195,11 +195,16 @@ func (d *ddcBucketContractMock) GetContractAddress() string {
 }
 
 func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID, public bool) *bucket.BucketStatus {
+	clusterId := bucketId
+	if public {
+		clusterId /= 2
+	}
+
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
-			ClusterId:          bucketId,
+			ClusterId:          clusterId,
 			ResourceReserved:   32,
 			PublicAvailability: public,
 			GasConsumptionCap:  math.MaxUint32,
