@@ -81,7 +81,12 @@ func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketStatus
 		return nil, errors.New("unknown bucket")
 	}
 
-	return CreateBucket(bucketId, "", writerIds, int(bucketId) > len(d.clusters)), nil
+	clusterId := bucketId
+	if int(bucketId) > len(d.clusters) {
+		clusterId -= uint32(len(d.clusters))
+	}
+
+	return CreateBucket(bucketId, clusterId, "", writerIds), nil
 }
 
 func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
@@ -194,19 +199,14 @@ func (d *ddcBucketContractMock) GetContractAddress() string {
 	return "mock_ddc_bucket"
 }
 
-func CreateBucket(bucketId uint32, bucketParams string, writerIds []types.AccountID, public bool) *bucket.BucketStatus {
-	clusterId := bucketId
-	if public {
-		clusterId /= 2
-	}
-
+func CreateBucket(bucketId uint32, clusterId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
 			ClusterId:          clusterId,
 			ResourceReserved:   32,
-			PublicAvailability: public,
+			PublicAvailability: clusterId != bucketId,
 			GasConsumptionCap:  math.MaxUint32,
 		},
 		Params:             bucketParams,
