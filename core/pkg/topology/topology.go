@@ -55,6 +55,7 @@ func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 
 func (r *ring) Tokens(nodeId uint32) []uint64 {
 	result := make([]uint64, 0)
+
 	r.vNodeDo(nodeId, func(i int, vNode VNode) {
 		result = append(result, vNode.token)
 	})
@@ -97,10 +98,9 @@ func (r *ring) Partitions(nodeId uint32) []Partition {
 		}
 
 		for j := uint(0); j < r.replicationFactor; j++ {
-			vNode := r.vNodes[i]
-			from := vNode.Token()
+			vNodes := r.Replicas(r.vNodes[i].Token())
 			i = r.nextIndex(i)
-			partition := Partition{From: from, To: r.vNodes[i].Token() - 1, NodeId: vNode.NodeId()}
+			partition := Partition{From: vNodes[0].Token(), To: r.vNodes[i].Token() - 1, VNodes: vNodes}
 			result = append(result, partition)
 		}
 	})
@@ -118,7 +118,7 @@ func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
 			continue
 		}
 
-		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1, NodeId: nodeId})
+		result = append(result, Partition{From: partitions[i].To + 1, To: partitions[j].From - 1})
 	}
 
 	return result

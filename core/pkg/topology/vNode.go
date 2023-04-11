@@ -1,14 +1,20 @@
 package topology
 
+import "fmt"
+
 type VNode struct {
 	nodeId uint32
 	token  uint64
 }
 
-func (V *VNode) NodeId() uint32 {
-	return V.nodeId
+func (v VNode) NodeId() uint32 {
+	return v.nodeId
 }
 
-func (V *VNode) Token() uint64 {
-	return V.token
+func (v VNode) Token() uint64 {
+	return v.token
+}
+
+func (v VNode) String() string {
+	return fmt.Sprintf("{\"nodeId\":%d,\"token\":%d}", v.nodeId, v.token)
 }
