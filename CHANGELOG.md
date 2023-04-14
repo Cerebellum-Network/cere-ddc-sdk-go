@@ -1,8 +1,12 @@
-## Changelog
+# Change Log
 
-### v0.1.4
+## v0.1.4
 
-- Add CdnClusterGet and CndNodeGet methods
-- Add Address and PrivateKeyHex method to crypto
-- Added Partition methods for ring topology
-- Updated bucket creating logic for mock DDC Smart-Contract
+### Features
+- Added Consistent Hashing: Ring topology
+- Added `CdnClusterGet` and `CndNodeGet` contract methods
+- Added `Address` and `PrivateKeyHex` methods to crypto
+- Added `utils` package
+
+### Bug Fixes
+- Bucket creating logic for mocked DDC Smart-Contract
