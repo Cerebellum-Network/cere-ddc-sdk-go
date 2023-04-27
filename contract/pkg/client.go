@@ -1,14 +1,16 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
+	"sync"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 const (
@@ -19,6 +21,7 @@ type (
 	BlockchainClient interface {
 		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
 		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
+		ListenContractEvents(contractAddressSS58 string, handler ContractEventHandler) error
 	}
 
 	blockchainClient struct {
@@ -35,6 +38,8 @@ type (
 		Method              []byte
 		Args                []interface{}
 	}
+
+	ContractEventHandler func(types.EventContractsContractEmitted, types.Hash)
 
 	Response struct {
 		DebugMessage string `json:"debugMessage"`
@@ -65,6 +70,57 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 	return &blockchainClient{
 		SubstrateAPI: substrateAPI,
 	}
+}
+
+func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string, f ContractEventHandler) error {
+	meta, err := b.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
+	if err != nil {
+		return err
+	}
+
+	key, err := types.CreateStorageKey(meta, "System", "Events", nil, nil)
+	if err != nil {
+		return err
+	}
+
+	sub, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		defer sub.Unsubscribe()
+		for {
+			evt := <-sub.Chan()
+
+			// parse all events for this block
+			for _, chng := range evt.Changes {
+				if !bytes.Equal(chng.StorageKey[:], key) || !chng.HasStorageData {
+					// skip, we are only interested in events with content
+					continue
+				}
+
+				events := types.EventRecords{}
+				err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+				if err != nil {
+					log.Warnf("Error parsing event %x", chng.StorageData[:])
+					continue
+				}
+
+				for _, e := range events.Contracts_ContractEmitted {
+					if bytes.Equal(e.Contract[:], contract[:]) {
+						f(e, evt.Block)
+					}
+				}
+			}
+		}
+	}()
+	return nil
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
