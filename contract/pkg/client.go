@@ -113,7 +113,7 @@ func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string, f Co
 				}
 
 				for _, e := range events.Contracts_ContractEmitted {
-					if bytes.Equal(e.Contract[:], contract[:]) {
+					if contract.Equal(&e.Contract) {
 						f(e, evt.Block)
 					}
 				}
