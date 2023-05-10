@@ -3,9 +3,10 @@ package bucket
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	"strings"
 )
 
 const (
@@ -39,4 +40,8 @@ func (result *Result) decodeDdcBucketContract(encodedData string) error {
 	}
 
 	return errors.New("can't decode storage contract result")
+}
+
+func DecodeEventData(raw []byte, decoded interface{}) error {
+	return codec.Decode(raw[1:], decoded)
 }
