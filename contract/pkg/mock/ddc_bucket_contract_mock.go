@@ -3,13 +3,14 @@ package mock
 import (
 	"encoding/json"
 	"errors"
+	"math"
+	"math/big"
+	"time"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	log "github.com/sirupsen/logrus"
-	"math"
-	"math/big"
-	"time"
 )
 
 var accounts = []string{
@@ -199,6 +200,10 @@ func (d *ddcBucketContractMock) GetContractAddress() string {
 	return "mock_ddc_bucket"
 }
 
+func (d *ddcBucketContractMock) AddContractEventHandler(event string, handler func(interface{})) error {
+	return nil
+}
+
 func CreateBucket(bucketId uint32, clusterId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
 	return &bucket.BucketStatus{
 		BucketId: bucketId,
@@ -226,4 +231,8 @@ func getAccountIDs(ss58Addresses []string) []types.AccountID {
 	}
 
 	return accountIDs
+}
+
+func (d *ddcBucketContractMock) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/patrickmn/go-cache"
@@ -147,6 +148,14 @@ func (d *ddcBucketContractCached) GetContractAddress() string {
 
 func (d *ddcBucketContractCached) GetLastAccessTime() time.Time {
 	return d.ddcBucketContract.GetLastAccessTime()
+}
+
+func (d *ddcBucketContractCached) AddContractEventHandler(event string, handler func(interface{})) error {
+	return d.ddcBucketContract.AddContractEventHandler(event, handler)
+}
+
+func (d *ddcBucketContractCached) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+	return d.ddcBucketContract.GetEventDispatcher()
 }
 
 func (d *ddcBucketContractCached) ClearNodes() {

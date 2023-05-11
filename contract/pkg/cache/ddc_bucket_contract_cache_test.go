@@ -1,13 +1,15 @@
 package cache
 
 import (
+	"testing"
+	"time"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 type mockedDdcBucketContract struct {
@@ -52,6 +54,14 @@ func (m *mockedDdcBucketContract) BucketGet(bucketId uint32) (*bucket.BucketStat
 func (m *mockedDdcBucketContract) AccountGet(account types.AccountID) (*bucket.Account, error) {
 	args := m.Called(account)
 	return args.Get(0).(*bucket.Account), args.Error(1)
+}
+
+func (d *mockedDdcBucketContract) AddContractEventHandler(event string, handler func(interface{})) error {
+	return nil
+}
+
+func (d *mockedDdcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+	return nil
 }
 
 func TestBucketGet(t *testing.T) {

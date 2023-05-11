@@ -117,7 +117,7 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
 		if key, err := types.NewHashFromHexString(k); err != nil {
-			log.WithError(err).WithField("hash", k).Fatal("Bad event hash for event %s", v.Name())
+			log.WithError(err).WithField("hash", k).Fatalf("Bad event hash for event %s", v.Name())
 		} else {
 			eventDispatcher[key] = pkg.ContractEventDispatchEntry{ArgumentType: v}
 		}
