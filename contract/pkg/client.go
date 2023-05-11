@@ -91,7 +91,10 @@ func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispat
 	}
 	b.eventContractAccount = contract
 	b.eventDispatcher = dispatcher
-	b.listenContractEvents()
+	err = b.listenContractEvents()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
