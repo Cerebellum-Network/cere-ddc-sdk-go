@@ -3,8 +3,12 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os/signal"
 	"reflect"
 	"sync"
+	"syscall"
+	"time"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -22,14 +26,14 @@ type (
 	BlockchainClient interface {
 		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
 		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
-		SetEventDispatcher(dispatcher map[types.Hash]ContractEventDispatchEntry)
-		ListenContractEvents(contractAddressSS58 string) error
+		SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error
 	}
 
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
-		eventDispatcher map[types.Hash]ContractEventDispatchEntry
-		connectMutex    sync.Mutex
+		eventContractAccount types.AccountID
+		eventDispatcher      map[types.Hash]ContractEventDispatchEntry
+		connectMutex         sync.Mutex
 	}
 
 	ContractCall struct {
@@ -45,11 +49,6 @@ type (
 	ContractEventDispatchEntry struct {
 		ArgumentType reflect.Type
 		Handler      ContractEventHandler
-	}
-
-	ContractEventDispatchDescription struct {
-		Topic string
-		ContractEventDispatchEntry
 	}
 
 	ContractEventHandler func(interface{})
@@ -85,17 +84,19 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 	}
 }
 
-func (b *blockchainClient) SetEventDispatcher(dispatcher map[types.Hash]ContractEventDispatchEntry) {
-	b.eventDispatcher = dispatcher
-}
-
-func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string) error {
-	meta, err := b.RPC.State.GetMetadataLatest()
+func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error {
+	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
 	if err != nil {
 		return err
 	}
+	b.eventContractAccount = contract
+	b.eventDispatcher = dispatcher
+	b.listenContractEvents()
+	return nil
+}
 
-	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
+func (b *blockchainClient) listenContractEvents() error {
+	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
 	}
@@ -110,45 +111,74 @@ func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string) erro
 		return err
 	}
 
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	watchdog := time.NewTicker(time.Minute)
+	eventArrived := true
 	go func() {
 		defer sub.Unsubscribe()
+		defer log.Info("Exited") // TODO: remove before merge
 		for {
-			evt := <-sub.Chan()
+			select {
+			case <-ctx.Done():
+				log.Info("Exitting...") // TODO: remove before merge
+				return
 
-			// parse all events for this block
-			for _, chng := range evt.Changes {
-				if !bytes.Equal(chng.StorageKey[:], key) || !chng.HasStorageData {
-					// skip, we are only interested in events with content
-					continue
+			case <-watchdog.C:
+				if !eventArrived {
+					s, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
+					if err != nil {
+						log.WithError(err).Error("Watchdog resubscribtion failed")
+						break
+					}
+					log.Info("Watchdog event resubscribed")
+					sub = s
 				}
+				eventArrived = false
 
-				events := types.EventRecords{}
-				err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
-				if err != nil {
-					log.Warnf("Error parsing event %x", chng.StorageData[:])
-					continue
-				}
+			case evt := <-sub.Chan():
+				eventArrived = true
+				block, _ := b.RPC.Chain.GetBlock(evt.Block)
+				fmt.Printf("At %s block: %s %d\n", time.Now().Format(time.UnixDate), evt.Block.Hex(), block.Block.Header.Number) // TODO: remove before merge
 
-				for _, e := range events.Contracts_ContractEmitted {
-					if !contract.Equal(&e.Contract) {
+				// parse all events for this block
+				for _, chng := range evt.Changes {
+					if !bytes.Equal(chng.StorageKey[:], key) || !chng.HasStorageData {
+						// skip, we are only interested in events with content
 						continue
 					}
-					dispatchEntry, found := b.eventDispatcher[e.Topics[0]]
-					if !found {
-						log.WithField("topic", e.Topics[0].Hex()).WithField("hash", evt.Block.Hex()).Warn("Unknown event emitted by our contract")
+
+					events := types.EventRecords{}
+					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+					if err != nil {
+						log.Warnf("Error parsing event %x", chng.StorageData[:])
 						continue
 					}
-					if dispatchEntry.Handler == nil {
-						log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).Info("Event unhandeled")
-						continue
+
+					for _, e := range events.Contracts_ContractEmitted {
+						if !b.eventContractAccount.Equal(&e.Contract) {
+							continue
+						}
+						dispatchEntry, found := b.eventDispatcher[e.Topics[0]]
+						if !found {
+							log.WithField("topic", e.Topics[0].Hex()).WithField("hash", evt.Block.Hex()).
+								Warn("Unknown event emitted by our contract")
+							continue
+						}
+						if dispatchEntry.Handler == nil {
+							log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+								Info("Event unhandeled")
+							continue
+						}
+						args := reflect.New(dispatchEntry.ArgumentType).Interface()
+						if err := codec.Decode(e.Data[1:], args); err != nil {
+							log.WithError(err).WithField("hash", evt.Block.Hex()).
+								WithField("event", dispatchEntry.ArgumentType.Name()).
+								Errorf("Cannot decode event data %x", e.Data)
+						}
+						log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+							Infof("Event args: %x", e.Data)
+						dispatchEntry.Handler(args)
 					}
-					args := reflect.New(dispatchEntry.ArgumentType).Interface()
-					if err := codec.Decode(e.Data[1:], args); err != nil {
-						log.WithError(err).WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
-							Errorf("Cannot decode event data %x", e.Data)
-					}
-					log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).Infof("Event args: %x", e.Data)
-					dispatchEntry.Handler(args)
 				}
 			}
 		}
