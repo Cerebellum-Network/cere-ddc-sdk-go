@@ -33,6 +33,7 @@ type (
 		*gsrpc.SubstrateAPI
 		eventContractAccount types.AccountID
 		eventDispatcher      map[types.Hash]ContractEventDispatchEntry
+		eventContextCancel   context.CancelFunc
 		connectMutex         sync.Mutex
 	}
 
@@ -114,7 +115,8 @@ func (b *blockchainClient) listenContractEvents() error {
 		return err
 	}
 
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	b.eventContextCancel = cancel
 	watchdog := time.NewTicker(time.Minute)
 	eventArrived := true
 	go func() {
@@ -352,12 +354,21 @@ func (b *blockchainClient) reconnect() error {
 		return nil
 	}
 
+	if b.eventContextCancel != nil {
+		b.eventContextCancel()
+	}
 	substrateAPI, err := gsrpc.NewSubstrateAPI(b.Client.URL())
 	if err != nil {
 		log.WithError(err).Warningf("Blockchain client can't reconnect to %s", b.Client.URL())
 		return err
 	}
 	b.SubstrateAPI = substrateAPI
+	if b.eventDispatcher != nil {
+		err = b.listenContractEvents()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
