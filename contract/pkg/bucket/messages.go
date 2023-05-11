@@ -121,77 +121,77 @@ type Account struct {
 	PayableSchedule   Schedule
 }
 
-type BucketCreated struct {
+type BucketCreatedEvent struct {
 	BucketId  BucketId
 	AccountId AccountId
 }
 
-type BucketAllocated struct {
+type BucketAllocatedEvent struct {
 	BucketId  BucketId
 	ClusterId ClusterId
 	Resource  Resource
 }
 
-type BucketSettlePayment struct {
+type BucketSettlePaymentEvent struct {
 	BucketId  BucketId
 	ClusterId ClusterId
 }
 
-type ClusterCreated struct {
+type ClusterCreatedEvent struct {
 	ClusterId     ClusterId
 	AccountId     AccountId
 	ClusterParams Params
 }
 
-type ClusterNodeReplaced struct {
+type ClusterNodeReplacedEvent struct {
 	ClusterId ClusterId
 	NodeId    NodeId
 }
 
-type ClusterReserveResource struct {
+type ClusterReserveResourceEvent struct {
 	ClusterId ClusterId
 	NodeId    NodeId
 }
 
-type ClusterDistributeRevenues struct {
+type ClusterDistributeRevenuesEvent struct {
 	ClusterId ClusterId
 	AccountId AccountId
 }
 
-type CdnClusterCreated struct {
+type CdnClusterCreatedEvent struct {
 	ClusterId ClusterId
 	AccountId AccountId
 }
 
-type CdnClusterDistributeRevenues struct {
+type CdnClusterDistributeRevenuesEvent struct {
 	ClusterId  ClusterId
 	ProviderId AccountId
 }
 
-type CdnNodeCreated struct {
+type CdnNodeCreatedEvent struct {
 	NodeId    NodeId
 	AccountId AccountId
 	Payment   Balance
 }
 
-type NodeCreated struct {
+type NodeCreatedEvent struct {
 	NodeId       NodeId
 	ProviderId   AccountId
 	RentPerMonth Balance
 	NodeParams   Params
 }
 
-type Deposit struct {
+type DepositEvent struct {
 	AccountId AccountId
 	Value     Balance
 }
 
-type GrantPermission struct {
+type GrantPermissionEvent struct {
 	AccountId  AccountId
 	Permission byte
 }
 
-type RevokePermission struct {
+type RevokePermissionEvent struct {
 	AccountId  AccountId
 	Permission byte
 }

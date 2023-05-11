@@ -3,6 +3,8 @@ package bucket
 import (
 	_ "embed"
 	"encoding/hex"
+	"errors"
+	"reflect"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
@@ -19,20 +21,20 @@ const (
 	cdnClusterGetMethod = "4b22fbf1"
 	cdnNodeGetMethod    = "f9a5a813"
 
-	BucketCreatedEvent                = "004464634275636b65743a3a4275636b65744372656174656400000000000000"
-	BucketAllocatedEvent              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
-	BucketSettlePaymentEvent          = "004464634275636b65743a3a4275636b6574536574746c655061796d656e7400"
-	ClusterCreatedEvent               = "004464634275636b65743a3a436c757374657243726561746564000000000000"
-	ClusterNodeReplacedEvent          = "004464634275636b65743a3a436c75737465724e6f64655265706c6163656400"
-	ClusterReserveResourceEvent       = "84d6d26a3275dced8e359779bf21488762a1d88029f52522d8fc27607759399e"
-	ClusterDistributeRevenuesEvent    = "65441936759a16fb28d0e059b878f2e48283ca2eac57c396a8035cce9e2acdd3"
-	CdnClusterCreatedEvent            = "004464634275636b65743a3a43646e436c757374657243726561746564000000"
-	CdnClusterDistributeRevenuesEvent = "4e19fc4683a9a741a09d89a1d62b22d592a8bf10e2b8b6eff7c6742a0ed88bb4"
-	CdnNodeCreatedEvent               = "004464634275636b65743a3a43646e4e6f646543726561746564000000000000"
-	NodeCreatedEvent                  = "004464634275636b65743a3a4e6f646543726561746564000000000000000000"
-	DepositEvent                      = "004464634275636b65743a3a4465706f73697400000000000000000000000000"
-	GrantPermissionEvent              = "004464634275636b65743a3a4772616e745065726d697373696f6e0000000000"
-	RevokePermissionEvent             = "004464634275636b65743a3a5265766f6b655065726d697373696f6e00000000"
+	BucketCreatedEventId                = "004464634275636b65743a3a4275636b65744372656174656400000000000000"
+	BucketAllocatedEventId              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
+	BucketSettlePaymentEventId          = "004464634275636b65743a3a4275636b6574536574746c655061796d656e7400"
+	ClusterCreatedEventId               = "004464634275636b65743a3a436c757374657243726561746564000000000000"
+	ClusterNodeReplacedEventId          = "004464634275636b65743a3a436c75737465724e6f64655265706c6163656400"
+	ClusterReserveResourceEventId       = "84d6d26a3275dced8e359779bf21488762a1d88029f52522d8fc27607759399e"
+	ClusterDistributeRevenuesEventId    = "65441936759a16fb28d0e059b878f2e48283ca2eac57c396a8035cce9e2acdd3"
+	CdnClusterCreatedEventId            = "004464634275636b65743a3a43646e436c757374657243726561746564000000"
+	CdnClusterDistributeRevenuesEventId = "4e19fc4683a9a741a09d89a1d62b22d592a8bf10e2b8b6eff7c6742a0ed88bb4"
+	CdnNodeCreatedEventId               = "004464634275636b65743a3a43646e4e6f646543726561746564000000000000"
+	NodeCreatedEventId                  = "004464634275636b65743a3a4e6f646543726561746564000000000000000000"
+	DepositEventId                      = "004464634275636b65743a3a4465706f73697400000000000000000000000000"
+	GrantPermissionEventId              = "004464634275636b65743a3a4772616e745065726d697373696f6e0000000000"
+	RevokePermissionEventId             = "004464634275636b65743a3a5265766f6b655065726d697373696f6e00000000"
 )
 
 type (
@@ -46,6 +48,8 @@ type (
 		CDNClusterGet(clusterId uint32) (*CDNClusterStatus, error)
 		CDNNodeGet(nodeId uint32) (*CDNNodeStatus, error)
 		AccountGet(account types.AccountID) (*Account, error)
+		AddContractEventHandler(event string, handler func(interface{})) error
+		GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry
 	}
 
 	ddcBucketContract struct {
@@ -59,8 +63,25 @@ type (
 		cdnClusterGetMethodId []byte
 		cdnNodeGetMethodId    []byte
 		accountGetMethodId    []byte
+		eventDispatcher       map[types.Hash]pkg.ContractEventDispatchEntry
 	}
 )
+
+var eventDispatchTable = map[string]reflect.Type{
+	BucketCreatedEventId:                reflect.TypeOf(BucketCreatedEvent{}),
+	BucketAllocatedEventId:              reflect.TypeOf(BucketAllocatedEvent{}),
+	BucketSettlePaymentEventId:          reflect.TypeOf(BucketSettlePaymentEvent{}),
+	ClusterCreatedEventId:               reflect.TypeOf(ClusterCreatedEvent{}),
+	ClusterNodeReplacedEventId:          reflect.TypeOf(ClusterNodeReplacedEvent{}),
+	ClusterReserveResourceEventId:       reflect.TypeOf(ClusterReserveResourceEvent{}),
+	ClusterDistributeRevenuesEventId:    reflect.TypeOf(ClusterDistributeRevenuesEvent{}),
+	CdnClusterCreatedEventId:            reflect.TypeOf(CdnClusterCreatedEvent{}),
+	CdnClusterDistributeRevenuesEventId: reflect.TypeOf(CdnClusterDistributeRevenuesEvent{}),
+	CdnNodeCreatedEventId:               reflect.TypeOf(CdnNodeCreatedEvent{}),
+	NodeCreatedEventId:                  reflect.TypeOf(NodeCreatedEvent{}),
+	DepositEventId:                      reflect.TypeOf(DepositEvent{}),
+	GrantPermissionEventId:              reflect.TypeOf(GrantPermissionEvent{}),
+	RevokePermissionEventId:             reflect.TypeOf(RevokePermissionEvent{})}
 
 func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
 	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)
@@ -93,6 +114,15 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", accountGetMethod).Fatal("Can't decode method accountGetMethod")
 	}
 
+	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
+	for k, v := range eventDispatchTable {
+		if key, err := types.NewHashFromHexString(k); err != nil {
+			log.WithError(err).WithField("hash", k).Fatal("Bad event hash for event %s", v.Name())
+		} else {
+			eventDispatcher[key] = pkg.ContractEventDispatchEntry{ArgumentType: v}
+		}
+	}
+
 	return &ddcBucketContract{
 		contract:              client,
 		contractAddressSS58:   contractAddressSS58,
@@ -103,6 +133,7 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		cdnClusterGetMethodId: cdnClusterGetMethodId,
 		cdnNodeGetMethodId:    cdnNodeGetMethodId,
 		accountGetMethodId:    accountGetMethodId,
+		eventDispatcher:       eventDispatcher,
 	}
 }
 
@@ -166,10 +197,28 @@ func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args .
 	return res.err
 }
 
+func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(interface{})) error {
+	key, err := types.NewHashFromHexString(event)
+	if err != nil {
+		return err
+	}
+	entry, found := d.eventDispatcher[key]
+	if !found {
+		return errors.New("Event not found")
+	}
+	entry.Handler = handler
+	d.eventDispatcher[key] = entry
+	return nil
+}
+
 func (d *ddcBucketContract) GetContractAddress() string {
 	return d.contractAddressSS58
 }
 
 func (d *ddcBucketContract) GetLastAccessTime() time.Time {
 	return d.lastAccessTime
+}
+
+func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+	return d.eventDispatcher
 }

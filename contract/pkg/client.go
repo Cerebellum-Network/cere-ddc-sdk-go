@@ -3,6 +3,7 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"reflect"
 	"sync"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
@@ -21,12 +22,14 @@ type (
 	BlockchainClient interface {
 		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
 		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
-		ListenContractEvents(contractAddressSS58 string, handler ContractEventHandler) error
+		SetEventDispatcher(dispatcher map[types.Hash]ContractEventDispatchEntry)
+		ListenContractEvents(contractAddressSS58 string) error
 	}
 
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
-		connectMutex sync.Mutex
+		eventDispatcher map[types.Hash]ContractEventDispatchEntry
+		connectMutex    sync.Mutex
 	}
 
 	ContractCall struct {
@@ -39,7 +42,17 @@ type (
 		Args                []interface{}
 	}
 
-	ContractEventHandler func(types.EventContractsContractEmitted, types.Hash)
+	ContractEventDispatchEntry struct {
+		ArgumentType reflect.Type
+		Handler      ContractEventHandler
+	}
+
+	ContractEventDispatchDescription struct {
+		Topic string
+		ContractEventDispatchEntry
+	}
+
+	ContractEventHandler func(interface{})
 
 	Response struct {
 		DebugMessage string `json:"debugMessage"`
@@ -72,7 +85,11 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 	}
 }
 
-func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string, f ContractEventHandler) error {
+func (b *blockchainClient) SetEventDispatcher(dispatcher map[types.Hash]ContractEventDispatchEntry) {
+	b.eventDispatcher = dispatcher
+}
+
+func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string) error {
 	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return err
@@ -113,9 +130,25 @@ func (b *blockchainClient) ListenContractEvents(contractAddressSS58 string, f Co
 				}
 
 				for _, e := range events.Contracts_ContractEmitted {
-					if contract.Equal(&e.Contract) {
-						f(e, evt.Block)
+					if !contract.Equal(&e.Contract) {
+						continue
 					}
+					dispatchEntry, found := b.eventDispatcher[e.Topics[0]]
+					if !found {
+						log.WithField("topic", e.Topics[0].Hex()).WithField("hash", evt.Block.Hex()).Warn("Unknown event emitted by our contract")
+						continue
+					}
+					if dispatchEntry.Handler == nil {
+						log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).Info("Event unhandeled")
+						continue
+					}
+					args := reflect.New(dispatchEntry.ArgumentType).Interface()
+					if err := codec.Decode(e.Data[1:], args); err != nil {
+						log.WithError(err).WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+							Errorf("Cannot decode event data %x", e.Data)
+					}
+					log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).Infof("Event args: %x", e.Data)
+					dispatchEntry.Handler(args)
 				}
 			}
 		}

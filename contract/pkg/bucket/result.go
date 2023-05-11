@@ -1,4 +1,3 @@
-//nolint
 package bucket
 
 import (
@@ -40,8 +39,4 @@ func (result *Result) decodeDdcBucketContract(encodedData string) error {
 	}
 
 	return errors.New("can't decode storage contract result")
-}
-
-func DecodeEventData(raw []byte, decoded interface{}) error {
-	return codec.Decode(raw[1:], decoded)
 }
