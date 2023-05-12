@@ -17,18 +17,19 @@ type (
 		PublicKey []byte
 		SessionId []byte
 		RequestId string
+		Signature *Signature
 	}
 
 	WriteRequest struct {
-		Cid       string
-		BucketId  uint32
-		Size      uint32
-		Signature *Signature
+		Cid      string
+		BucketId uint32
+		Size     uint32
 	}
 
 	ReadRequest struct {
 		Cid      string
 		BucketId uint32
+		Chunks   []uint32
 	}
 
 	QueryRequest struct {
@@ -44,6 +45,10 @@ var _ Protobufable = (*LogRecord)(nil)
 var _ Protobufable = (*LogRecordList)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
+	var signature *pb.Signature
+	if l.Signature != nil {
+		signature = l.Signature.ToProto()
+	}
 	result := &pb.LogRecord{
 		Timestamp: uint64(l.Timestamp.UnixNano()),
 		Address:   l.Address,
@@ -51,6 +56,7 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 		SessionId: l.SessionId,
 		PublicKey: l.PublicKey,
 		RequestId: l.RequestId,
+		Signature: signature,
 	}
 
 	l.requestToProto(result)
@@ -62,12 +68,19 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	timestamp := time.Unix(0, int64(pbLogRecord.Timestamp))
 	l.Timestamp = &timestamp
 
+	var signature *Signature
+	if pbLogRecord.Signature != nil {
+		signature = &Signature{}
+		signature.ToDomain(pbLogRecord.Signature)
+	}
+
 	l.Address = pbLogRecord.Address
 	l.Gas = pbLogRecord.Gas
 	l.SessionId = pbLogRecord.SessionId
 	l.PublicKey = pbLogRecord.PublicKey
 	l.RequestId = pbLogRecord.RequestId
 	l.Request = requestToDomain(pbLogRecord)
+	l.Signature = signature
 }
 
 func (l *LogRecord) MarshalProto() ([]byte, error) {
@@ -122,16 +135,10 @@ func (l *LogRecordList) ToDomain(pbLogRecordList *pb.LogRecordList) {
 func (l *LogRecord) requestToProto(pbLogRecord *pb.LogRecord) {
 	switch record := l.Request.(type) {
 	case *WriteRequest:
-		var signature *pb.Signature
-		if record.Signature != nil {
-			signature = record.Signature.ToProto()
-		}
-
 		pbLogRecord.Request = &pb.LogRecord_WriteRequest{WriteRequest: &pb.WriteRequest{
-			BucketId:  record.BucketId,
-			Size:      record.Size,
-			Cid:       record.Cid,
-			Signature: signature,
+			BucketId: record.BucketId,
+			Size:     record.Size,
+			Cid:      record.Cid,
 		}}
 	case *ReadRequest:
 		pbLogRecord.Request = &pb.LogRecord_ReadRequest{ReadRequest: &pb.ReadRequest{
@@ -155,21 +162,16 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 	case *pb.LogRecord_WriteRequest:
 		writeRecord := record.WriteRequest
 
-		var signature *Signature
-		if writeRecord.Signature != nil {
-			signature = &Signature{}
-			signature.ToDomain(writeRecord.Signature)
-		}
-
 		return &WriteRequest{
-			BucketId:  writeRecord.BucketId,
-			Size:      writeRecord.Size,
-			Cid:       writeRecord.Cid,
-			Signature: signature,
+			BucketId: writeRecord.BucketId,
+			Size:     writeRecord.Size,
+			Cid:      writeRecord.Cid,
 		}
 	case *pb.LogRecord_ReadRequest:
 		readRecord := record.ReadRequest
-		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId}
+		chunks := make([]uint32, 0, len(readRecord.Chunks))
+		copy(chunks, readRecord.Chunks)
+		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId, Chunks: chunks}
 	case *pb.LogRecord_QueryRequest:
 		queryRecord := record.QueryRequest
 
