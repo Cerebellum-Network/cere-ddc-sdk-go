@@ -3,7 +3,6 @@ package pkg
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os/signal"
 	"reflect"
 	"sync"
@@ -121,11 +120,9 @@ func (b *blockchainClient) listenContractEvents() error {
 	eventArrived := true
 	go func() {
 		defer sub.Unsubscribe()
-		defer log.Info("Exited") // TODO: remove before merge
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("Exitting...") // TODO: remove before merge
 				return
 
 			case <-watchdog.C:
@@ -136,14 +133,13 @@ func (b *blockchainClient) listenContractEvents() error {
 						break
 					}
 					log.Info("Watchdog event resubscribed")
+					sub.Unsubscribe()
 					sub = s
 				}
 				eventArrived = false
 
 			case evt := <-sub.Chan():
 				eventArrived = true
-				block, _ := b.RPC.Chain.GetBlock(evt.Block)
-				fmt.Printf("At %s block: %s %d\n", time.Now().Format(time.UnixDate), evt.Block.Hex(), block.Block.Header.Number) // TODO: remove before merge
 
 				// parse all events for this block
 				for _, chng := range evt.Changes {
@@ -155,7 +151,7 @@ func (b *blockchainClient) listenContractEvents() error {
 					events := types.EventRecords{}
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
-						log.Warnf("Error parsing event %x", chng.StorageData[:])
+						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
 						continue
 					}
 
