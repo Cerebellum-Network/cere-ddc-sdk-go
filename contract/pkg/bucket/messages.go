@@ -137,6 +137,11 @@ type BucketSettlePaymentEvent struct {
 	ClusterId ClusterId
 }
 
+type BucketAvailabilityUpdatedEvent struct {
+	BucketId           BucketId
+	PublicAvailability bool
+}
+
 type ClusterCreatedEvent struct {
 	ClusterId     ClusterId
 	AccountId     AccountId

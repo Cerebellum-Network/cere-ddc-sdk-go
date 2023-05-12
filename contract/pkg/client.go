@@ -159,24 +159,35 @@ func (b *blockchainClient) listenContractEvents() error {
 						if !b.eventContractAccount.Equal(&e.Contract) {
 							continue
 						}
-						dispatchEntry, found := b.eventDispatcher[e.Topics[0]]
+
+						// Identify the event by matching one of its topics against known signatures. The topics are sorted so
+						// the the needed one may be in the arbitrary position.
+						var dispatchEntry ContractEventDispatchEntry
+						found := false
+						for _, topic := range e.Topics {
+							dispatchEntry, found = b.eventDispatcher[topic]
+							if found {
+								break
+							}
+						}
 						if !found {
-							log.WithField("topic", e.Topics[0].Hex()).WithField("hash", evt.Block.Hex()).
-								Warn("Unknown event emitted by our contract")
+							log.WithField("block", evt.Block.Hex()).
+								Warnf("Unknown event emitted by our contract: %x", e.Data[:16])
 							continue
 						}
+
 						if dispatchEntry.Handler == nil {
-							log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+							log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
 								Info("Event unhandeled")
 							continue
 						}
 						args := reflect.New(dispatchEntry.ArgumentType).Interface()
 						if err := codec.Decode(e.Data[1:], args); err != nil {
-							log.WithError(err).WithField("hash", evt.Block.Hex()).
+							log.WithError(err).WithField("block", evt.Block.Hex()).
 								WithField("event", dispatchEntry.ArgumentType.Name()).
 								Errorf("Cannot decode event data %x", e.Data)
 						}
-						log.WithField("hash", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+						log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
 							Infof("Event args: %x", e.Data)
 						dispatchEntry.Handler(args)
 					}

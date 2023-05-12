@@ -24,6 +24,7 @@ const (
 	BucketCreatedEventId                = "004464634275636b65743a3a4275636b65744372656174656400000000000000"
 	BucketAllocatedEventId              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
 	BucketSettlePaymentEventId          = "004464634275636b65743a3a4275636b6574536574746c655061796d656e7400"
+	BucketAvailabilityUpdatedId         = "8d8714b3df602b0ce92b8a3de12daedf222ff9198078f834d57176ca2a06359c"
 	ClusterCreatedEventId               = "004464634275636b65743a3a436c757374657243726561746564000000000000"
 	ClusterNodeReplacedEventId          = "004464634275636b65743a3a436c75737465724e6f64655265706c6163656400"
 	ClusterReserveResourceEventId       = "84d6d26a3275dced8e359779bf21488762a1d88029f52522d8fc27607759399e"
@@ -71,6 +72,7 @@ var eventDispatchTable = map[string]reflect.Type{
 	BucketCreatedEventId:                reflect.TypeOf(BucketCreatedEvent{}),
 	BucketAllocatedEventId:              reflect.TypeOf(BucketAllocatedEvent{}),
 	BucketSettlePaymentEventId:          reflect.TypeOf(BucketSettlePaymentEvent{}),
+	BucketAvailabilityUpdatedId:         reflect.TypeOf(BucketAvailabilityUpdatedEvent{}),
 	ClusterCreatedEventId:               reflect.TypeOf(ClusterCreatedEvent{}),
 	ClusterNodeReplacedEventId:          reflect.TypeOf(ClusterNodeReplacedEvent{}),
 	ClusterReserveResourceEventId:       reflect.TypeOf(ClusterReserveResourceEvent{}),
