@@ -29,7 +29,7 @@ type (
 	ReadRequest struct {
 		Cid      string
 		BucketId uint32
-		Chunks   []uint32
+		Chunks   []string
 	}
 
 	QueryRequest struct {
@@ -45,10 +45,6 @@ var _ Protobufable = (*LogRecord)(nil)
 var _ Protobufable = (*LogRecordList)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
-	var signature *pb.Signature
-	if l.Signature != nil {
-		signature = l.Signature.ToProto()
-	}
 	result := &pb.LogRecord{
 		Timestamp: uint64(l.Timestamp.UnixNano()),
 		Address:   l.Address,
@@ -56,7 +52,6 @@ func (l *LogRecord) ToProto() *pb.LogRecord {
 		SessionId: l.SessionId,
 		PublicKey: l.PublicKey,
 		RequestId: l.RequestId,
-		Signature: signature,
 	}
 
 	l.requestToProto(result)
@@ -69,10 +64,6 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	l.Timestamp = &timestamp
 
 	var signature *Signature
-	if pbLogRecord.Signature != nil {
-		signature = &Signature{}
-		signature.ToDomain(pbLogRecord.Signature)
-	}
 
 	l.Address = pbLogRecord.Address
 	l.Gas = pbLogRecord.Gas
@@ -169,7 +160,7 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 		}
 	case *pb.LogRecord_ReadRequest:
 		readRecord := record.ReadRequest
-		chunks := make([]uint32, 0, len(readRecord.Chunks))
+		chunks := make([]string, 0, len(readRecord.Chunks))
 		copy(chunks, readRecord.Chunks)
 		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId, Chunks: chunks}
 	case *pb.LogRecord_QueryRequest:
