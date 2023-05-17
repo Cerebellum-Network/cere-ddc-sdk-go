@@ -25,6 +25,7 @@ type (
 	BlockchainClient interface {
 		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
 		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
+		Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error)
 		SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error
 	}
 
@@ -44,6 +45,16 @@ type (
 		GasLimit            float64
 		Method              []byte
 		Args                []interface{}
+	}
+
+	DeployCall struct {
+		Code     []byte
+		Salt     []byte
+		From     signature.KeyringPair
+		Value    float64
+		GasLimit float64
+		Method   []byte
+		Args     []interface{}
 	}
 
 	ContractEventDispatchEntry struct {
@@ -253,13 +264,12 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 		if err != nil {
 			return types.Hash{}, err
 		}
-
 		gasLimitRaw = types.NewUCompactFromUInt(uint64(resp.GasConsumed))
 	}
 
 	multiAddress := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
 	extrinsic, err := withRetryOnClosedNetwork(b, func() (types.Extrinsic, error) {
-		return b.createExtrinsic(contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
+		return b.createExtrinsic("Contracts.call", contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
 	})
 	if err != nil {
 		return types.Hash{}, err
@@ -275,7 +285,82 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	return hash, err
 }
 
-func (b *blockchainClient) createExtrinsic(authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
+func (b *blockchainClient) Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error) {
+	deployer, err := types.NewAccountID(deployCall.From.PublicKey)
+	if err != nil {
+		return types.AccountID{}, err
+	}
+
+	data, err := GetContractData(deployCall.Method, deployCall.Args...)
+	if err != nil {
+		return types.AccountID{}, err
+	}
+
+	extrinsic, err := withRetryOnClosedNetwork(b, func() (types.Extrinsic, error) {
+		return b.createExtrinsic(
+			"Contracts.instantiate_with_code",
+			deployCall.From,
+			types.NewUCompactFromUInt(uint64(deployCall.Value*CERE)),
+			types.NewUCompactFromUInt(uint64(deployCall.GasLimit*CERE)),
+			types.NewOptionBoolEmpty(),
+			deployCall.Code,
+			data,
+			deployCall.Salt)
+	})
+	if err != nil {
+		return types.AccountID{}, err
+	}
+
+	hash, err := withRetryOnClosedNetwork(b, func() (types.Hash, error) {
+		return b.submitAndWaitExtrinsic(ctx, extrinsic)
+	})
+	if err != nil {
+		return types.AccountID{}, err
+	}
+
+	return withRetryOnClosedNetwork(b, func() (types.AccountID, error) {
+		return b.grabContractInstantiated(hash, deployer)
+	})
+}
+
+func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *types.AccountID) (types.AccountID, error) {
+	meta, err := b.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return types.AccountID{}, errors.Wrap(err, "get metadata lastest")
+	}
+
+	key, err := types.CreateStorageKey(meta, "System", "Events", nil, nil)
+	if err != nil {
+		return types.AccountID{}, errors.Wrap(err, "create storage key")
+	}
+
+	storage, err := b.RPC.State.QueryStorageAt([]types.StorageKey{key}, hash)
+	if err != nil {
+		return types.AccountID{}, errors.Wrap(err, "query storage at block "+hash.Hex())
+	}
+
+	for _, st := range storage {
+		for _, chng := range st.Changes {
+			events := types.EventRecords{}
+			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+			if err != nil {
+				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
+				continue
+			}
+			for _, e := range events.Contracts_Instantiated {
+				if !e.Deployer.Equal(deployer) {
+					log.Warnf("Deployers mismatch %s and %s", e.Deployer.ToHexString(), deployer.ToHexString())
+					continue
+				}
+				return e.Contract, nil
+			}
+		}
+	}
+
+	return types.AccountID{}, errors.New("Contract not instantiated at block " + hash.Hex())
+}
+
+func (b *blockchainClient) createExtrinsic(cmd string, authKey signature.KeyringPair, args ...interface{}) (types.Extrinsic, error) {
 	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return types.Extrinsic{}, errors.Wrap(err, "get metadata lastest error")
@@ -314,7 +399,7 @@ func (b *blockchainClient) createExtrinsic(authKey signature.KeyringPair, args .
 		TransactionVersion: rv.TransactionVersion,
 	}
 
-	call, err := types.NewCall(meta, "Contracts.call", args...)
+	call, err := types.NewCall(meta, cmd, args...)
 	if err != nil {
 		return types.Extrinsic{}, errors.Wrap(err, "new call error")
 	}
