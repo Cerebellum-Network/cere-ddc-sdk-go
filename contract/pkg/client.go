@@ -129,7 +129,7 @@ func (b *blockchainClient) listenContractEvents() error {
 				if !eventArrived {
 					s, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
 					if err != nil {
-						log.WithError(err).Error("Watchdog resubscribtion failed")
+						log.WithError(err).Warn("Watchdog resubscribtion failed")
 						break
 					}
 					log.Info("Watchdog event resubscribed")
@@ -138,7 +138,14 @@ func (b *blockchainClient) listenContractEvents() error {
 				}
 				eventArrived = false
 
+			case err := <-sub.Err():
+				log.WithError(err).Warn("Subscription signaled an error")
+
 			case evt := <-sub.Chan():
+				if evt.Changes == nil {
+					log.WithField("block", evt.Block.Hex()).Warn("Received nil event")
+					break
+				}
 				eventArrived = true
 
 				// parse all events for this block
@@ -178,7 +185,7 @@ func (b *blockchainClient) listenContractEvents() error {
 
 						if dispatchEntry.Handler == nil {
 							log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
-								Info("Event unhandeled")
+								Debug("Event unhandeled")
 							continue
 						}
 						args := reflect.New(dispatchEntry.ArgumentType).Interface()
@@ -188,7 +195,7 @@ func (b *blockchainClient) listenContractEvents() error {
 								Errorf("Cannot decode event data %x", e.Data)
 						}
 						log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
-							Infof("Event args: %x", e.Data)
+							Debugf("Event args: %x", e.Data)
 						dispatchEntry.Handler(args)
 					}
 				}
