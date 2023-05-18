@@ -1,12 +1,9 @@
 # Change Log
 
-## v0.1.4
+## v0.1.5
 
 ### Features
-- Added Consistent Hashing: Ring topology
-- Added `CdnClusterGet` and `CndNodeGet` contract methods
-- Added `Address` and `PrivateKeyHex` methods to crypto
-- Added `utils` package
-
-### Bug Fixes
-- Bucket creating logic for mocked DDC Smart-Contract
+1. The log format has been restructured in order to align with modifications in the data activity collection format.
+2. The functionality to send acknowledgements has been implemented.
+3. Subscription to smart contract events has been incorporated to facilitate cache purging.
+4. A new event `BucketAvailabilityUpdated` has been introduced into the contract.
