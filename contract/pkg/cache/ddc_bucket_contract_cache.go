@@ -2,12 +2,14 @@ package cache
 
 import (
 	"encoding/hex"
+	"strconv"
+	"time"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/patrickmn/go-cache"
-	"strconv"
-	"time"
 )
 
 const (
@@ -21,6 +23,9 @@ type (
 		ClearNodes()
 		ClearBuckets()
 		ClearAccounts()
+		ClearNodeById(id bucket.NodeId)
+		ClearBucketById(id bucket.BucketId)
+		ClearAccountById(id bucket.AccountId)
 		bucket.DdcBucketContract
 	}
 
@@ -145,6 +150,14 @@ func (d *ddcBucketContractCached) GetLastAccessTime() time.Time {
 	return d.ddcBucketContract.GetLastAccessTime()
 }
 
+func (d *ddcBucketContractCached) AddContractEventHandler(event string, handler func(interface{})) error {
+	return d.ddcBucketContract.AddContractEventHandler(event, handler)
+}
+
+func (d *ddcBucketContractCached) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+	return d.ddcBucketContract.GetEventDispatcher()
+}
+
 func (d *ddcBucketContractCached) ClearNodes() {
 	d.nodeCache.Flush()
 }
@@ -155,6 +168,18 @@ func (d *ddcBucketContractCached) ClearBuckets() {
 
 func (d *ddcBucketContractCached) ClearAccounts() {
 	d.accountCache.Flush()
+}
+
+func (d *ddcBucketContractCached) ClearNodeById(id bucket.NodeId) {
+	d.nodeCache.Delete(toString(id))
+}
+
+func (d *ddcBucketContractCached) ClearBucketById(id bucket.BucketId) {
+	d.bucketCache.Delete(toString(id))
+}
+
+func (d *ddcBucketContractCached) ClearAccountById(id bucket.AccountId) {
+	d.accountCache.Delete(hex.EncodeToString(id[:]))
 }
 
 func cacheDurationOrDefault(duration time.Duration, defaultDuration time.Duration) time.Duration {

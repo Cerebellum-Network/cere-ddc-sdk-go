@@ -1,14 +1,20 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
+	"os/signal"
+	"reflect"
+	"sync"
+	"syscall"
+	"time"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 const (
@@ -19,11 +25,15 @@ type (
 	BlockchainClient interface {
 		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
 		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
+		SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error
 	}
 
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
-		connectMutex sync.Mutex
+		eventContractAccount types.AccountID
+		eventDispatcher      map[types.Hash]ContractEventDispatchEntry
+		eventContextCancel   context.CancelFunc
+		connectMutex         sync.Mutex
 	}
 
 	ContractCall struct {
@@ -35,6 +45,13 @@ type (
 		Method              []byte
 		Args                []interface{}
 	}
+
+	ContractEventDispatchEntry struct {
+		ArgumentType reflect.Type
+		Handler      ContractEventHandler
+	}
+
+	ContractEventHandler func(interface{})
 
 	Response struct {
 		DebugMessage string `json:"debugMessage"`
@@ -65,6 +82,127 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 	return &blockchainClient{
 		SubstrateAPI: substrateAPI,
 	}
+}
+
+func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error {
+	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
+	if err != nil {
+		return err
+	}
+	b.eventContractAccount = contract
+	b.eventDispatcher = dispatcher
+	err = b.listenContractEvents()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *blockchainClient) listenContractEvents() error {
+	meta, err := b.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return err
+	}
+
+	key, err := types.CreateStorageKey(meta, "System", "Events", nil, nil)
+	if err != nil {
+		return err
+	}
+
+	sub, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	b.eventContextCancel = cancel
+	watchdog := time.NewTicker(time.Minute)
+	eventArrived := true
+	go func() {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case <-watchdog.C:
+				if !eventArrived {
+					s, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
+					if err != nil {
+						log.WithError(err).Warn("Watchdog resubscribtion failed")
+						break
+					}
+					log.Info("Watchdog event resubscribed")
+					sub.Unsubscribe()
+					sub = s
+				}
+				eventArrived = false
+
+			case err := <-sub.Err():
+				log.WithError(err).Warn("Subscription signaled an error")
+
+			case evt := <-sub.Chan():
+				if evt.Changes == nil {
+					log.WithField("block", evt.Block.Hex()).Warn("Received nil event")
+					break
+				}
+				eventArrived = true
+
+				// parse all events for this block
+				for _, chng := range evt.Changes {
+					if !bytes.Equal(chng.StorageKey[:], key) || !chng.HasStorageData {
+						// skip, we are only interested in events with content
+						continue
+					}
+
+					events := types.EventRecords{}
+					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+					if err != nil {
+						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
+						continue
+					}
+
+					for _, e := range events.Contracts_ContractEmitted {
+						if !b.eventContractAccount.Equal(&e.Contract) {
+							continue
+						}
+
+						// Identify the event by matching one of its topics against known signatures. The topics are sorted so
+						// the the needed one may be in the arbitrary position.
+						var dispatchEntry ContractEventDispatchEntry
+						found := false
+						for _, topic := range e.Topics {
+							dispatchEntry, found = b.eventDispatcher[topic]
+							if found {
+								break
+							}
+						}
+						if !found {
+							log.WithField("block", evt.Block.Hex()).
+								Warnf("Unknown event emitted by our contract: %x", e.Data[:16])
+							continue
+						}
+
+						if dispatchEntry.Handler == nil {
+							log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+								Debug("Event unhandeled")
+							continue
+						}
+						args := reflect.New(dispatchEntry.ArgumentType).Interface()
+						if err := codec.Decode(e.Data[1:], args); err != nil {
+							log.WithError(err).WithField("block", evt.Block.Hex()).
+								WithField("event", dispatchEntry.ArgumentType.Name()).
+								Errorf("Cannot decode event data %x", e.Data)
+						}
+						log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+							Debugf("Event args: %x", e.Data)
+						dispatchEntry.Handler(args)
+					}
+				}
+			}
+		}
+	}()
+	return nil
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
@@ -230,12 +368,21 @@ func (b *blockchainClient) reconnect() error {
 		return nil
 	}
 
+	if b.eventContextCancel != nil {
+		b.eventContextCancel()
+	}
 	substrateAPI, err := gsrpc.NewSubstrateAPI(b.Client.URL())
 	if err != nil {
 		log.WithError(err).Warningf("Blockchain client can't reconnect to %s", b.Client.URL())
 		return err
 	}
 	b.SubstrateAPI = substrateAPI
+	if b.eventDispatcher != nil {
+		err = b.listenContractEvents()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

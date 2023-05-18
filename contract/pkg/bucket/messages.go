@@ -2,9 +2,10 @@ package bucket
 
 import (
 	"encoding/json"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"math/big"
 	"time"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
 type (
@@ -118,6 +119,86 @@ type Account struct {
 	UnboundedAmount   Cash
 	UnbondedTimestamp uint64
 	PayableSchedule   Schedule
+}
+
+type BucketCreatedEvent struct {
+	BucketId  BucketId
+	AccountId AccountId
+}
+
+type BucketAllocatedEvent struct {
+	BucketId  BucketId
+	ClusterId ClusterId
+	Resource  Resource
+}
+
+type BucketSettlePaymentEvent struct {
+	BucketId  BucketId
+	ClusterId ClusterId
+}
+
+type BucketAvailabilityUpdatedEvent struct {
+	BucketId           BucketId
+	PublicAvailability bool
+}
+
+type ClusterCreatedEvent struct {
+	ClusterId     ClusterId
+	AccountId     AccountId
+	ClusterParams Params
+}
+
+type ClusterNodeReplacedEvent struct {
+	ClusterId ClusterId
+	NodeId    NodeId
+}
+
+type ClusterReserveResourceEvent struct {
+	ClusterId ClusterId
+	NodeId    NodeId
+}
+
+type ClusterDistributeRevenuesEvent struct {
+	ClusterId ClusterId
+	AccountId AccountId
+}
+
+type CdnClusterCreatedEvent struct {
+	ClusterId ClusterId
+	AccountId AccountId
+}
+
+type CdnClusterDistributeRevenuesEvent struct {
+	ClusterId  ClusterId
+	ProviderId AccountId
+}
+
+type CdnNodeCreatedEvent struct {
+	NodeId    NodeId
+	AccountId AccountId
+	Payment   Balance
+}
+
+type NodeCreatedEvent struct {
+	NodeId       NodeId
+	ProviderId   AccountId
+	RentPerMonth Balance
+	NodeParams   Params
+}
+
+type DepositEvent struct {
+	AccountId AccountId
+	Value     Balance
+}
+
+type GrantPermissionEvent struct {
+	AccountId  AccountId
+	Permission byte
+}
+
+type RevokePermissionEvent struct {
+	AccountId  AccountId
+	Permission byte
 }
 
 func (a *Account) HasBalance() bool {
