@@ -200,7 +200,7 @@ func (d *ddcBucketContractCached) ClearAccounts() {
 	d.accountCache.Flush()
 }
 
-func (d *ddcBucketContractCached) clearNodeById(id bucket.NodeId) {
+func (d *ddcBucketContractCached) clearNodeById(id bucket.NodeId) { //nolint:golint,unused
 	d.nodeCache.Delete(toString(id))
 }
 
