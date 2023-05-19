@@ -208,6 +208,9 @@ func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(i
 	if !found {
 		return errors.New("Event not found")
 	}
+	if entry.Handler != nil {
+		return errors.New("Contract event handler already set for " + event)
+	}
 	entry.Handler = handler
 	d.eventDispatcher[key] = entry
 	return nil
