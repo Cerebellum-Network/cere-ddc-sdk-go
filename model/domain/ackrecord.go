@@ -13,9 +13,6 @@ type (
 		Ack       *Ack
 		PublicKey []byte
 		Timestamp *time.Time
-		Signature *Signature
-		SessionId []byte
-		Chunks    []string
 	}
 )
 
@@ -37,19 +34,10 @@ func (a *AckRecord) UnmarshalProto(bytes []byte) error {
 }
 
 func (a *AckRecord) ToProto() *pb.AckRecord {
-	var signature *pb.Signature
-	if a.Signature != nil {
-		signature = a.Signature.ToProto()
-	}
-	chunks := make([]string, 0, len(a.Chunks))
-	copy(chunks, a.Chunks)
 	return &pb.AckRecord{
 		Ack:       a.Ack.ToProto(),
 		PublicKey: a.PublicKey,
 		Timestamp: uint64(a.Timestamp.UnixNano()),
-		Signature: signature,
-		SessionId: a.SessionId,
-		Chunks:    chunks,
 	}
 }
 
