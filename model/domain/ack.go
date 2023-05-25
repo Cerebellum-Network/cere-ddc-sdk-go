@@ -13,6 +13,7 @@ type Ack struct {
 	Nonce         []byte
 	RequestId     string
 	SessionId     []byte
+	Cid           string
 	Signature     []byte
 	Schema        string
 	MultiHashType uint64
@@ -44,6 +45,7 @@ func (a *Ack) ToDomain(ack *pb.Ack) {
 	a.Nonce = ack.Nonce
 	a.RequestId = ack.RequestId
 	a.SessionId = ack.SessionId
+	a.Cid = ack.Cid
 	a.Signature = ack.Signature
 	a.Schema = ack.Scheme
 	a.MultiHashType = ack.MultiHashType
@@ -59,6 +61,7 @@ func (a *Ack) ToProto() *pb.Ack {
 			Nonce:         a.Nonce,
 			RequestId:     a.RequestId,
 			SessionId:     a.SessionId,
+			Cid:           a.Cid,
 			Signature:     a.Signature,
 			Scheme:        a.Schema,
 			MultiHashType: a.MultiHashType,
