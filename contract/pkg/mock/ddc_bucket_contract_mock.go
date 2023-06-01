@@ -42,10 +42,15 @@ type (
 	}
 
 	CDNNode struct {
-		Id       uint32 `json:"-"`
-		Url      string `json:"url"`
-		Size     uint8  `json:"size"`
-		Location string `json:"location"`
+		Id     uint32        `json:"id"`
+		Params CDNNodeParams `json:"params"`
+	}
+
+	CDNNodeParams struct {
+		Url       string `json:"url"`
+		Size      uint8  `json:"size"`
+		Location  string `json:"location"`
+		PublicKey string `json:"publicKey"`
 	}
 
 	CDNCluster struct {
@@ -132,13 +137,13 @@ func (d *ddcBucketContractMock) NodeGet(nodeId uint32) (*bucket.NodeStatus, erro
 }
 
 func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
-	for _, cluster := range d.clusters {
+	for _, cluster := range d.cdnClusters {
 		if cluster.Id == clusterId {
 			return &bucket.CDNClusterStatus{
 				ClusterId: clusterId,
 				CDNCluster: bucket.CDNCluster{
 					ManagerId:    types.AccountID{},
-					CDNNodes:     make([]bucket.NodeId, 0),
+					CDNNodes:     cluster.Nodes,
 					ResourceUsed: 0,
 					Revenues:     types.NewU128(*big.NewInt(1)),
 					UsdPerGb:     types.NewU128(*big.NewInt(1)),
@@ -153,7 +158,7 @@ func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClus
 func (d *ddcBucketContractMock) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
 	for _, node := range d.cdnNodes {
 		if node.Id == nodeId {
-			params, err := json.Marshal(node)
+			params, err := json.Marshal(node.Params)
 			if err != nil {
 				return nil, err
 			}
