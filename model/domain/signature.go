@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
 	"google.golang.org/protobuf/proto"
@@ -74,11 +72,4 @@ func (s *Signature) DecodedSigner() ([]byte, error) {
 	}
 
 	return s.Signer, nil
-}
-
-func decodeHex(src []byte) ([]byte, error) {
-	src = bytes.TrimPrefix(src, []byte("0x"))
-	decoded := make([]byte, hex.DecodedLen(len(src)))
-	_, err := hex.Decode(decoded, src)
-	return decoded, err
 }

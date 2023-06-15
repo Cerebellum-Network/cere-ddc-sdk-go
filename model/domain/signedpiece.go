@@ -3,8 +3,6 @@ package domain
 import (
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/cid"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/model/pb"
@@ -130,9 +128,4 @@ func (sp *SignedPiece) Verify() (string, []byte, error) {
 	}
 
 	return pieceCid, signeable, nil
-}
-
-// Format the time the same way as JavaScript Date.toISOString()
-func formatTimestamp(unixMilli uint64) string {
-	return time.UnixMilli(int64(unixMilli)).UTC().Format("2006-01-02T15:04:05.000Z")
 }

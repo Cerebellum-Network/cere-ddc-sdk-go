@@ -52,6 +52,19 @@ func Verify(schemeName SchemeName, publicKey []byte, content []byte, signature [
 	}
 }
 
+func RedSchemeNameFromString(s string) (SchemeName, error) {
+	switch s {
+	case "sr25519", "":
+		return Sr25519, nil
+	case "ed25519":
+		return Ed25519, nil
+	case "secp256k1":
+		return Secp256k1, nil
+	default:
+		return "", fmt.Errorf("unknown scheme name: %s", s)
+	}
+}
+
 // Validate that the signed data does not conflict with the blockchain extrinsics.
 func validateSafeMessage(data []byte) error {
 	// Encoded extrinsics start with the pallet index; reserve up to 48 pallets.

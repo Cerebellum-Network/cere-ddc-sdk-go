@@ -2,7 +2,9 @@ package bucket
 
 import "encoding/json"
 
-// Structure-helper for json on the CDN Node Params string
+// CDNNodeParams Structure-helper for json on the CDN Node Params string
+// Public key is hex-encoded
+// Default expected key type is Sr25519
 type CDNNodeParams struct {
 	Url       string `json:"url"`
 	Size      uint8  `json:"size"`

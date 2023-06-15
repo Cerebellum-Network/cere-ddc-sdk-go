@@ -1,5 +1,7 @@
 # Change Log
 
+## Next Release
+* Add CDN Stage
 ## v0.1.5
 
 ### Features
