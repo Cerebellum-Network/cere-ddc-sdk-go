@@ -206,7 +206,7 @@ func (a *Account) HasBalance() bool {
 }
 
 type ClusterParams struct {
-	ReplicationFactor int `json:"replicationFactor"`
+	ReplicationFactor FlexInt `json:"replicationFactor"`
 }
 
 func (c *ClusterStatus) ReplicationFactor() uint {
