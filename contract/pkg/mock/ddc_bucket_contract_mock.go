@@ -48,7 +48,7 @@ type (
 
 	CDNNodeParams struct {
 		Url       string `json:"url"`
-		Size      uint8  `json:"size"`
+		Size      int    `json:"size"`
 		Location  string `json:"location"`
 		PublicKey string `json:"publicKey"`
 	}

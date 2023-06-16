@@ -25,3 +25,54 @@ func TestBucketWriteAccess(t *testing.T) {
 	//then
 	assert.True(t, hasWriteAccess)
 }
+
+func TestClusterStatus_ReplicationFactor(t *testing.T) {
+	type fields struct {
+		ClusterId ClusterId
+		Cluster   Cluster
+		Params    Params
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   uint
+	}{
+		{
+			name: "ReplicationFactor as integer",
+			fields: fields{
+				ClusterId: 1,
+				Params:    `{"ReplicationFactor": 3}`,
+				Cluster:   Cluster{},
+			},
+			want: 3,
+		},
+		{
+			name: "ReplicationFactor as string",
+			fields: fields{
+				ClusterId: 1,
+				Params:    `{"ReplicationFactor": "3"}`,
+				Cluster:   Cluster{},
+			},
+			want: 3,
+		},
+		{
+			name: "ReplicationFactor not set",
+			fields: fields{
+				ClusterId: 1,
+				Params:    `{}`,
+				Cluster:   Cluster{},
+			},
+			want: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &ClusterStatus{
+				ClusterId: tt.fields.ClusterId,
+				Cluster:   tt.fields.Cluster,
+				Params:    tt.fields.Params,
+			}
+			assert.Equalf(t, tt.want, c.ReplicationFactor(), "ReplicationFactor()")
+		})
+	}
+}
