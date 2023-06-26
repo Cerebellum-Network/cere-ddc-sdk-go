@@ -4,12 +4,12 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"errors"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
 	"reflect"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,11 +50,11 @@ type (
 		CDNNodeGet(nodeId uint32) (*CDNNodeStatus, error)
 		AccountGet(account types.AccountID) (*Account, error)
 		AddContractEventHandler(event string, handler func(interface{})) error
-		GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry
+		GetEventDispatcher() map[types.Hash]sdktypes.ContractEventDispatchEntry
 	}
 
 	ddcBucketContract struct {
-		contract              pkg.BlockchainClient
+		contract              sdktypes.BlockchainClient
 		lastAccessTime        time.Time
 		contractAddressSS58   string
 		keyringPair           signature.KeyringPair
@@ -64,7 +64,7 @@ type (
 		cdnClusterGetMethodId []byte
 		cdnNodeGetMethodId    []byte
 		accountGetMethodId    []byte
-		eventDispatcher       map[types.Hash]pkg.ContractEventDispatchEntry
+		eventDispatcher       map[types.Hash]sdktypes.ContractEventDispatchEntry
 	}
 )
 
@@ -85,7 +85,7 @@ var eventDispatchTable = map[string]reflect.Type{
 	GrantPermissionEventId:              reflect.TypeOf(GrantPermissionEvent{}),
 	RevokePermissionEventId:             reflect.TypeOf(RevokePermissionEvent{})}
 
-func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
+func CreateDdcBucketContract(client sdktypes.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
 	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)
 	if err != nil {
 		log.WithError(err).WithField("method", bucketGetMethod).Fatal("Can't decode method bucketGetMethod")
@@ -116,12 +116,12 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", accountGetMethod).Fatal("Can't decode method accountGetMethod")
 	}
 
-	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
+	eventDispatcher := make(map[types.Hash]sdktypes.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
 		if key, err := types.NewHashFromHexString(k); err != nil {
 			log.WithError(err).WithField("hash", k).Fatalf("Bad event hash for event %s", v.Name())
 		} else {
-			eventDispatcher[key] = pkg.ContractEventDispatchEntry{ArgumentType: v}
+			eventDispatcher[key] = sdktypes.ContractEventDispatchEntry{ArgumentType: v}
 		}
 	}
 
@@ -224,6 +224,6 @@ func (d *ddcBucketContract) GetLastAccessTime() time.Time {
 	return d.lastAccessTime
 }
 
-func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]sdktypes.ContractEventDispatchEntry {
 	return d.eventDispatcher
 }

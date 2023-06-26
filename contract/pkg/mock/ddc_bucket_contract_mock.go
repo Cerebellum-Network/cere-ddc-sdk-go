@@ -3,13 +3,14 @@ package mock
 import (
 	"encoding/json"
 	"errors"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
 	"math"
 	"math/big"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -228,7 +229,7 @@ func CreateBucket(bucketId uint32, clusterId uint32, bucketParams string, writer
 func getAccountIDs(ss58Addresses []string) []types.AccountID {
 	accountIDs := make([]types.AccountID, len(ss58Addresses))
 	for i, address := range ss58Addresses {
-		if accountID, err := pkg.DecodeAccountIDFromSS58(address); err != nil {
+		if accountID, err := utils.DecodeAccountIDFromSS58(address); err != nil {
 			log.Fatal("Failed decode private key ed25519")
 		} else {
 			accountIDs[i] = accountID
@@ -238,6 +239,6 @@ func getAccountIDs(ss58Addresses []string) []types.AccountID {
 	return accountIDs
 }
 
-func (d *ddcBucketContractMock) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+func (d *ddcBucketContractMock) GetEventDispatcher() map[types.Hash]sdktypes.ContractEventDispatchEntry {
 	return nil
 }

@@ -1,4 +1,4 @@
-package pkg
+package utils
 
 import (
 	"bytes"
@@ -72,6 +72,6 @@ func GetContractData(method []byte, args ...interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func isClosedNetworkError(err error) bool {
+func IsClosedNetworkError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
 }

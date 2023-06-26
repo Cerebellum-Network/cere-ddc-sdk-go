@@ -1,11 +1,11 @@
 package cache
 
 import (
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
 	"testing"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/assert"
@@ -60,7 +60,7 @@ func (d *mockedDdcBucketContract) AddContractEventHandler(event string, handler 
 	return nil
 }
 
-func (d *mockedDdcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+func (d *mockedDdcBucketContract) GetEventDispatcher() map[types.Hash]sdktypes.ContractEventDispatchEntry {
 	return nil
 }
 

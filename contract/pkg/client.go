@@ -3,6 +3,8 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
 	"os/signal"
 	"reflect"
 	"sync"
@@ -22,69 +24,16 @@ const (
 )
 
 type (
-	BlockchainClient interface {
-		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
-		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
-		Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error)
-		SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error
-	}
-
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
 		eventContractAccount types.AccountID
-		eventDispatcher      map[types.Hash]ContractEventDispatchEntry
+		eventDispatcher      map[types.Hash]sdktypes.ContractEventDispatchEntry
 		eventContextCancel   context.CancelFunc
 		connectMutex         sync.Mutex
 	}
-
-	ContractCall struct {
-		ContractAddress     types.AccountID
-		ContractAddressSS58 string
-		From                signature.KeyringPair
-		Value               float64
-		GasLimit            float64
-		Method              []byte
-		Args                []interface{}
-	}
-
-	DeployCall struct {
-		Code     []byte
-		Salt     []byte
-		From     signature.KeyringPair
-		Value    float64
-		GasLimit float64
-		Method   []byte
-		Args     []interface{}
-	}
-
-	ContractEventDispatchEntry struct {
-		ArgumentType reflect.Type
-		Handler      ContractEventHandler
-	}
-
-	ContractEventHandler func(interface{})
-
-	Response struct {
-		DebugMessage string `json:"debugMessage"`
-		GasConsumed  int    `json:"gasConsumed"`
-		Result       struct {
-			Ok struct {
-				Data  string `json:"data"`
-				Flags int    `json:"flags"`
-			} `json:"Ok"`
-		} `json:"result"`
-	}
-
-	Request struct {
-		Origin    string `json:"origin"`
-		Dest      string `json:"dest"`
-		GasLimit  uint   `json:"gasLimit"`
-		InputData string `json:"inputData"`
-		Value     int    `json:"value"`
-	}
 )
 
-func CreateBlockchainClient(apiUrl string) BlockchainClient {
+func CreateBlockchainClient(apiUrl string) sdktypes.BlockchainClient {
 	substrateAPI, err := gsrpc.NewSubstrateAPI(apiUrl)
 	if err != nil {
 		log.WithError(err).WithField("apiUrl", apiUrl).Fatal("Can't connect to blockchainClient")
@@ -95,8 +44,8 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 	}
 }
 
-func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error {
-	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
+func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]sdktypes.ContractEventDispatchEntry) error {
+	contract, err := utils.DecodeAccountIDFromSS58(contractAddressSS58)
 	if err != nil {
 		return err
 	}
@@ -129,6 +78,7 @@ func (b *blockchainClient) listenContractEvents() error {
 	b.eventContextCancel = cancel
 	watchdog := time.NewTicker(time.Minute)
 	eventArrived := true
+	var lastEventBlock types.BlockNumber
 	go func() {
 		defer sub.Unsubscribe()
 		for {
@@ -158,6 +108,13 @@ func (b *blockchainClient) listenContractEvents() error {
 					break
 				}
 				eventArrived = true
+				block, err := b.RPC.Chain.GetBlock(evt.Block)
+				if err != nil {
+					log.WithError(err).Warn("Error fetching block")
+					break
+				}
+				lastEventBlock = block.Block.Header.Number
+				print(lastEventBlock)
 
 				// parse all events for this block
 				for _, chng := range evt.Changes {
@@ -179,8 +136,8 @@ func (b *blockchainClient) listenContractEvents() error {
 						}
 
 						// Identify the event by matching one of its topics against known signatures. The topics are sorted so
-						// the the needed one may be in the arbitrary position.
-						var dispatchEntry ContractEventDispatchEntry
+						// the needed one may be in the arbitrary position.
+						var dispatchEntry sdktypes.ContractEventDispatchEntry
 						found := false
 						for _, topic := range e.Topics {
 							dispatchEntry, found = b.eventDispatcher[topic]
@@ -217,7 +174,7 @@ func (b *blockchainClient) listenContractEvents() error {
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
-	data, err := GetContractData(method, args...)
+	data, err := utils.GetContractData(method, args...)
 	if err != nil {
 		return "", errors.Wrap(err, "getMessagesData")
 	}
@@ -230,27 +187,27 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 	return res.Result.Ok.Data, nil
 }
 
-func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
-	params := Request{
+func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (sdktypes.Response, error) {
+	params := sdktypes.Request{
 		Origin:    fromAddress,
 		Dest:      contractAddressSS58,
 		GasLimit:  500_000_000_000,
 		InputData: codec.HexEncodeToString(data),
 	}
 
-	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
-		res := Response{}
+	res, err := withRetryOnClosedNetwork(b, func() (sdktypes.Response, error) {
+		res := sdktypes.Response{}
 		return res, b.Client.Call(&res, "contracts_call", params)
 	})
 	if err != nil {
-		return Response{}, errors.Wrap(err, "call")
+		return sdktypes.Response{}, errors.Wrap(err, "call")
 	}
 
 	return res, nil
 }
 
-func (b *blockchainClient) CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error) {
-	data, err := GetContractData(contractCall.Method, contractCall.Args...)
+func (b *blockchainClient) CallToExec(ctx context.Context, contractCall sdktypes.ContractCall) (types.Hash, error) {
+	data, err := utils.GetContractData(contractCall.Method, contractCall.Args...)
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -285,13 +242,13 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	return hash, err
 }
 
-func (b *blockchainClient) Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error) {
+func (b *blockchainClient) Deploy(ctx context.Context, deployCall sdktypes.DeployCall) (types.AccountID, error) {
 	deployer, err := types.NewAccountID(deployCall.From.PublicKey)
 	if err != nil {
 		return types.AccountID{}, err
 	}
 
-	data, err := GetContractData(deployCall.Method, deployCall.Args...)
+	data, err := utils.GetContractData(deployCall.Method, deployCall.Args...)
 	if err != nil {
 		return types.AccountID{}, err
 	}
@@ -435,7 +392,7 @@ func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic
 
 func withRetryOnClosedNetwork[T any](b *blockchainClient, f func() (T, error)) (T, error) {
 	result, err := f()
-	if isClosedNetworkError(err) {
+	if utils.IsClosedNetworkError(err) {
 		if b.reconnect() != nil {
 			return result, err
 		}
@@ -449,7 +406,7 @@ func (b *blockchainClient) reconnect() error {
 	b.connectMutex.Lock()
 	defer b.connectMutex.Unlock()
 	_, err := b.RPC.State.GetRuntimeVersionLatest()
-	if !isClosedNetworkError(err) {
+	if !utils.IsClosedNetworkError(err) {
 		return nil
 	}
 

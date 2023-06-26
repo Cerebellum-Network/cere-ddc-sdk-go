@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func TestApplicationSuite(t *testing.T) {
 	suite.Run(t, new(ApplicationTestSuite))
 }
 
-func (a *ApplicationTestSuite) deployBucketContract(client pkg.BlockchainClient) (*types.AccountID, error) {
+func (a *ApplicationTestSuite) deployBucketContract(client sdktypes.BlockchainClient) (*types.AccountID, error) {
 	methodId, err := hex.DecodeString("9bae9d5e") // label: "new"
 	if err != nil {
 		logrus.WithError(err).Fatal("Can't decode method")
@@ -66,7 +67,7 @@ func (a *ApplicationTestSuite) deployBucketContract(client pkg.BlockchainClient)
 		return nil, err
 	}
 
-	call := pkg.DeployCall{
+	call := sdktypes.DeployCall{
 		Code:     code,
 		Salt:     []byte(uuid.New().String()),
 		From:     signature.TestKeyringPairAlice,
@@ -85,19 +86,19 @@ func (a *ApplicationTestSuite) deployBucketContract(client pkg.BlockchainClient)
 	return &contract, nil
 }
 
-func (a *ApplicationTestSuite) bucketSetAvailability(contractAddress string, client pkg.BlockchainClient, ctx context.Context, bucketId bucket.BucketId, avail bool) (string, error) {
+func (a *ApplicationTestSuite) bucketSetAvailability(contractAddress string, client sdktypes.BlockchainClient, ctx context.Context, bucketId bucket.BucketId, avail bool) (string, error) {
 
 	methodId, err := hex.DecodeString("053eb3ce")
 	if err != nil {
 		logrus.WithError(err).Fatal("Can't decode method")
 	}
-	c, err := pkg.DecodeAccountIDFromSS58(contractAddress)
+	c, err := utils.DecodeAccountIDFromSS58(contractAddress)
 	if err != nil {
 		return "", err
 	}
 	arg1 := types.U32(bucketId)
 	arg2 := types.NewBool(avail)
-	call := pkg.ContractCall{
+	call := sdktypes.ContractCall{
 		ContractAddress:     c,
 		ContractAddressSS58: contractAddress,
 		From:                signature.TestKeyringPairAlice,
@@ -117,12 +118,12 @@ func (a *ApplicationTestSuite) bucketSetAvailability(contractAddress string, cli
 	return blockHash.Hex(), nil
 }
 
-func (a *ApplicationTestSuite) bucketCreate(contractAddress string, client pkg.BlockchainClient, ctx context.Context) (string, error) {
+func (a *ApplicationTestSuite) bucketCreate(contractAddress string, client sdktypes.BlockchainClient, ctx context.Context) (string, error) {
 	methodId, err := hex.DecodeString("0aeb2379")
 	if err != nil {
 		logrus.WithError(err).Fatal("Can't decode method")
 	}
-	c, err := pkg.DecodeAccountIDFromSS58(contractAddress)
+	c, err := utils.DecodeAccountIDFromSS58(contractAddress)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +139,7 @@ func (a *ApplicationTestSuite) bucketCreate(contractAddress string, client pkg.B
 
 	alice := signature.TestKeyringPairAlice
 
-	call := pkg.ContractCall{
+	call := sdktypes.ContractCall{
 		ContractAddress:     c,
 		ContractAddressSS58: contractAddress,
 		From:                alice,
