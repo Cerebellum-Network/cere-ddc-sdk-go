@@ -10,14 +10,15 @@ type (
 	LogRecordList []*LogRecord
 
 	LogRecord struct {
-		Request   IsRequest
-		Timestamp *time.Time
-		Address   string
-		Gas       uint32
-		PublicKey []byte
-		SessionId []byte
-		RequestId string
-		Signature *Signature
+		Request        IsRequest
+		Timestamp      *time.Time
+		Address        string
+		Gas            uint32
+		PublicKey      []byte
+		SessionId      []byte
+		RequestId      string
+		Signature      *Signature
+		ResponsePieces []*ResponsePiece
 	}
 
 	WriteRequest struct {
@@ -29,7 +30,6 @@ type (
 	ReadRequest struct {
 		Cid      string
 		BucketId uint32
-		Chunks   []string
 	}
 
 	QueryRequest struct {
@@ -39,19 +39,30 @@ type (
 	IsRequest interface {
 		isRequest()
 	}
+
+	ResponsePiece struct {
+		Cid  string
+		Size uint32
+	}
 )
 
 var _ Protobufable = (*LogRecord)(nil)
 var _ Protobufable = (*LogRecordList)(nil)
 
 func (l *LogRecord) ToProto() *pb.LogRecord {
+	responsePieces := make([]*pb.ResponsePiece, 0, len(l.ResponsePieces))
+	for _, piece := range l.ResponsePieces {
+		responsePieces = append(responsePieces, responsePieceToProto(piece))
+	}
+
 	result := &pb.LogRecord{
-		Timestamp: uint64(l.Timestamp.UnixNano()),
-		Address:   l.Address,
-		Gas:       l.Gas,
-		SessionId: l.SessionId,
-		PublicKey: l.PublicKey,
-		RequestId: l.RequestId,
+		Timestamp:      uint64(l.Timestamp.UnixNano()),
+		Address:        l.Address,
+		Gas:            l.Gas,
+		SessionId:      l.SessionId,
+		PublicKey:      l.PublicKey,
+		RequestId:      l.RequestId,
+		ResponsePieces: responsePieces,
 	}
 
 	l.requestToProto(result)
@@ -72,6 +83,10 @@ func (l *LogRecord) ToDomain(pbLogRecord *pb.LogRecord) {
 	l.RequestId = pbLogRecord.RequestId
 	l.Request = requestToDomain(pbLogRecord)
 	l.Signature = signature
+	l.ResponsePieces = make([]*ResponsePiece, 0, len(pbLogRecord.ResponsePieces))
+	for _, item := range pbLogRecord.ResponsePieces {
+		l.ResponsePieces = append(l.ResponsePieces, responsePieceToDomain(item))
+	}
 }
 
 func (l *LogRecord) MarshalProto() ([]byte, error) {
@@ -160,9 +175,7 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 		}
 	case *pb.LogRecord_ReadRequest:
 		readRecord := record.ReadRequest
-		chunks := make([]string, 0, len(readRecord.Chunks))
-		copy(chunks, readRecord.Chunks)
-		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId, Chunks: chunks}
+		return &ReadRequest{Cid: readRecord.Cid, BucketId: readRecord.BucketId}
 	case *pb.LogRecord_QueryRequest:
 		queryRecord := record.QueryRequest
 
@@ -181,3 +194,17 @@ func requestToDomain(pbLogRecord *pb.LogRecord) IsRequest {
 func (w *WriteRequest) isRequest() {}
 func (q *QueryRequest) isRequest() {}
 func (r *ReadRequest) isRequest()  {}
+
+func responsePieceToDomain(pbResponsePiece *pb.ResponsePiece) *ResponsePiece {
+	return &ResponsePiece{
+		Cid:  pbResponsePiece.Cid,
+		Size: pbResponsePiece.Size,
+	}
+}
+
+func responsePieceToProto(responsePiece *ResponsePiece) *pb.ResponsePiece {
+	return &pb.ResponsePiece{
+		Cid:  responsePiece.Cid,
+		Size: responsePiece.Size,
+	}
+}
