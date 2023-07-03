@@ -2,7 +2,7 @@ package bucket
 
 import (
 	"encoding/hex"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
 	"strings"
 	"testing"
 
@@ -16,7 +16,7 @@ func TestBucketWriteAccess(t *testing.T) {
 	publicKey := "0xd049e851567f16d68523a645ee96465ceb678ad983fc08e6a38408ad10410c4d"
 	publicKeyB, _ := hex.DecodeString(strings.TrimPrefix(publicKey, "0x"))
 
-	accountID, _ := pkg.DecodeAccountIDFromSS58(ss58)
+	accountID, _ := utils.DecodeAccountIDFromSS58(ss58)
 	bucketStatus := &BucketStatus{WriterIds: []types.AccountID{accountID}}
 
 	//when
