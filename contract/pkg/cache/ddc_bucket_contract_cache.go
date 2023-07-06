@@ -25,6 +25,9 @@ type (
 		ClearNodes()
 		ClearBuckets()
 		ClearAccounts()
+		ClearNodeById(id bucket.NodeId)
+		ClearBucketById(id bucket.BucketId)
+		ClearAccountById(id bucket.AccountId)
 		bucket.DdcBucketContract
 	}
 
@@ -69,25 +72,25 @@ func CreateDdcBucketContractCache(ddcBucketContract bucket.DdcBucketContract, pa
 func (d *ddcBucketContractCached) HookContractEvents() error {
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketAllocatedEventId, func(raw interface{}) {
 		args := raw.(*bucket.BucketAllocatedEvent)
-		d.clearBucketById(args.BucketId)
+		d.ClearBucketById(args.BucketId)
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.BucketAllocatedEventId)
 	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketSettlePaymentEventId, func(raw interface{}) {
 		args := raw.(*bucket.BucketSettlePaymentEvent)
-		d.clearBucketById(args.BucketId)
+		d.ClearBucketById(args.BucketId)
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.BucketSettlePaymentEventId)
 	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketAvailabilityUpdatedId, func(raw interface{}) {
 		args := raw.(*bucket.BucketAvailabilityUpdatedEvent)
-		d.clearBucketById(args.BucketId)
+		d.ClearBucketById(args.BucketId)
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.BucketAvailabilityUpdatedId)
 	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.DepositEventId, func(raw interface{}) {
 		args := raw.(*bucket.DepositEvent)
-		d.clearAccountById(args.AccountId)
+		d.ClearAccountById(args.AccountId)
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.DepositEventId)
 	}
@@ -200,15 +203,15 @@ func (d *ddcBucketContractCached) ClearAccounts() {
 	d.accountCache.Flush()
 }
 
-func (d *ddcBucketContractCached) clearNodeById(id bucket.NodeId) { //nolint:golint,unused
+func (d *ddcBucketContractCached) ClearNodeById(id bucket.NodeId) { //nolint:golint,unused
 	d.nodeCache.Delete(toString(id))
 }
 
-func (d *ddcBucketContractCached) clearBucketById(id bucket.BucketId) {
+func (d *ddcBucketContractCached) ClearBucketById(id bucket.BucketId) {
 	d.bucketCache.Delete(toString(id))
 }
 
-func (d *ddcBucketContractCached) clearAccountById(id bucket.AccountId) {
+func (d *ddcBucketContractCached) ClearAccountById(id bucket.AccountId) {
 	d.accountCache.Delete(hex.EncodeToString(id[:]))
 }
 
