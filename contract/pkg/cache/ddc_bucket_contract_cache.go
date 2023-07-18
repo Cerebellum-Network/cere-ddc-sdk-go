@@ -98,19 +98,19 @@ func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterS
 	return d.ddcBucketContract.ClusterGet(clusterId)
 }
 
-func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, error) {
-	key := toString(nodeId)
-	result, err := d.nodeSingleFlight.Do(key, func() (interface{}, error) {
-		if cached, ok := d.nodeCache.Get(key); ok {
+func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
+
+	result, err := d.nodeSingleFlight.Do(nodeKey, func() (interface{}, error) {
+		if cached, ok := d.nodeCache.Get(nodeKey); ok {
 			return cached, nil
 		}
 
-		value, err := d.ddcBucketContract.NodeGet(nodeId)
+		value, err := d.ddcBucketContract.NodeGet(nodeKey)
 		if err != nil {
 			return nil, err
 		}
 
-		d.nodeCache.SetDefault(key, value)
+		d.nodeCache.SetDefault(nodeKey, value)
 		return value, nil
 	})
 
@@ -118,12 +118,8 @@ func (d *ddcBucketContractCached) NodeGet(nodeId uint32) (*bucket.NodeStatus, er
 	return resp, err
 }
 
-func (d *ddcBucketContractCached) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
-	return d.ddcBucketContract.CDNClusterGet(clusterId)
-}
-
-func (d *ddcBucketContractCached) CDNNodeGet(nodeId uint32) (*bucket.CDNNodeStatus, error) {
-	return d.ddcBucketContract.CDNNodeGet(nodeId)
+func (d *ddcBucketContractCached) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
+	return d.ddcBucketContract.CDNNodeGet(nodeKey)
 }
 
 func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
@@ -222,4 +218,139 @@ func cacheDurationOrDefault(duration time.Duration, defaultDuration time.Duratio
 
 func toString(value uint32) string {
 	return strconv.FormatUint(uint64(value), 10)
+}
+
+func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId uint32, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes [][]bucket.Token, newNodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params bucket.Params) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterRemove(clusterId uint32) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId uint32, nodeKey string, statusInCluster string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnNodeKey string, statusInCluster string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterStatus {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) NodeCreate(nodeKey string, params bucket.Params, capacity bucket.Resource) (key string, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) NodeRemove(nodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) NodeSetParams(nodeKey string, params bucket.Params) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeStatus, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) CDNNodeCreate(nodeKey string, params bucket.CDNNodeParams) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) CDNNodeRemove(nodeKey string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket.CDNNodeParams) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permission string) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId types.AccountID) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId types.AccountID) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) AdminGrantPermission(grantee types.AccountID, permission string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) AdminRevokePermission(grantee types.AccountID, permission string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey string, newOwner types.AccountID) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(cdnNodeKey string, newOwner types.AccountID) error {
+	//TODO implement me
+	panic("implement me")
 }

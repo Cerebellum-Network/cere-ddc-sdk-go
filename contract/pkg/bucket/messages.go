@@ -39,12 +39,21 @@ var NodeTags = map[string]byte{
 
 type Cluster struct {
 	ManagerId        AccountId
+	NodesKeys        []string
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
 	Nodes            []NodeId
 	VNodes           [][]Token
 	TotalRent        Balance
+	CdnNodesKeys     []string
+	CdnUsdPerGb      Balance
+	CdnRevenues      Cash
+}
+
+type NewCluster struct {
+	Params           Params
+	ResourcePerVNode Resource
 }
 
 type ClusterStatus struct {
@@ -74,7 +83,7 @@ type Node struct {
 }
 
 type NodeStatus struct {
-	NodeId NodeId
+	Key    string
 	Node   Node
 	Params string
 }
@@ -85,7 +94,7 @@ type CDNNode struct {
 }
 
 type CDNNodeStatus struct {
-	NodeId NodeId
+	Key    string
 	Node   CDNNode
 	Params string
 }
