@@ -124,8 +124,8 @@ type Account struct {
 }
 
 type BucketCreatedEvent struct {
-	BucketId  BucketId
-	AccountId AccountId
+	BucketId BucketId
+	OwnerId  AccountId
 }
 
 type BucketAllocatedEvent struct {
