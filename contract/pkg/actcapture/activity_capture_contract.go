@@ -6,7 +6,8 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 )
@@ -26,7 +27,7 @@ type (
 	}
 
 	activityCaptureContract struct {
-		client                 pkg.BlockchainClient
+		client                 sdktypes.BlockchainClient
 		account                types.AccountID
 		keyringPair            signature.KeyringPair
 		contractAddress        types.AccountID
@@ -37,7 +38,7 @@ type (
 	}
 )
 
-func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressSS58 string, secret string) ActivityCaptureContract {
+func CreateActivityCaptureContract(client sdktypes.BlockchainClient, contractAddressSS58 string, secret string) ActivityCaptureContract {
 	keyringPair, err := signature.KeyringPairFromSecret(secret, 42)
 	if err != nil {
 		log.WithError(err).Fatal("Can't initialize keyring pair for activity capture contract")
@@ -63,7 +64,7 @@ func CreateActivityCaptureContract(client pkg.BlockchainClient, contractAddressS
 		log.WithError(err).WithField("method", getEraSettings).Fatal("Can't decode method getEraSettingsMethod")
 	}
 
-	contractAddress, err := pkg.DecodeAccountIDFromSS58(contractAddressSS58)
+	contractAddress, err := utils.DecodeAccountIDFromSS58(contractAddressSS58)
 	if err != nil {
 		log.WithError(err).WithField("contractAddressSS58", contractAddressSS58).Fatal("Can't decode contract address SS58")
 	}
@@ -101,7 +102,7 @@ func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, ga
 	From := types.U64(from)
 	To := types.U64(to)
 
-	call := pkg.ContractCall{
+	call := sdktypes.ContractCall{
 		ContractAddress:     a.contractAddress,
 		ContractAddressSS58: a.contractAddressSS58,
 		From:                a.keyringPair,

@@ -2,11 +2,11 @@ package cache
 
 import (
 	"encoding/hex"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
 	"strconv"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/patrickmn/go-cache"
@@ -187,7 +187,7 @@ func (d *ddcBucketContractCached) AddContractEventHandler(event string, handler 
 	return d.ddcBucketContract.AddContractEventHandler(event, handler)
 }
 
-func (d *ddcBucketContractCached) GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry {
+func (d *ddcBucketContractCached) GetEventDispatcher() map[types.Hash]sdktypes.ContractEventDispatchEntry {
 	return d.ddcBucketContract.GetEventDispatcher()
 }
 

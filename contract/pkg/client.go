@@ -3,6 +3,10 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/sdktypes"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/subscription"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/utils"
+	"math"
 	"os/signal"
 	"reflect"
 	"sync"
@@ -21,70 +25,24 @@ const (
 	CERE = 10_000_000_000
 )
 
-type (
-	BlockchainClient interface {
-		CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error)
-		CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error)
-		Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error)
-		SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error
-	}
+var (
+	chainSubscriptionFactory = subscription.NewChainFactory()
+	watchdogFactory          = subscription.NewWatchdogFactory()
+	watchdogTimeout          = time.Minute
+)
 
+type (
 	blockchainClient struct {
 		*gsrpc.SubstrateAPI
 		eventContractAccount types.AccountID
-		eventDispatcher      map[types.Hash]ContractEventDispatchEntry
-		eventContextCancel   context.CancelFunc
+		eventDispatcher      map[types.Hash]sdktypes.ContractEventDispatchEntry
+		eventContextCancel   []context.CancelFunc
 		connectMutex         sync.Mutex
-	}
-
-	ContractCall struct {
-		ContractAddress     types.AccountID
-		ContractAddressSS58 string
-		From                signature.KeyringPair
-		Value               float64
-		GasLimit            float64
-		Method              []byte
-		Args                []interface{}
-	}
-
-	DeployCall struct {
-		Code     []byte
-		Salt     []byte
-		From     signature.KeyringPair
-		Value    float64
-		GasLimit float64
-		Method   []byte
-		Args     []interface{}
-	}
-
-	ContractEventDispatchEntry struct {
-		ArgumentType reflect.Type
-		Handler      ContractEventHandler
-	}
-
-	ContractEventHandler func(interface{})
-
-	Response struct {
-		DebugMessage string `json:"debugMessage"`
-		GasConsumed  int    `json:"gasConsumed"`
-		Result       struct {
-			Ok struct {
-				Data  string `json:"data"`
-				Flags int    `json:"flags"`
-			} `json:"Ok"`
-		} `json:"result"`
-	}
-
-	Request struct {
-		Origin    string `json:"origin"`
-		Dest      string `json:"dest"`
-		GasLimit  uint   `json:"gasLimit"`
-		InputData string `json:"inputData"`
-		Value     int    `json:"value"`
+		eventDecoder         subscription.EventDecoder
 	}
 )
 
-func CreateBlockchainClient(apiUrl string) BlockchainClient {
+func CreateBlockchainClient(apiUrl string) sdktypes.BlockchainClient {
 	substrateAPI, err := gsrpc.NewSubstrateAPI(apiUrl)
 	if err != nil {
 		log.WithError(err).WithField("apiUrl", apiUrl).Fatal("Can't connect to blockchainClient")
@@ -92,11 +50,12 @@ func CreateBlockchainClient(apiUrl string) BlockchainClient {
 
 	return &blockchainClient{
 		SubstrateAPI: substrateAPI,
+		eventDecoder: subscription.NewEventDecoder(),
 	}
 }
 
-func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]ContractEventDispatchEntry) error {
-	contract, err := DecodeAccountIDFromSS58(contractAddressSS58)
+func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispatcher map[types.Hash]sdktypes.ContractEventDispatchEntry) error {
+	contract, err := utils.DecodeAccountIDFromSS58(contractAddressSS58)
 	if err != nil {
 		return err
 	}
@@ -120,24 +79,66 @@ func (b *blockchainClient) listenContractEvents() error {
 		return err
 	}
 
-	sub, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
+	s, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
 	if err != nil {
 		return err
 	}
+	b.processChainSubscription(chainSubscriptionFactory.NewChainSubscription(s), key, meta)
+	return nil
+}
 
+func (b *blockchainClient) processChainSubscription(sub subscription.ChainSubscription, key types.StorageKey, meta *types.Metadata) {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	b.eventContextCancel = cancel
-	watchdog := time.NewTicker(time.Minute)
+	b.eventContextCancel = append(b.eventContextCancel, cancel)
+	watchdog := watchdogFactory.NewWatchdog(watchdogTimeout)
 	eventArrived := true
+	var lastEventBlockHash types.Hash
 	go func() {
 		defer sub.Unsubscribe()
 		for {
 			select {
 			case <-ctx.Done():
+				log.Info("Chain subscription context done")
 				return
 
-			case <-watchdog.C:
+			case <-watchdog.C():
 				if !eventArrived {
+					log.WithField("block", lastEventBlockHash.Hex()).Warn("Watchdog event timeout")
+
+					// read missed blocks
+					lastEventBlock, err := b.RPC.Chain.GetBlock(lastEventBlockHash)
+					if err != nil {
+						log.WithError(err).Warn("Error fetching block")
+						break
+					}
+					lastEventBlockNumber := lastEventBlock.Block.Header.Number
+					headerLatest, err := b.RPC.Chain.GetHeaderLatest()
+					if err != nil {
+						log.WithError(err).Warn("Error fetching latest header")
+					} else if headerLatest.Number > lastEventBlockNumber {
+						for i := lastEventBlockNumber + 1; i <= headerLatest.Number; i++ {
+							missedBlock, err := b.RPC.Chain.GetBlockHash(uint64(i))
+							if err != nil {
+								log.Println(err)
+								continue
+							}
+							storageData, err := b.RPC.State.GetStorageRaw(key, missedBlock)
+							if err != nil {
+								log.WithError(err).Error("Error fetching storage data")
+								continue
+							}
+							events, err := b.eventDecoder.DecodeEvents(*storageData, meta)
+							if err != nil {
+								log.WithError(err).Error("Error parsing events")
+								continue
+							}
+
+							b.processEvents(events, missedBlock)
+							lastEventBlockHash = missedBlock
+						}
+					}
+
+					// try to resubscribe
 					s, err := b.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
 					if err != nil {
 						log.WithError(err).Warn("Watchdog resubscribtion failed")
@@ -145,7 +146,7 @@ func (b *blockchainClient) listenContractEvents() error {
 					}
 					log.Info("Watchdog event resubscribed")
 					sub.Unsubscribe()
-					sub = s
+					sub = chainSubscriptionFactory.NewChainSubscription(s)
 				}
 				eventArrived = false
 
@@ -158,6 +159,7 @@ func (b *blockchainClient) listenContractEvents() error {
 					break
 				}
 				eventArrived = true
+				lastEventBlockHash = evt.Block
 
 				// parse all events for this block
 				for _, chng := range evt.Changes {
@@ -166,58 +168,62 @@ func (b *blockchainClient) listenContractEvents() error {
 						continue
 					}
 
-					events := types.EventRecords{}
-					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+					storageData := chng.StorageData
+					events, err := b.eventDecoder.DecodeEvents(storageData, meta)
 					if err != nil {
-						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
+						log.WithError(err).Warnf("Error parsing event %x", storageData[:])
 						continue
 					}
 
-					for _, e := range events.Contracts_ContractEmitted {
-						if !b.eventContractAccount.Equal(&e.Contract) {
-							continue
-						}
-
-						// Identify the event by matching one of its topics against known signatures. The topics are sorted so
-						// the the needed one may be in the arbitrary position.
-						var dispatchEntry ContractEventDispatchEntry
-						found := false
-						for _, topic := range e.Topics {
-							dispatchEntry, found = b.eventDispatcher[topic]
-							if found {
-								break
-							}
-						}
-						if !found {
-							log.WithField("block", evt.Block.Hex()).
-								Warnf("Unknown event emitted by our contract: %x", e.Data[:16])
-							continue
-						}
-
-						if dispatchEntry.Handler == nil {
-							log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
-								Debug("Event unhandeled")
-							continue
-						}
-						args := reflect.New(dispatchEntry.ArgumentType).Interface()
-						if err := codec.Decode(e.Data[1:], args); err != nil {
-							log.WithError(err).WithField("block", evt.Block.Hex()).
-								WithField("event", dispatchEntry.ArgumentType.Name()).
-								Errorf("Cannot decode event data %x", e.Data)
-						}
-						log.WithField("block", evt.Block.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
-							Debugf("Event args: %x", e.Data)
-						dispatchEntry.Handler(args)
-					}
+					b.processEvents(events, evt.Block)
 				}
 			}
 		}
 	}()
-	return nil
+}
+
+func (b *blockchainClient) processEvents(events *types.EventRecords, blockHash types.Hash) {
+	for _, e := range events.Contracts_ContractEmitted {
+		if !b.eventContractAccount.Equal(&e.Contract) {
+			continue
+		}
+
+		// Identify the event by matching one of its topics against known signatures. The topics are sorted so
+		// the needed one may be in the arbitrary position.
+		var dispatchEntry sdktypes.ContractEventDispatchEntry
+		found := false
+		for _, topic := range e.Topics {
+			dispatchEntry, found = b.eventDispatcher[topic]
+			if found {
+				break
+			}
+		}
+		if !found {
+
+			log.WithField("block", blockHash.Hex()).
+				Warnf("Unknown event emitted by our contract: %x", e.Data[:uint32(math.Min(16, float64(len(e.Data))))])
+			continue
+		}
+
+		if dispatchEntry.Handler == nil {
+			log.WithField("block", blockHash.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+				Debug("Event unhandeled")
+			continue
+		}
+		args := reflect.New(dispatchEntry.ArgumentType).Interface()
+		if err := codec.Decode(e.Data[1:], args); err != nil {
+			log.WithError(err).WithField("block", blockHash.Hex()).
+				WithField("event", dispatchEntry.ArgumentType.Name()).
+				Errorf("Cannot decode event data %x", e.Data)
+		}
+		log.WithField("block", blockHash.Hex()).WithField("event", dispatchEntry.ArgumentType.Name()).
+			Debugf("Event args: %x", e.Data)
+		dispatchEntry.Handler(args)
+	}
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
-	data, err := GetContractData(method, args...)
+	data, err := utils.GetContractData(method, args...)
 	if err != nil {
 		return "", errors.Wrap(err, "getMessagesData")
 	}
@@ -230,27 +236,27 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 	return res.Result.Ok.Data, nil
 }
 
-func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
-	params := Request{
+func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (sdktypes.Response, error) {
+	params := sdktypes.Request{
 		Origin:    fromAddress,
 		Dest:      contractAddressSS58,
 		GasLimit:  500_000_000_000,
 		InputData: codec.HexEncodeToString(data),
 	}
 
-	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
-		res := Response{}
+	res, err := withRetryOnClosedNetwork(b, func() (sdktypes.Response, error) {
+		res := sdktypes.Response{}
 		return res, b.Client.Call(&res, "contracts_call", params)
 	})
 	if err != nil {
-		return Response{}, errors.Wrap(err, "call")
+		return sdktypes.Response{}, errors.Wrap(err, "call")
 	}
 
 	return res, nil
 }
 
-func (b *blockchainClient) CallToExec(ctx context.Context, contractCall ContractCall) (types.Hash, error) {
-	data, err := GetContractData(contractCall.Method, contractCall.Args...)
+func (b *blockchainClient) CallToExec(ctx context.Context, contractCall sdktypes.ContractCall) (types.Hash, error) {
+	data, err := utils.GetContractData(contractCall.Method, contractCall.Args...)
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -285,13 +291,13 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 	return hash, err
 }
 
-func (b *blockchainClient) Deploy(ctx context.Context, deployCall DeployCall) (types.AccountID, error) {
+func (b *blockchainClient) Deploy(ctx context.Context, deployCall sdktypes.DeployCall) (types.AccountID, error) {
 	deployer, err := types.NewAccountID(deployCall.From.PublicKey)
 	if err != nil {
 		return types.AccountID{}, err
 	}
 
-	data, err := GetContractData(deployCall.Method, deployCall.Args...)
+	data, err := utils.GetContractData(deployCall.Method, deployCall.Args...)
 	if err != nil {
 		return types.AccountID{}, err
 	}
@@ -435,7 +441,7 @@ func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic
 
 func withRetryOnClosedNetwork[T any](b *blockchainClient, f func() (T, error)) (T, error) {
 	result, err := f()
-	if isClosedNetworkError(err) {
+	if utils.IsClosedNetworkError(err) {
 		if b.reconnect() != nil {
 			return result, err
 		}
@@ -449,13 +455,12 @@ func (b *blockchainClient) reconnect() error {
 	b.connectMutex.Lock()
 	defer b.connectMutex.Unlock()
 	_, err := b.RPC.State.GetRuntimeVersionLatest()
-	if !isClosedNetworkError(err) {
+	if !utils.IsClosedNetworkError(err) {
 		return nil
 	}
 
-	if b.eventContextCancel != nil {
-		b.eventContextCancel()
-	}
+	b.unsubscribeAll()
+
 	substrateAPI, err := gsrpc.NewSubstrateAPI(b.Client.URL())
 	if err != nil {
 		log.WithError(err).Warningf("Blockchain client can't reconnect to %s", b.Client.URL())
@@ -470,4 +475,11 @@ func (b *blockchainClient) reconnect() error {
 	}
 
 	return nil
+}
+
+func (b *blockchainClient) unsubscribeAll() {
+	for _, c := range b.eventContextCancel {
+		c()
+	}
+	b.eventContextCancel = nil
 }

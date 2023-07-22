@@ -4,6 +4,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.8
 	github.com/decred/base58 v1.0.3
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7
+	github.com/golang/mock v1.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
