@@ -159,6 +159,11 @@ func (b *blockchainClient) listenContractEvents() error {
 				}
 				eventArrived = true
 
+				key1, _ := types.CreateStorageKey(meta, "Contracts", "ContractEmitted", nil, nil)
+				log.Warnf("#####> Contracts.ContractEmitted key %x", key1)
+				key2, _ := types.CreateStorageKey(meta, "Contracts", "Called", nil, nil)
+				log.Warnf("#####> Contracts.Called key %x", key2)
+
 				// parse all events for this block
 				for _, chng := range evt.Changes {
 					if !bytes.Equal(chng.StorageKey[:], key) || !chng.HasStorageData {
@@ -174,6 +179,8 @@ func (b *blockchainClient) listenContractEvents() error {
 					}
 
 					for _, e := range events.Contracts_ContractEmitted {
+						log.Warnf("******> Processing event with key %x and data %x", chng.StorageKey[:], chng.StorageData[:])
+
 						if !b.eventContractAccount.Equal(&e.Contract) {
 							continue
 						}
