@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/vedhavyas/go-subkey"
 	ed25519Subkey "github.com/vedhavyas/go-subkey/ed25519"
@@ -54,7 +55,8 @@ func (e *ed25519Scheme) Verify(data []byte, signature []byte) bool {
 }
 
 func (e *ed25519Scheme) Address() (string, error) {
-	return subkey.SS58Address(e.publicKey, 42)
+	addr := subkey.SS58Encode(e.publicKey, 42)
+	return addr, nil
 }
 
 func (e *ed25519Scheme) PublicKeyHex() string {

@@ -3,6 +3,7 @@ package crypto
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ChainSafe/go-schnorrkel"
 	log "github.com/sirupsen/logrus"
 	"github.com/vedhavyas/go-subkey"
@@ -56,7 +57,8 @@ func (s *sr25519Scheme) Verify(data []byte, signature []byte) bool {
 }
 
 func (s *sr25519Scheme) Address() (string, error) {
-	return subkey.SS58Address(s.publicKey, 42)
+	addr := subkey.SS58Encode(s.publicKey, 42)
+	return addr, nil
 }
 
 func (s *sr25519Scheme) PublicKeyHex() string {
