@@ -169,7 +169,7 @@ func (b *blockchainClient) listenContractEvents() error {
 					events := types.EventRecords{}
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
-						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
+						log.WithError(err).Warnf("=====> Error parsing event %x", chng.StorageData[:])
 						continue
 					}
 
@@ -344,7 +344,7 @@ func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *t
 			events := types.EventRecords{}
 			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 			if err != nil {
-				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
+				log.WithError(err).Warnf("-----> Error parsing event %x", chng.StorageData[:])
 				continue
 			}
 			for _, e := range events.Contracts_Instantiated {
