@@ -169,7 +169,7 @@ func (b *blockchainClient) listenContractEvents() error {
 					events := types.EventRecords{}
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
-						log.WithError(err).Warnf("=====> Error parsing event %x", chng.StorageData[:])
+						log.WithError(err).Warnf("=====> Error parsing event with key %x and data %x", chng.StorageKey[:], chng.StorageData[:])
 						continue
 					}
 
