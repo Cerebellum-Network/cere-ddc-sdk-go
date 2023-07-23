@@ -240,7 +240,7 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 }
 
 func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
-	log.Warnf("=====> callToRead 1")
+	log.Warnf("=====> callToRead 1 %x", data)
 	params := Request{
 		Origin:    fromAddress,
 		Dest:      contractAddressSS58,
@@ -252,6 +252,7 @@ func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress st
 	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
 		log.Warnf("=====> callToRead 3")
 		res := Response{}
+		log.Warnf("=====> callToRead parms: method: %x args: %x", "contracts_call", params)
 		return res, b.Client.Call(&res, "contracts_call", params)
 	})
 	log.Warnf("=====> callToRead 4")
