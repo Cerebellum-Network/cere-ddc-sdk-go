@@ -6,6 +6,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -19,7 +20,10 @@ type Result struct {
 }
 
 func (result *Result) decodeDdcBucketContract(encodedData string) error {
+	log.Warnf("=====> decodeDdcBucketContract: %x ", encodedData)
+
 	if strings.HasPrefix(encodedData, okPrefix) {
+		log.Warnf("=====> HasPrefix(encodedData, okPrefix): %x ", okPrefix)
 		encodedData = strings.TrimPrefix(encodedData, okPrefix)
 		if err := codec.DecodeFromHex(encodedData, result.data); err != nil {
 			return err
@@ -28,6 +32,7 @@ func (result *Result) decodeDdcBucketContract(encodedData string) error {
 	}
 
 	if strings.HasPrefix(encodedData, errPrefix) {
+		log.Warnf("=====> HasPrefix(encodedData, errPrefix): %x ", errPrefix)
 		encodedData = strings.TrimPrefix(encodedData, errPrefix)
 		var errRes types.U8
 		if err := codec.DecodeFromHex(encodedData, &errRes); err != nil {
