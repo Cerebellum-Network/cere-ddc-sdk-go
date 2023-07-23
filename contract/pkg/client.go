@@ -219,16 +219,23 @@ func (b *blockchainClient) listenContractEvents() error {
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
+	log.Warnf("=====> CallToReadEncoded 1")
 	data, err := GetContractData(method, args...)
+	log.Warnf("=====> CallToReadEncoded 2 %x", data)
 	if err != nil {
+		log.Warnf("=====> CallToReadEncoded 3")
 		return "", errors.Wrap(err, "getMessagesData")
 	}
 
+	log.Warnf("=====> CallToReadEncoded 4")
 	res, err := b.callToRead(contractAddressSS58, fromAddress, data)
+	log.Warnf("=====> CallToReadEncoded 5 %x", res)
 	if err != nil {
+		log.Warnf("=====> CallToReadEncoded 6")
 		return "", err
 	}
 
+	log.Warnf("=====> CallToReadEncoded 6 %x", res.Result.Ok.Data)
 	return res.Result.Ok.Data, nil
 }
 

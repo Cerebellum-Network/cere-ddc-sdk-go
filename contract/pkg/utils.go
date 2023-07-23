@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/decred/base58"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/blake2b"
-	"strings"
 )
 
 const addressLength = 32 + 1 + 2
@@ -58,17 +60,25 @@ func DecodeAccountIDFromSS58(address string) (types.AccountID, error) {
 }
 
 func GetContractData(method []byte, args ...interface{}) ([]byte, error) {
+	log.Warnf("=====> GetContractData 1")
 	buf := bytes.NewBuffer(make([]byte, 0, 1024))
+	log.Warnf("=====> GetContractData 2")
 	buf.Write(method)
+	log.Warnf("=====> GetContractData 3")
 
 	encoder := scale.NewEncoder(buf)
+	log.Warnf("=====> GetContractData 4")
 	for _, v := range args {
+		log.Warnf("=====> GetContractData 5")
 		err := encoder.Encode(v)
+		log.Warnf("=====> GetContractData 6")
 		if err != nil {
+			log.Warnf("=====> GetContractData 7")
 			return nil, err
 		}
 	}
 
+	log.Warnf("=====> GetContractData 8")
 	return buf.Bytes(), nil
 }
 
