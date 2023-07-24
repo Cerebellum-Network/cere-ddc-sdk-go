@@ -219,7 +219,7 @@ func (b *blockchainClient) listenContractEvents() error {
 }
 
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
-	log.Warnf("=====> CallToReadEncoded 1")
+	log.Warnf("=====> CallToReadEncoded 1 %x", method)
 	data, err := GetContractData(method, args...)
 	log.Warnf("=====> CallToReadEncoded 2 %x", data)
 	if err != nil {
@@ -227,7 +227,7 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 		return "", errors.Wrap(err, "getMessagesData")
 	}
 
-	log.Warnf("=====> CallToReadEncoded 4")
+	log.Warnf("=====> CallToReadEncoded 4 %x", method)
 	res, err := b.callToRead(contractAddressSS58, fromAddress, data)
 	log.Warnf("=====> CallToReadEncoded 5 %x", res)
 	if err != nil {
@@ -248,20 +248,20 @@ func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress st
 		InputData: codec.HexEncodeToString(data),
 	}
 
-	log.Warnf("=====> callToRead 2")
+	log.Warnf("=====> callToRead 2 %x", data)
 	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
-		log.Warnf("=====> callToRead 3")
+		log.Warnf("=====> callToRead 3 %x", data)
 		res := Response{}
-		log.Warnf("=====> callToRead parms: method: %x args: %x", "contracts_call", params)
+		log.Warnf("=====> callToRead 4 method: %x args: %x", "contracts_call", params)
 		return res, b.Client.Call(&res, "contracts_call", params)
 	})
-	log.Warnf("=====> callToRead 4")
+	log.Warnf("=====> callToRead 4 %x", data)
 	if err != nil {
-		log.WithError(err).Warnf("=====> callToRead 5")
+		log.WithError(err).Warnf("=====> callToRead 5 %x", data)
 		return Response{}, errors.Wrap(err, "call")
 	}
 
-	log.Warnf("=====> callToRead 6")
+	log.Warnf("=====> callToRead 6 %x", data)
 
 	return res, nil
 }

@@ -164,8 +164,11 @@ func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
 }
 
 func (d *ddcBucketContract) CDNClusterGet(clusterId uint32) (*CDNClusterStatus, error) {
+	log.Warnf("1. CDNClusterGet before --------> res=%v", clusterId)
 	res := &CDNClusterStatus{}
+	log.Warnf("2. CDNClusterGet --------> bucketGetMethodId=%v bucketId=%v", d.cdnClusterGetMethodId, clusterId)
 	err := d.callToRead(res, d.cdnClusterGetMethodId, types.U32(clusterId))
+	log.Warnf("3. CDNClusterGet after --------> res=%v", res)
 
 	return res, err
 }
