@@ -141,7 +141,10 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 
 func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketStatus, error) {
 	res := &BucketStatus{}
+	log.Warnf("1. BucketGet before --------> res=%v", res)
+	log.Warnf("2. BucketGet --------> bucketGetMethodId=%v bucketId=%v", d.bucketGetMethodId, bucketId)
 	err := d.callToRead(res, d.bucketGetMethodId, types.U32(bucketId))
+	log.Warnf("3. BucketGet after --------> res=%v", res)
 
 	return res, err
 }
@@ -185,6 +188,7 @@ func (d *ddcBucketContract) AccountGet(account types.AccountID) (*Account, error
 
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
 	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
+	log.Warnf("callToRead %x ---> data=%v , hex_data=%x", method, data, data)
 	if err != nil {
 		return err
 	}
@@ -192,10 +196,14 @@ func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args .
 	d.lastAccessTime = time.Now()
 
 	res := Result{data: result}
+	log.Warnf("callToRead %x ---> res_before=%v", method, res)
+
 	if err = res.decodeDdcBucketContract(data); err != nil {
+		log.Warnf("callToRead %x ---> Failed decodeDdcBucketContract", method)
 		return err
 	}
 
+	log.Warnf("callToRead %x ---> res_after=%v", method, res)
 	return res.err
 }
 
