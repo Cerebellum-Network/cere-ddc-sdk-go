@@ -69,9 +69,9 @@ func GetContractData(method []byte, args ...interface{}) ([]byte, error) {
 	encoder := scale.NewEncoder(buf)
 	log.Warnf("=====> GetContractData 4")
 	for _, v := range args {
-		log.Warnf("=====> GetContractData 5")
+		log.Warnf("=====> GetContractData 5, value: %v hex: %x", v, v)
 		err := encoder.Encode(v)
-		log.Warnf("=====> GetContractData 6")
+		log.Warnf("=====> GetContractData 6, value_encoded: %v hex_encoded: %x", v, v)
 		if err != nil {
 			log.Warnf("=====> GetContractData 7")
 			return nil, err
