@@ -219,14 +219,26 @@ func (b *blockchainClient) listenContractEvents() error {
 func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAddress string, method []byte, args ...interface{}) (string, error) {
 	data, err := GetContractData(method, args...)
 	if err != nil {
+<<<<<<< Updated upstream
+=======
+		log.WithError(err).Warnf("=====> CallToReadEncoded failed 1")
+>>>>>>> Stashed changes
 		return "", errors.Wrap(err, "getMessagesData")
 	}
 
 	res, err := b.callToRead(contractAddressSS58, fromAddress, data)
 	if err != nil {
+<<<<<<< Updated upstream
 		return "", err
 	}
 
+=======
+		log.WithError(err).Warnf("=====> CallToReadEncoded failed 2")
+		return "", err
+	}
+
+	log.Warnf("=====> CallToReadEncoded res.Result.Ok.Data: %x", res.Result.Ok.Data)
+>>>>>>> Stashed changes
 	return res.Result.Ok.Data, nil
 }
 
@@ -240,12 +252,25 @@ func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress st
 
 	res, err := withRetryOnClosedNetwork(b, func() (Response, error) {
 		res := Response{}
+<<<<<<< Updated upstream
 		return res, b.Client.Call(&res, "contracts_call", params)
 	})
 	if err != nil {
 		return Response{}, errors.Wrap(err, "call")
 	}
 
+=======
+		log.Warnf("=====> callToRead contracts_call: %x params: %x", "contracts_call", params)
+		return res, b.Client.Call(&res, "contracts_call", params)
+	})
+	if err != nil {
+		log.WithError(err).Warnf("=====> callToRead failed %x", data)
+		return Response{}, errors.Wrap(err, "call")
+	}
+
+	log.Warnf("=====> callToRead data: %x", data)
+
+>>>>>>> Stashed changes
 	return res, nil
 }
 
