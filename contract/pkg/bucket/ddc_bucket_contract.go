@@ -162,10 +162,7 @@ func (d *ddcBucketContract) NodeGet(nodeId uint32) (*NodeStatus, error) {
 
 func (d *ddcBucketContract) CDNClusterGet(clusterId uint32) (*CDNClusterStatus, error) {
 	res := &CDNClusterStatus{}
-<<<<<<< Updated upstream
-=======
 	log.Warnf("2. CDNClusterGet --------> cdnClusterGetMethodId=%v clusterId=%v", d.cdnClusterGetMethodId, clusterId)
->>>>>>> Stashed changes
 	err := d.callToRead(res, d.cdnClusterGetMethodId, types.U32(clusterId))
 
 	return res, err
@@ -192,10 +189,7 @@ func (d *ddcBucketContract) AccountGet(account types.AccountID) (*Account, error
 
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
 	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
-<<<<<<< Updated upstream
-=======
 	log.Warnf("callToRead method: %x ---> data: %v", method, data)
->>>>>>> Stashed changes
 	if err != nil {
 		return err
 	}
@@ -203,13 +197,8 @@ func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args .
 	d.lastAccessTime = time.Now()
 
 	res := Result{data: result}
-<<<<<<< Updated upstream
-	if err = res.decodeDdcBucketContract(data); err != nil {
-=======
-
 	if err = res.decodeDdcBucketContract(data); err != nil {
 		log.Warnf("callToRead method: %x ---> Failed decodeDdcBucketContract", method)
->>>>>>> Stashed changes
 		return err
 	}
 
