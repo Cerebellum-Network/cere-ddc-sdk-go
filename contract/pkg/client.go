@@ -167,6 +167,8 @@ func (b *blockchainClient) listenContractEvents() error {
 					}
 
 					events := types.EventRecords{}
+
+					log.Warnf("evt.Block.Hex() ---> %x", evt.Block.Hex())
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
 						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
@@ -174,6 +176,9 @@ func (b *blockchainClient) listenContractEvents() error {
 					}
 
 					for _, e := range events.Contracts_ContractEmitted {
+
+						log.Warnf("e ***> %v", e)
+
 						if !b.eventContractAccount.Equal(&e.Contract) {
 							continue
 						}
