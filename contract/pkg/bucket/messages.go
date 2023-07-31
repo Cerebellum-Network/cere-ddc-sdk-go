@@ -24,13 +24,15 @@ type (
 )
 
 const (
-	ACTIVE NodeState = iota
+	UNKNOWN NodeState = iota
+	ACTIVE
 	ADDING
 	DELETING
 	OFFLINE
 )
 
 var NodeTags = map[string]byte{
+	"UNKNOWN":  UNKNOWN,
 	"ACTIVE":   ACTIVE,
 	"ADDING":   ADDING,
 	"DELETING": DELETING,
