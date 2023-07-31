@@ -200,6 +200,10 @@ func (d *ddcBucketContractCached) clearNodeById(id bucket.NodeId) { //nolint:gol
 	d.nodeCache.Delete(toString(id))
 }
 
+func (d *ddcBucketContractCached) clearNodeByKey(nodeKey string) {
+	d.nodeCache.Delete(nodeKey)
+}
+
 func (d *ddcBucketContractCached) clearBucketById(id bucket.BucketId) {
 	d.bucketCache.Delete(toString(id))
 }
@@ -216,28 +220,95 @@ func cacheDurationOrDefault(duration time.Duration, defaultDuration time.Duratio
 	return defaultDuration
 }
 
+func isNodeKeyPresent(nodeKeys []string, nodeKey string) bool {
+	for _, key := range nodeKeys {
+		if key == nodeKey {
+			return true
+		}
+	}
+	return false
+}
+
 func toString(value uint32) string {
 	return strconv.FormatUint(uint64(value), 10)
 }
 
 func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId uint32, err error) {
-	//TODO implement me
-	panic("implement me")
+	clusterId, err = d.ddcBucketContract.ClusterCreate(cluster)
+
+	if err != nil {
+		return 0, err
+	}
+
+	// Clear the corresponding cache since the cluster data has been modified.
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return clusterId, nil
 }
 
 func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
-	//TODO implement me
-	panic("implement me")
+	if clusterId == 0 {
+		return errors.New("Invalid cluster ID.")
+	}
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+	if len(vNodes) == 0 {
+		return errors.New("No vNodes provided.")
+	}
+
+	clusterStatus, responseError := d.ClusterGet(clusterId)
+	if responseError != nil {
+		return errors.Wrap(responseError, "The cluster could not be retrieved.")
+	}
+
+	if isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
+		return errors.New("The node with the provided key is already present in the cluster.")
+	}
+
+	err := d.ddcBucketContract.ClusterAddNode(clusterId, nodeKey, vNodes)
+	if err != nil {
+		return err
+	}
+	// Clear the corresponding cache since the cluster data has been modified.
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	err := d.ddcBucketContract.ClusterRemoveNode(clusterId, nodeKey)
+	if err != nil {
+		return err
+	}
+
+	// If the node removal from the contract was successful, clear the cached node status.e
+	d.clearNodeByKey(nodeKey)
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
-	//TODO implement me
-	panic("implement me")
+	clusterStatus, err := d.ClusterGet(clusterId)
+	if err != nil {
+		return errors.Wrap(err, "The cluster could not be retrieved.")
+	}
+
+	if !isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
+		return errors.New("The node key was not found in the cluster.")
+	}
+
+	responseError := d.ddcBucketContract.ClusterResetNode(clusterId, nodeKey, vNodes)
+
+	if responseError != nil {
+		return errors.Wrap(responseError, "The node could not be reset.")
+	}
+
+	d.clearNodeByKey(nodeKey)
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes [][]bucket.Token, newNodeKey string) error {
@@ -246,8 +317,32 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes []
 }
 
 func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	if clusterId == 0 {
+		return errors.New("Invalid cluster ID.")
+	}
+	if cdnNodeKey == "" {
+		return errors.New("Empty CDN node key.")
+	}
+
+	clusterStatus, responseError := d.ClusterGet(clusterId)
+	if responseError != nil {
+		return errors.Wrap(responseError, "The cluster could not be retrieved.")
+	}
+
+	if isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
+		return errors.New("The CDN node key is already present in the cluster.")
+	}
+
+	err := d.ddcBucketContract.ClusterAddCdnNode(clusterId, cdnNodeKey)
+	if err != nil {
+		return err
+	}
+
+	// Clear the corresponding cache since the cluster data has been modified.
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNodeKey string) error {
