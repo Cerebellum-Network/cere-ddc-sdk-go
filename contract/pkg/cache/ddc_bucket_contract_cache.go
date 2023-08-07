@@ -203,11 +203,11 @@ func (d *ddcBucketContractCached) ClearNodeById(id bucket.NodeId) { //nolint:gol
 	d.nodeCache.Delete(toString(id))
 }
 
-func (d *ddcBucketContractCached) clearNodeByKey(nodeKey string) {
+func (d *ddcBucketContractCached) ClearNodeByKey(nodeKey string) {
 	d.nodeCache.Delete(nodeKey)
 }
 
-func (d *ddcBucketContractCached) clearBucketById(id bucket.BucketId) {
+func (d *ddcBucketContractCached) ClearBucketById(id bucket.BucketId) {
 	d.bucketCache.Delete(toString(id))
 }
 
@@ -236,6 +236,23 @@ func toString(value uint32) string {
 	return strconv.FormatUint(uint64(value), 10)
 }
 
+func validateCDNNodeParams(params bucket.CDNNodeParams) error {
+	if params.Url == "" {
+		return errors.New("Empty CDN node URL.")
+	}
+	if params.Size <= 0 {
+		return errors.New("Invalid CDN node size.")
+	}
+	if params.Location == "" {
+		return errors.New("Empty CDN node location.")
+	}
+	if params.PublicKey == "" {
+		return errors.New("Empty CDN node public key.")
+	}
+
+	return nil
+}
+
 func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId uint32, err error) {
 	clusterId, err = d.ddcBucketContract.ClusterCreate(cluster)
 
@@ -243,7 +260,6 @@ func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clu
 		return 0, err
 	}
 
-	// Clear the corresponding cache since the cluster data has been modified.
 	d.ClearBuckets()
 	d.ClearNodes()
 
@@ -274,7 +290,7 @@ func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey strin
 	if err != nil {
 		return err
 	}
-	// Clear the corresponding cache since the cluster data has been modified.
+
 	d.ClearBuckets()
 	d.ClearNodes()
 
@@ -288,7 +304,7 @@ func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey st
 	}
 
 	// If the node removal from the contract was successful, clear the cached node status.e
-	d.clearNodeByKey(nodeKey)
+	d.ClearNodeByKey(nodeKey)
 
 	return nil
 }
@@ -309,14 +325,37 @@ func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey str
 		return errors.Wrap(responseError, "The node could not be reset.")
 	}
 
-	d.clearNodeByKey(nodeKey)
+	d.ClearNodeByKey(nodeKey)
 
 	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes [][]bucket.Token, newNodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	if newNodeKey == "" {
+		return errors.New("Empty new node key.")
+	}
+	if len(vNodes) == 0 {
+		return errors.New("No vNodes provided.")
+	}
+
+	clusterStatus, clusterError := d.ClusterGet(clusterId)
+	if clusterError != nil {
+		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+	}
+
+	if isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, newNodeKey) {
+		return errors.New("The new node key is already present in the cluster.")
+	}
+
+	err := d.ddcBucketContract.ClusterReplaceNode(clusterId, vNodes, newNodeKey)
+	if err != nil {
+		return err
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey string) error {
@@ -341,7 +380,6 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey
 		return err
 	}
 
-	// Clear the corresponding cache since the cluster data has been modified.
 	d.ClearBuckets()
 	d.ClearNodes()
 
@@ -349,68 +387,241 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey
 }
 
 func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	if cdnNodeKey == "" {
+		return errors.New("Empty CDN node key.")
+	}
+
+	clusterStatus, clusterError := d.ClusterGet(clusterId)
+	if clusterError != nil {
+		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+	}
+
+	if !isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
+		return errors.New("The CDN node key was not found in the cluster.")
+	}
+
+	err := d.ddcBucketContract.ClusterRemoveCdnNode(clusterId, cdnNodeKey)
+	if err != nil {
+		return err
+	}
+
+	d.ClearNodeByKey(cdnNodeKey)
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params bucket.Params) error {
-	//TODO implement me
-	panic("implement me")
+	if params == "" {
+		return errors.New("Empty cluster parameters.")
+	}
+
+	_, clusterError := d.ClusterGet(clusterId)
+	if clusterError != nil {
+		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+	}
+
+	err := d.ddcBucketContract.ClusterSetParams(clusterId, params)
+	if err != nil {
+		return err
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterRemove(clusterId uint32) error {
-	//TODO implement me
-	panic("implement me")
+	_, clusterError := d.ClusterGet(clusterId)
+	if clusterError != nil {
+		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+	}
+
+	err := d.ddcBucketContract.ClusterRemove(clusterId)
+	if err != nil {
+		return err
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId uint32, nodeKey string, statusInCluster string) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+
+	if statusInCluster == "" {
+		return errors.New("Empty status in cluster.")
+	}
+
+	clusterStatus, err := d.ClusterGet(clusterId)
+	if err != nil {
+		return errors.Wrap(err, "The cluster could not be retrieved.")
+	}
+
+	if !isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
+		return errors.New("The node key was not found in the cluster.")
+	}
+
+	err = d.ddcBucketContract.ClusterSetNodeStatus(clusterId, nodeKey, statusInCluster)
+	if err != nil {
+		return err
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnNodeKey string, statusInCluster string) error {
-	//TODO implement me
-	panic("implement me")
+	if cdnNodeKey == "" {
+		return errors.New("Empty CDN node key.")
+	}
+
+	if statusInCluster == "" {
+		return errors.New("Empty status in cluster.")
+	}
+
+	clusterStatus, err := d.ClusterGet(clusterId)
+	if err != nil {
+		return errors.Wrap(err, "The cluster could not be retrieved.")
+	}
+
+	if !isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
+		return errors.New("The CDN node key was not found in the cluster.")
+	}
+
+	err = d.ddcBucketContract.ClusterSetCdnNodeStatus(clusterId, cdnNodeKey, statusInCluster)
+	if err != nil {
+		return err
+	}
+
+	d.ClearNodeByKey(cdnNodeKey)
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterStatus {
-	//TODO implement me
-	panic("implement me")
+	clusters := d.ddcBucketContract.ClusterList(offset, limit, filterManagerId)
+
+	if clusters == nil {
+		return []*bucket.ClusterStatus{}
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return clusters
 }
 
 func (d *ddcBucketContractCached) NodeCreate(nodeKey string, params bucket.Params, capacity bucket.Resource) (key string, err error) {
-	//TODO implement me
-	panic("implement me")
+	key, err = d.ddcBucketContract.NodeCreate(nodeKey, params, capacity)
+
+	d.ClearNodes()
+
+	return key, err
 }
 
 func (d *ddcBucketContractCached) NodeRemove(nodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+
+	err := d.ddcBucketContract.NodeRemove(nodeKey)
+
+	if err != nil {
+		return err
+	}
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) NodeSetParams(nodeKey string, params bucket.Params) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+
+	err := d.ddcBucketContract.NodeSetParams(nodeKey, params)
+
+	if err != nil {
+		return err
+	}
+
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeStatus, error) {
-	//TODO implement me
-	panic("implement me")
+	if limit == 0 {
+		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
+	}
+
+	nodes, err := d.ddcBucketContract.NodeList(offset, limit, filterManagerId)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
 }
 
 func (d *ddcBucketContractCached) CDNNodeCreate(nodeKey string, params bucket.CDNNodeParams) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+
+	err := d.ddcBucketContract.CDNNodeCreate(nodeKey, params)
+
+	if err != nil {
+		return err
+	}
+
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) CDNNodeRemove(nodeKey string) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty CDN node key.")
+	}
+
+	err := d.ddcBucketContract.CDNNodeRemove(nodeKey)
+	if err != nil {
+		return err
+	}
+
+	// Clear the corresponding cache since the CDN node data has been modified.
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket.CDNNodeParams) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty node key.")
+	}
+
+	if err := validateCDNNodeParams(params); err != nil {
+		return errors.Wrap(err, "Invalid CDN node params.")
+	}
+
+	err := d.ddcBucketContract.CDNNodeSetParams(nodeKey, params)
+	if err != nil {
+		return err
+	}
+
+	d.ClearNodes()
+
+	return nil
 }
 
 func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
