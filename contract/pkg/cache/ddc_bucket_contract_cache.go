@@ -267,9 +267,6 @@ func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clu
 }
 
 func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
-	if clusterId == 0 {
-		return errors.New("Invalid cluster ID.")
-	}
 	if nodeKey == "" {
 		return errors.New("Empty node key.")
 	}
@@ -359,9 +356,6 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes []
 }
 
 func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey string) error {
-	if clusterId == 0 {
-		return errors.New("Invalid cluster ID.")
-	}
 	if cdnNodeKey == "" {
 		return errors.New("Empty CDN node key.")
 	}
