@@ -619,8 +619,16 @@ func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket
 }
 
 func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
-	//TODO implement me
-	panic("implement me")
+	if limit == 0 {
+		return nil, errors.New("Invalid limit value.")
+	}
+
+	cdnNodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
+	if err != nil {
+		return nil, err
+	}
+
+	return cdnNodes, nil
 }
 
 func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permission string) (bool, error) {
