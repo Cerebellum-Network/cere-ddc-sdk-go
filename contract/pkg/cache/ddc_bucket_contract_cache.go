@@ -620,48 +620,95 @@ func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket
 
 func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
 	if limit == 0 {
-		return nil, errors.New("Invalid limit value.")
+		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
 
-	cdnNodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
-	if err != nil {
-		return nil, err
+	if filterManagerId == "" {
+		return nil, errors.New("Filter manager id is empty.")
 	}
 
-	return cdnNodes, nil
+	if offset < 0 {
+        return nil, errors.New("Invalid offset. Offset must be greater than zero.")
+    }
+
+    nodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
+    if err!= nil {
+        return nil, err
+    }
+
+    return nodes, nil
 }
 
 func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permission string) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+	if permission == "" {
+        return false, errors.New("Empty permission string.")
+	}
+	
+	return d.ddcBucketContract.HasPermission(account, permission)
 }
 
 func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId types.AccountID) error {
-	//TODO implement me
-	panic("implement me")
+	err := d.ddcBucketContract.GrantTrustedManagerPermission(managerId)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId types.AccountID) error {
-	//TODO implement me
-	panic("implement me")
+	err := d.ddcBucketContract.RevokeTrustedManagerPermission(managerId)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) AdminGrantPermission(grantee types.AccountID, permission string) error {
-	//TODO implement me
-	panic("implement me")
+	if permission == "" {
+		return errors.New("Empty permission string.")
+	}
+	err := d.ddcBucketContract.AdminGrantPermission(grantee, permission)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) AdminRevokePermission(grantee types.AccountID, permission string) error {
-	//TODO implement me
-	panic("implement me")
+	if permission == "" {
+		return errors.New("Empty permission string.")
+	}
+	err := d.ddcBucketContract.AdminRevokePermission(grantee, permission)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey string, newOwner types.AccountID) error {
-	//TODO implement me
-	panic("implement me")
+	if nodeKey == "" {
+		return errors.New("Empty nodeKey string.")
+	}
+	err := d.ddcBucketContract.AdminTransferNodeOwnership(nodeKey, newOwner)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }
 
 func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(cdnNodeKey string, newOwner types.AccountID) error {
-	//TODO implement me
-	panic("implement me")
+	if cdnNodeKey == "" {
+		return errors.New("Empty cdnNodeKey string.")
+	}
+	err := d.ddcBucketContract.AdminTransferCdnNodeOwnership(cdnNodeKey, newOwner)
+
+	d.ClearBuckets()
+	d.ClearNodes()
+
+	return err
 }

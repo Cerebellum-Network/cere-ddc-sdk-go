@@ -226,3 +226,20 @@ func TestBucketGetCached(t *testing.T) {
 	ddcBucketContract.AssertExpectations(t)
 	ddcBucketContract.AssertNumberOfCalls(t, "BucketGet", 1)
 }
+
+// func TestCDNNodeList(t *testing.T) {
+// 	//given
+//     ddcBucketContract := &mockedDdcBucketContract{}
+//     testSubject := &ddcBucketContractCached{bucketCache: cache.New(defaultExpiration, cleanupInterval), ddcBucketContract: ddcBucketContract}
+//     result := []*bucket.CDNNodeStatus{}
+//     ddcBucketContract.On("CDNNodeGet", 0, 1, "filterManagerId").Return(result, nil).Once()
+
+//     //when
+//     nodes, err := testSubject.CDNNodeList(0, 1, "filterManagerId")
+
+//     //then
+//     assert.NoError(t, err)
+//     assert.Equal(t, result, nodes)
+//     ddcBucketContract.AssertExpectations(t)
+// }
+// 
