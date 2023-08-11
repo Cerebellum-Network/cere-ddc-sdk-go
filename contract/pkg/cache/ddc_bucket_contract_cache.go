@@ -627,10 +627,6 @@ func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filte
 		return nil, errors.New("Filter manager id is empty.")
 	}
 
-	if offset < 0 {
-        return nil, errors.New("Invalid offset. Offset must be greater than zero.")
-    }
-
     nodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
     if err!= nil {
         return nil, err
