@@ -74,6 +74,7 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 		args := raw.(*bucket.BucketAllocatedEvent)
 		d.ClearBucketById(args.BucketId)
 	}); err != nil {
+		//return bucket.parseDdcBucketContractError(err)
 		return errors.Wrap(err, "Unable to hook event "+bucket.BucketAllocatedEventId)
 	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketSettlePaymentEventId, func(raw interface{}) {
@@ -276,11 +277,11 @@ func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey strin
 
 	clusterStatus, responseError := d.ClusterGet(clusterId)
 	if responseError != nil {
-		return errors.Wrap(responseError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
-		return errors.New("The node with the provided key is already present in the cluster.")
+		return bucket.ErrNodeAlreadyExists
 	}
 
 	err := d.ddcBucketContract.ClusterAddNode(clusterId, nodeKey, vNodes)
@@ -309,17 +310,17 @@ func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey st
 func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
 	clusterStatus, err := d.ClusterGet(clusterId)
 	if err != nil {
-		return errors.Wrap(err, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if !isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
-		return errors.New("The node key was not found in the cluster.")
+		return bucket.ErrNodeDoesNotExist
 	}
 
 	responseError := d.ddcBucketContract.ClusterResetNode(clusterId, nodeKey, vNodes)
 
 	if responseError != nil {
-		return errors.Wrap(responseError, "The node could not be reset.")
+		return responseError
 	}
 
 	d.ClearNodeByKey(nodeKey)
@@ -337,11 +338,11 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes []
 
 	clusterStatus, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
-		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, newNodeKey) {
-		return errors.New("The new node key is already present in the cluster.")
+		return bucket.ErrNodeAlreadyExists
 	}
 
 	err := d.ddcBucketContract.ClusterReplaceNode(clusterId, vNodes, newNodeKey)
@@ -362,11 +363,11 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey
 
 	clusterStatus, responseError := d.ClusterGet(clusterId)
 	if responseError != nil {
-		return errors.Wrap(responseError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
-		return errors.New("The CDN node key is already present in the cluster.")
+		return bucket.ErrCdnNodeAlreadyExists
 	}
 
 	err := d.ddcBucketContract.ClusterAddCdnNode(clusterId, cdnNodeKey)
@@ -387,11 +388,11 @@ func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNode
 
 	clusterStatus, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
-		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if !isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
-		return errors.New("The CDN node key was not found in the cluster.")
+		return bucket.ErrCdnNodeDoesNotExist
 	}
 
 	err := d.ddcBucketContract.ClusterRemoveCdnNode(clusterId, cdnNodeKey)
@@ -411,7 +412,7 @@ func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params buck
 
 	_, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
-		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	err := d.ddcBucketContract.ClusterSetParams(clusterId, params)
@@ -428,7 +429,7 @@ func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params buck
 func (d *ddcBucketContractCached) ClusterRemove(clusterId uint32) error {
 	_, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
-		return errors.Wrap(clusterError, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	err := d.ddcBucketContract.ClusterRemove(clusterId)
@@ -451,16 +452,16 @@ func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId uint32, nodeKey
 		return errors.New("Empty status in cluster.")
 	}
 
-	clusterStatus, err := d.ClusterGet(clusterId)
-	if err != nil {
-		return errors.Wrap(err, "The cluster could not be retrieved.")
+	clusterStatus, clusterError := d.ClusterGet(clusterId)
+	if clusterError != nil {
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if !isNodeKeyPresent(clusterStatus.Cluster.NodesKeys, nodeKey) {
-		return errors.New("The node key was not found in the cluster.")
+		return bucket.ErrNodeDoesNotExist
 	}
 
-	err = d.ddcBucketContract.ClusterSetNodeStatus(clusterId, nodeKey, statusInCluster)
+	err := d.ddcBucketContract.ClusterSetNodeStatus(clusterId, nodeKey, statusInCluster)
 	if err != nil {
 		return err
 	}
@@ -482,11 +483,11 @@ func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnN
 
 	clusterStatus, err := d.ClusterGet(clusterId)
 	if err != nil {
-		return errors.Wrap(err, "The cluster could not be retrieved.")
+		return bucket.ErrClusterDoesNotExist
 	}
 
 	if !isNodeKeyPresent(clusterStatus.Cluster.CdnNodesKeys, cdnNodeKey) {
-		return errors.New("The CDN node key was not found in the cluster.")
+		return bucket.ErrCdnNodeIsNotAddedToCluster
 	}
 
 	err = d.ddcBucketContract.ClusterSetCdnNodeStatus(clusterId, cdnNodeKey, statusInCluster)
@@ -627,19 +628,19 @@ func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filte
 		return nil, errors.New("Filter manager id is empty.")
 	}
 
-    nodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
-    if err!= nil {
-        return nil, err
-    }
+	nodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
+	if err != nil {
+		return nil, err
+	}
 
-    return nodes, nil
+	return nodes, nil
 }
 
 func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permission string) (bool, error) {
 	if permission == "" {
-        return false, errors.New("Empty permission string.")
+		return false, errors.New("Empty permission string.")
 	}
-	
+
 	return d.ddcBucketContract.HasPermission(account, permission)
 }
 
