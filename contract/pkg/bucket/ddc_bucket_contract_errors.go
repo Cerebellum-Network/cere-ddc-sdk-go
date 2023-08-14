@@ -7,7 +7,7 @@ const (
 	providerDoesNotExist
 	unauthorizedProvider
 	transferFailed
-	nodeDoesNotExist = iota
+	nodeDoesNotExist
 	cdnNodeDoesNotExist
 	nodeAlreadyExists
 	cdnNodeAlreadyExists
