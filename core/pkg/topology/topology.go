@@ -29,8 +29,8 @@ type (
 
 type (
 	NodeVNodes struct {
-		nodeKey string
-		vNodes  []uint64
+		NodeKey string
+		VNodes  []uint64
 	}
 
 	NodesVNodes = []NodeVNodes
@@ -43,9 +43,9 @@ func NewTopology(nodes NodesVNodes, replicaFactor uint) Ring {
 
 	topologyVNodes := make([]VNode, 0)
 	for _, node := range nodes {
-		for _, token := range node.vNodes {
+		for _, token := range node.VNodes {
 			topologyVNode := VNode{
-				nodeKey: node.nodeKey,
+				nodeKey: node.NodeKey,
 				token:   token,
 			}
 

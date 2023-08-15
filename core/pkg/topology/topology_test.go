@@ -24,12 +24,12 @@ var clusters = []struct {
 		"size 2 replication 3",
 		NodesVNodes{
 			NodeVNodes{
-				nodeKey: NodeKey1,
-				vNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
+				NodeKey: NodeKey1,
+				VNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey2,
-				vNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
+				NodeKey: NodeKey2,
+				VNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
 			},
 		},
 		2,
@@ -38,16 +38,16 @@ var clusters = []struct {
 		"size 3 replication 3",
 		NodesVNodes{
 			NodeVNodes{
-				nodeKey: NodeKey1,
-				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+				NodeKey: NodeKey1,
+				VNodes:  []uint64{12297829382473034408, 3074457345618258602},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey2,
-				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+				NodeKey: NodeKey2,
+				VNodes:  []uint64{6148914691236517204, 15372286728091293010},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey3,
-				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+				NodeKey: NodeKey3,
+				VNodes:  []uint64{18446744073709551612, 9223372036854775806},
 			},
 		},
 		3,
@@ -56,20 +56,20 @@ var clusters = []struct {
 		"size 4 replication 3",
 		NodesVNodes{
 			NodeVNodes{
-				nodeKey: NodeKey1,
-				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+				NodeKey: NodeKey1,
+				VNodes:  []uint64{12297829382473034408, 3074457345618258602},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey2,
-				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+				NodeKey: NodeKey2,
+				VNodes:  []uint64{6148914691236517204, 15372286728091293010},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey3,
-				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+				NodeKey: NodeKey3,
+				VNodes:  []uint64{18446744073709551612, 9223372036854775806},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey4,
-				vNodes:  []uint64{4611686018427387903},
+				NodeKey: NodeKey4,
+				VNodes:  []uint64{4611686018427387903},
 			},
 		},
 		3,
@@ -78,12 +78,12 @@ var clusters = []struct {
 		"size 2 replication 1",
 		NodesVNodes{
 			NodeVNodes{
-				nodeKey: NodeKey1,
-				vNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
+				NodeKey: NodeKey1,
+				VNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey2,
-				vNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
+				NodeKey: NodeKey2,
+				VNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
 			},
 		},
 		1,
@@ -92,16 +92,16 @@ var clusters = []struct {
 		"size 3 replication 1",
 		NodesVNodes{
 			NodeVNodes{
-				nodeKey: NodeKey1,
-				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+				NodeKey: NodeKey1,
+				VNodes:  []uint64{12297829382473034408, 3074457345618258602},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey2,
-				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+				NodeKey: NodeKey2,
+				VNodes:  []uint64{6148914691236517204, 15372286728091293010},
 			},
 			NodeVNodes{
-				nodeKey: NodeKey3,
-				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+				NodeKey: NodeKey3,
+				VNodes:  []uint64{18446744073709551612, 9223372036854775806},
 			},
 		},
 		1,
@@ -116,12 +116,12 @@ func TestTokens(t *testing.T) {
 
 			for _, node := range test.nodesVNodes {
 				//when
-				tokens := testSubject.Tokens(node.nodeKey)
+				tokens := testSubject.Tokens(node.NodeKey)
 
 				//then
 				assert.True(t, sort.SliceIsSorted(tokens, func(i, j int) bool { return tokens[i] < tokens[j] }))
 
-				expected := node.vNodes
+				expected := node.VNodes
 				assert.Len(t, tokens, len(expected))
 				for _, value := range expected {
 					assert.Contains(t, tokens, value)
