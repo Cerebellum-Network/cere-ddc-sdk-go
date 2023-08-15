@@ -1,6 +1,6 @@
 packages = ./model/... ./core/... ./contract/... ./contentadrstorage/...
 
-test:
+tests:
 	go test ${packages}
 
 lint:

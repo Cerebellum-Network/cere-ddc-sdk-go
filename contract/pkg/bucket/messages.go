@@ -12,7 +12,7 @@ type (
 	Balance      = types.U128
 	Cash         = Balance
 	Resource     = uint32
-	NodeId       = uint32
+	NodeKey      = string
 	Token        = uint64
 	ClusterId    = uint32
 	AccountId    = types.AccountID
@@ -45,7 +45,7 @@ type Cluster struct {
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
-	Nodes            []NodeId
+	Nodes            []NodeKey
 	VNodes           [][]Token
 	TotalRent        Balance
 	CdnNodesKeys     []string
@@ -66,7 +66,7 @@ type ClusterStatus struct {
 
 type CDNCluster struct {
 	ManagerId    AccountId
-	CDNNodes     []NodeId
+	CDNNodes     []NodeKey
 	ResourceUsed Resource
 	Revenues     Cash
 	UsdPerGb     Balance
@@ -161,12 +161,12 @@ type ClusterCreatedEvent struct {
 
 type ClusterNodeReplacedEvent struct {
 	ClusterId ClusterId
-	NodeId    NodeId
+	NodeKey   NodeKey
 }
 
 type ClusterReserveResourceEvent struct {
 	ClusterId ClusterId
-	NodeId    NodeId
+	NodeKey   NodeKey
 }
 
 type ClusterDistributeRevenuesEvent struct {
@@ -185,13 +185,13 @@ type CdnClusterDistributeRevenuesEvent struct {
 }
 
 type CdnNodeCreatedEvent struct {
-	NodeId    NodeId
+	NodeKey   NodeKey
 	AccountId AccountId
 	Payment   Balance
 }
 
 type NodeCreatedEvent struct {
-	NodeId       NodeId
+	NodeKey      NodeKey
 	ProviderId   AccountId
 	RentPerMonth Balance
 	NodeParams   Params

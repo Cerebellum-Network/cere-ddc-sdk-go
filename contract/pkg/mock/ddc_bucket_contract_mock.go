@@ -37,7 +37,7 @@ type (
 	Cluster struct {
 		Id     uint32
 		VNodes [][]uint64
-		Nodes  []uint32
+		Nodes  []string
 		Params string
 	}
 
@@ -55,7 +55,7 @@ type (
 
 	CDNCluster struct {
 		Id    uint32
-		Nodes []uint32
+		Nodes []string
 	}
 
 	ddcBucketContractMock struct {

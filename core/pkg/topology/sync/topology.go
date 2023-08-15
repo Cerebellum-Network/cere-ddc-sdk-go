@@ -1,8 +1,9 @@
 package sync
 
 import (
-	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/topology"
 	"sync"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/topology"
 )
 
 type ring struct {
@@ -10,15 +11,15 @@ type ring struct {
 	mutex sync.RWMutex
 }
 
-func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) topology.Ring {
+func NewTopology(nodeKeys []string, vNodes [][]uint64, replicaFactor uint) topology.Ring {
 	return &ring{
-		ring: topology.NewTopology(nodeIds, vNodes, replicaFactor),
+		ring: topology.NewTopology(nodeKeys, vNodes, replicaFactor),
 	}
 }
 
-func (r *ring) Tokens(nodeId uint32) []uint64 {
+func (r *ring) Tokens(nodeKey string) []uint64 {
 	r.mutex.RLock()
-	result := r.ring.Tokens(nodeId)
+	result := r.ring.Tokens(nodeKey)
 	r.mutex.RUnlock()
 
 	return result
@@ -40,17 +41,17 @@ func (r *ring) Replicas(token uint64) []topology.VNode {
 	return result
 }
 
-func (r *ring) Partitions(nodeId uint32) []topology.Partition {
+func (r *ring) Partitions(nodeKey string) []topology.Partition {
 	r.mutex.RLock()
-	result := r.ring.Partitions(nodeId)
+	result := r.ring.Partitions(nodeKey)
 	r.mutex.RUnlock()
 
 	return result
 }
 
-func (r *ring) ExcessPartitions(nodeId uint32) []topology.Partition {
+func (r *ring) ExcessPartitions(nodeKey string) []topology.Partition {
 	r.mutex.RLock()
-	result := r.ring.ExcessPartitions(nodeId)
+	result := r.ring.ExcessPartitions(nodeKey)
 	r.mutex.RUnlock()
 
 	return result
