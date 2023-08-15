@@ -17,31 +17,111 @@ var NodeKey7 = "be5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f
 
 var clusters = []struct {
 	name          string
-	nodeKeys      []string
-	vNodes        [][]uint64
+	nodesVNodes   NodesVNodes
 	replicaFactor uint
 }{
-	{"size 2 replication 3", []string{NodeKey1, NodeKey2}, [][]uint64{{9223372036854775806, 3074457345618258602, 15372286728091293010}, {12297829382473034408, 6148914691236517204, 18446744073709551612}}, 2},
-	{"size 3 replication 3", []string{NodeKey1, NodeKey2, NodeKey3}, [][]uint64{{12297829382473034408, 3074457345618258602}, {6148914691236517204, 15372286728091293010}, {18446744073709551612, 9223372036854775806}}, 3},
-	{"size 4 replication 3", []string{NodeKey1, NodeKey2, NodeKey3, NodeKey4}, [][]uint64{{12297829382473034408, 3074457345618258602}, {6148914691236517204, 15372286728091293010}, {18446744073709551612, 9223372036854775806}, {4611686018427387903}}, 3},
-	{"size 2 replication 1", []string{NodeKey1, NodeKey2}, [][]uint64{{9223372036854775806, 3074457345618258602, 15372286728091293010}, {12297829382473034408, 6148914691236517204, 18446744073709551612}}, 1},
-	{"size 3 replication 1", []string{NodeKey1, NodeKey2, NodeKey3}, [][]uint64{{12297829382473034408, 3074457345618258602}, {6148914691236517204, 15372286728091293010}, {18446744073709551612, 9223372036854775806}}, 1},
+	{
+		"size 2 replication 3",
+		NodesVNodes{
+			NodeVNodes{
+				nodeKey: NodeKey1,
+				vNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey2,
+				vNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
+			},
+		},
+		2,
+	},
+	{
+		"size 3 replication 3",
+		NodesVNodes{
+			NodeVNodes{
+				nodeKey: NodeKey1,
+				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey2,
+				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey3,
+				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+			},
+		},
+		3,
+	},
+	{
+		"size 4 replication 3",
+		NodesVNodes{
+			NodeVNodes{
+				nodeKey: NodeKey1,
+				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey2,
+				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey3,
+				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey4,
+				vNodes:  []uint64{4611686018427387903},
+			},
+		},
+		3,
+	},
+	{
+		"size 2 replication 1",
+		NodesVNodes{
+			NodeVNodes{
+				nodeKey: NodeKey1,
+				vNodes:  []uint64{9223372036854775806, 3074457345618258602, 15372286728091293010},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey2,
+				vNodes:  []uint64{12297829382473034408, 6148914691236517204, 18446744073709551612},
+			},
+		},
+		1,
+	},
+	{
+		"size 3 replication 1",
+		NodesVNodes{
+			NodeVNodes{
+				nodeKey: NodeKey1,
+				vNodes:  []uint64{12297829382473034408, 3074457345618258602},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey2,
+				vNodes:  []uint64{6148914691236517204, 15372286728091293010},
+			},
+			NodeVNodes{
+				nodeKey: NodeKey3,
+				vNodes:  []uint64{18446744073709551612, 9223372036854775806},
+			},
+		},
+		1,
+	},
 }
 
 func TestTokens(t *testing.T) {
 	for _, test := range clusters {
 		t.Run(test.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(test.nodeKeys, test.vNodes, test.replicaFactor)
+			testSubject := NewTopology(test.nodesVNodes, test.replicaFactor)
 
-			for i, nodeKey := range test.nodeKeys {
+			for _, node := range test.nodesVNodes {
 				//when
-				tokens := testSubject.Tokens(nodeKey)
+				tokens := testSubject.Tokens(node.nodeKey)
 
 				//then
 				assert.True(t, sort.SliceIsSorted(tokens, func(i, j int) bool { return tokens[i] < tokens[j] }))
 
-				expected := test.vNodes[i]
+				expected := node.vNodes
 				assert.Len(t, tokens, len(expected))
 				for _, value := range expected {
 					assert.Contains(t, tokens, value)
@@ -70,7 +150,7 @@ func TestNeighbours(t *testing.T) {
 		cluster := clusters[test.clusterId]
 		t.Run(cluster.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(cluster.nodeKeys, cluster.vNodes, cluster.replicaFactor)
+			testSubject := NewTopology(cluster.nodesVNodes, cluster.replicaFactor)
 
 			//when
 			prev, next := testSubject.Neighbours(test.token)
@@ -103,7 +183,7 @@ func TestReplicas(t *testing.T) {
 		cluster := clusters[test.clusterId]
 		t.Run(cluster.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(cluster.nodeKeys, cluster.vNodes, cluster.replicaFactor)
+			testSubject := NewTopology(cluster.nodesVNodes, cluster.replicaFactor)
 
 			//when
 			replicas := testSubject.Replicas(test.token)
@@ -188,7 +268,7 @@ func TestPartitions(t *testing.T) {
 		cluster := clusters[test.clusterId]
 		t.Run(cluster.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(cluster.nodeKeys, cluster.vNodes, cluster.replicaFactor)
+			testSubject := NewTopology(cluster.nodesVNodes, cluster.replicaFactor)
 
 			//when
 			partitions := testSubject.Partitions(test.nodeKey)
@@ -223,7 +303,7 @@ func TestExcessPartitions(t *testing.T) {
 		cluster := clusters[test.clusterId]
 		t.Run(cluster.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(cluster.nodeKeys, cluster.vNodes, cluster.replicaFactor)
+			testSubject := NewTopology(cluster.nodesVNodes, cluster.replicaFactor)
 
 			//when
 			partitions := testSubject.ExcessPartitions(test.nodeKey)
@@ -253,7 +333,7 @@ func TestRemoveVNode(t *testing.T) {
 		cluster := clusters[test.clusterId]
 		t.Run(cluster.name, func(t *testing.T) {
 			//given
-			testSubject := NewTopology(cluster.nodeKeys, cluster.vNodes, cluster.replicaFactor)
+			testSubject := NewTopology(cluster.nodesVNodes, cluster.replicaFactor)
 
 			//when
 			ok := testSubject.RemoveVNode(test.token)

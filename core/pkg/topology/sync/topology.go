@@ -11,9 +11,9 @@ type ring struct {
 	mutex sync.RWMutex
 }
 
-func NewTopology(nodeKeys []string, vNodes [][]uint64, replicaFactor uint) topology.Ring {
+func NewTopology(nodes topology.NodesVNodes, replicaFactor uint) topology.Ring {
 	return &ring{
-		ring: topology.NewTopology(nodeKeys, vNodes, replicaFactor),
+		ring: topology.NewTopology(nodes, replicaFactor),
 	}
 }
 

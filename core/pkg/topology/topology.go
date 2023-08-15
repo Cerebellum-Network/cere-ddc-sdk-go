@@ -27,16 +27,25 @@ type (
 	}
 )
 
-func NewTopology(NodesKeys []string, vNodes [][]uint64, replicaFactor uint) Ring {
+type (
+	NodeVNodes struct {
+		nodeKey string
+		vNodes  []uint64
+	}
+
+	NodesVNodes = []NodeVNodes
+)
+
+func NewTopology(nodes NodesVNodes, replicaFactor uint) Ring {
 	if replicaFactor == 0 {
 		replicaFactor = 1
 	}
 
 	topologyVNodes := make([]VNode, 0)
-	for i, nodeKey := range NodesKeys {
-		for _, token := range vNodes[i] {
+	for _, node := range nodes {
+		for _, token := range node.vNodes {
 			topologyVNode := VNode{
-				nodeKey: nodeKey,
+				nodeKey: node.nodeKey,
 				token:   token,
 			}
 

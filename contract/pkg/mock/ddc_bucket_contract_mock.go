@@ -74,12 +74,12 @@ type (
 	}
 )
 
-func mapSourceToDestination(vNodes []NodeVNodes) []bucket.NodeVNodesInfo {
+func mapNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
 	var nodesVNodes []bucket.NodeVNodesInfo
-	for _, item := range vNodes {
+	for _, node := range nodes {
 		nodeVNodes := bucket.NodeVNodesInfo{
-			NodeKey: item.NodeKey,
-			VNodes:  item.VNodes,
+			NodeKey: node.NodeKey,
+			VNodes:  node.VNodes,
 		}
 		nodesVNodes = append(nodesVNodes, nodeVNodes)
 	}
@@ -126,7 +126,7 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				VNodes: mapSourceToDestination(cluster.VNodes),
+				VNodes: mapNodesVNodes(cluster.VNodes),
 			}, nil
 		}
 	}
