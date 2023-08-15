@@ -24,15 +24,13 @@ type (
 )
 
 const (
-	UNKNOWN NodeState = iota
-	ADDING
+	ADDING = iota
 	ACTIVE
 	DELETING
 	OFFLINE
 )
 
 var NodeTags = map[string]byte{
-	"UNKNOWN":  UNKNOWN,
 	"ADDING":   ADDING,
 	"ACTIVE":   ACTIVE,
 	"DELETING": DELETING,
@@ -41,27 +39,31 @@ var NodeTags = map[string]byte{
 
 type Cluster struct {
 	ManagerId        AccountId
-	NodesKeys        []string
+	Params           Params
+	NodesKeys        []NodeKey
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
-	Nodes            []NodeKey
-	VNodes           [][]Token
 	TotalRent        Balance
-	CdnNodesKeys     []string
-	CdnUsdPerGb      Balance
+	CdnNodesKeys     []NodeKey
 	CdnRevenues      Cash
+	CdnUsdPerGb      Balance
 }
 
-type NewCluster struct {
-	Params           Params
-	ResourcePerVNode Resource
+type NodeVNodesInfo struct {
+	NodeKey NodeKey
+	VNodes  []Token
 }
 
 type ClusterStatus struct {
 	ClusterId ClusterId
 	Cluster   Cluster
-	Params    Params
+	VNodes    []NodeVNodesInfo
+}
+
+type NewCluster struct {
+	Params           Params
+	ResourcePerVNode Resource
 }
 
 type CDNCluster struct {
@@ -222,7 +224,7 @@ type ClusterParams struct {
 
 func (c *ClusterStatus) ReplicationFactor() uint {
 	params := &ClusterParams{}
-	err := json.Unmarshal([]byte(c.Params), params)
+	err := json.Unmarshal([]byte(c.Cluster.Params), params)
 	if err != nil || params.ReplicationFactor <= 0 {
 		return 0
 	}

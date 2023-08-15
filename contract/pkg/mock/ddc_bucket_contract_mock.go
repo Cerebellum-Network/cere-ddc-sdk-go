@@ -36,9 +36,14 @@ type (
 
 	Cluster struct {
 		Id     uint32
-		VNodes [][]uint64
+		VNodes []NodeVNodes
 		Nodes  []string
 		Params string
+	}
+
+	NodeVNodes struct {
+		NodeKey string
+		VNodes  []uint64
 	}
 
 	CDNNode struct {
@@ -68,6 +73,18 @@ type (
 		cdnClusters    []CDNCluster
 	}
 )
+
+func mapSourceToDestination(vNodes []NodeVNodes) []bucket.NodeVNodesInfo {
+	var nodesVNodes []bucket.NodeVNodesInfo
+	for _, item := range vNodes {
+		nodeVNodes := bucket.NodeVNodesInfo{
+			NodeKey: item.NodeKey,
+			VNodes:  item.VNodes,
+		}
+		nodesVNodes = append(nodesVNodes, nodeVNodes)
+	}
+	return nodesVNodes
+}
 
 func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster, cdnNodes []CDNNode, cdnClusters []CDNCluster) bucket.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
@@ -102,14 +119,14 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 				ClusterId: clusterId,
 				Cluster: bucket.Cluster{
 					ManagerId:        types.AccountID{},
-					Nodes:            cluster.Nodes,
-					VNodes:           cluster.VNodes,
+					Params:           cluster.Params,
+					NodesKeys:        cluster.Nodes,
 					ResourcePerVNode: 32,
 					ResourceUsed:     0,
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				Params: cluster.Params,
+				VNodes: mapSourceToDestination(cluster.VNodes),
 			}, nil
 		}
 	}
