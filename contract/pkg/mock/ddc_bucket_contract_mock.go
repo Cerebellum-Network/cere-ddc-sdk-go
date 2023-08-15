@@ -35,10 +35,9 @@ type (
 	}
 
 	Cluster struct {
-		Id     uint32
-		VNodes []NodeVNodes
-		Nodes  []string
-		Params string
+		Id          uint32
+		NodesVNodes []NodeVNodes
+		Params      string
 	}
 
 	NodeVNodes struct {
@@ -120,13 +119,12 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 				Cluster: bucket.Cluster{
 					ManagerId:        types.AccountID{},
 					Params:           cluster.Params,
-					NodesKeys:        cluster.Nodes,
 					ResourcePerVNode: 32,
 					ResourceUsed:     0,
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				VNodes: mapNodesVNodes(cluster.VNodes),
+				NodesVNodes: mapNodesVNodes(cluster.NodesVNodes),
 			}, nil
 		}
 	}

@@ -56,9 +56,9 @@ type NodeVNodesInfo struct {
 }
 
 type ClusterStatus struct {
-	ClusterId ClusterId
-	Cluster   Cluster
-	VNodes    []NodeVNodesInfo
+	ClusterId   ClusterId
+	Cluster     Cluster
+	NodesVNodes []NodeVNodesInfo
 }
 
 type NewCluster struct {

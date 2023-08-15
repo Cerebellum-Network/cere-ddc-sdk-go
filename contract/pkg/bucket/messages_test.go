@@ -29,9 +29,9 @@ func TestBucketWriteAccess(t *testing.T) {
 
 func TestClusterStatus_ReplicationFactor(t *testing.T) {
 	type fields struct {
-		ClusterId ClusterId
-		Cluster   Cluster
-		VNodes    []NodeVNodesInfo
+		ClusterId   ClusterId
+		Cluster     Cluster
+		NodesVNodes []NodeVNodesInfo
 	}
 	tests := []struct {
 		name   string
@@ -72,9 +72,9 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &ClusterStatus{
-				ClusterId: tt.fields.ClusterId,
-				Cluster:   tt.fields.Cluster,
-				VNodes:    tt.fields.VNodes,
+				ClusterId:   tt.fields.ClusterId,
+				Cluster:     tt.fields.Cluster,
+				NodesVNodes: tt.fields.NodesVNodes,
 			}
 			assert.Equalf(t, tt.want, c.ReplicationFactor(), "ReplicationFactor()")
 		})
