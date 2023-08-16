@@ -130,7 +130,12 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 		}
 	}
 
-	return nil, errors.New("unknown cluster")
+	available := []uint32{}
+	for _, cluster := range d.clusters {
+		available = append(available, cluster.Id)
+	}
+
+	return nil, fmt.Errorf("unknown cluster with id %v | available clusters are: %v", clusterId, available)
 }
 
 func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
