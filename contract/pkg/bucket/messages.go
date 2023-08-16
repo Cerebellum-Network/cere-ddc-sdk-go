@@ -9,6 +9,7 @@ import (
 )
 
 type (
+<<<<<<< HEAD
 	Balance       = types.U128
 	Cash          = Balance
 	Resource      = uint32
@@ -23,6 +24,20 @@ type (
 	NodeState     = byte
 	NodeKey       = string
 	VNodes        = [][]Token
+=======
+	Balance      = types.U128
+	Cash         = Balance
+	Resource     = uint32
+	NodeKey      = string
+	Token        = uint64
+	ClusterId    = uint32
+	AccountId    = types.AccountID
+	ProviderId   = AccountId
+	BucketId     = uint32
+	Params       = string
+	BucketParams = Params
+	NodeState    = byte
+>>>>>>> 89ee068218673a072209b54361a5abe6528b51ff
 )
 
 const (
@@ -46,8 +61,11 @@ type Cluster struct {
 	ResourcePerVNode Resource
 	ResourceUsed     Resource
 	Revenues         Cash
+<<<<<<< HEAD
 	Nodes            []NodeKey
 	VNodes           [][]Token
+=======
+>>>>>>> 89ee068218673a072209b54361a5abe6528b51ff
 	TotalRent        Balance
 	CdnNodesKeys     []NodeKey
 	CdnRevenues      Cash
@@ -177,6 +195,10 @@ type ClusterParamsSetEvent struct {
 
 type ClusterRemovedEvent struct {
 	ClusterId ClusterId
+<<<<<<< HEAD
+=======
+	NodeKey   NodeKey
+>>>>>>> 89ee068218673a072209b54361a5abe6528b51ff
 }
 
 type ClusterNodeStatusSetEvent struct {
@@ -188,7 +210,10 @@ type ClusterNodeStatusSetEvent struct {
 type ClusterNodeAddedEvent struct {
 	ClusterId ClusterId
 	NodeKey   NodeKey
+<<<<<<< HEAD
 	VNodes    VNodes
+=======
+>>>>>>> 89ee068218673a072209b54361a5abe6528b51ff
 }
 
 type ClusterNodeRemovedEvent struct {
