@@ -3,12 +3,12 @@ package topology
 import "fmt"
 
 type VNode struct {
-	nodeId uint32
-	token  uint64
+	nodeKey string
+	token   uint64
 }
 
-func (v VNode) NodeId() uint32 {
-	return v.nodeId
+func (v VNode) NodeKey() string {
+	return v.nodeKey
 }
 
 func (v VNode) Token() uint64 {
@@ -16,5 +16,5 @@ func (v VNode) Token() uint64 {
 }
 
 func (v VNode) String() string {
-	return fmt.Sprintf("{\"nodeId\":%d,\"token\":%d}", v.nodeId, v.token)
+	return fmt.Sprintf("{\"nodeKey\":%v,\"token\":%d}", v.nodeKey, v.token)
 }

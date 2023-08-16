@@ -2,9 +2,10 @@ package bucket
 
 import (
 	"encoding/hex"
-	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"strings"
 	"testing"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/stretchr/testify/assert"
@@ -28,9 +29,9 @@ func TestBucketWriteAccess(t *testing.T) {
 
 func TestClusterStatus_ReplicationFactor(t *testing.T) {
 	type fields struct {
-		ClusterId ClusterId
-		Cluster   Cluster
-		Params    Params
+		ClusterId   ClusterId
+		Cluster     Cluster
+		NodesVNodes []NodeVNodesInfo
 	}
 	tests := []struct {
 		name   string
@@ -41,8 +42,9 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 			name: "ReplicationFactor as integer",
 			fields: fields{
 				ClusterId: 1,
-				Params:    `{"ReplicationFactor": 3}`,
-				Cluster:   Cluster{},
+				Cluster: Cluster{
+					Params: `{"ReplicationFactor": 3}`,
+				},
 			},
 			want: 3,
 		},
@@ -50,8 +52,9 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 			name: "ReplicationFactor as string",
 			fields: fields{
 				ClusterId: 1,
-				Params:    `{"ReplicationFactor": "3"}`,
-				Cluster:   Cluster{},
+				Cluster: Cluster{
+					Params: `{"ReplicationFactor": "3"}`,
+				},
 			},
 			want: 3,
 		},
@@ -59,8 +62,9 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 			name: "ReplicationFactor not set",
 			fields: fields{
 				ClusterId: 1,
-				Params:    `{}`,
-				Cluster:   Cluster{},
+				Cluster: Cluster{
+					Params: `{}`,
+				},
 			},
 			want: 0,
 		},
@@ -68,9 +72,9 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &ClusterStatus{
-				ClusterId: tt.fields.ClusterId,
-				Cluster:   tt.fields.Cluster,
-				Params:    tt.fields.Params,
+				ClusterId:   tt.fields.ClusterId,
+				Cluster:     tt.fields.Cluster,
+				NodesVNodes: tt.fields.NodesVNodes,
 			}
 			assert.Equalf(t, tt.want, c.ReplicationFactor(), "ReplicationFactor()")
 		})

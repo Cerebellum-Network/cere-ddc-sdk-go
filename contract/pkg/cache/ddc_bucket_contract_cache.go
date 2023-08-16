@@ -25,7 +25,7 @@ type (
 		ClearNodes()
 		ClearBuckets()
 		ClearAccounts()
-		ClearNodeById(id bucket.NodeId)
+		ClearNodeById(id bucket.NodeKey)
 		ClearBucketById(id bucket.BucketId)
 		ClearAccountById(id bucket.AccountId)
 		bucket.DdcBucketContract
@@ -200,8 +200,8 @@ func (d *ddcBucketContractCached) ClearAccounts() {
 	d.accountCache.Flush()
 }
 
-func (d *ddcBucketContractCached) ClearNodeById(id bucket.NodeId) { //nolint:golint,unused
-	d.nodeCache.Delete(toString(id))
+func (d *ddcBucketContractCached) ClearNodeById(key bucket.NodeKey) { //nolint:golint,unused
+	d.nodeCache.Delete(key)
 }
 
 func (d *ddcBucketContractCached) ClearNodeByKey(nodeKey string) {
