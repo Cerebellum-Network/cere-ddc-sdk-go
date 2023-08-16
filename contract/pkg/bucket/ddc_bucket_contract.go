@@ -51,17 +51,32 @@ const (
 	BucketAllocatedEventId              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
 	BucketSettlePaymentEventId          = "004464634275636b65743a3a4275636b6574536574746c655061796d656e7400"
 	BucketAvailabilityUpdatedId         = "8d8714b3df602b0ce92b8a3de12daedf222ff9198078f834d57176ca2a06359c"
+	BucketParamsSetEventId              = "004464634275636b65743a3a4275636b6574506172616d735365740000000000"
 	ClusterCreatedEventId               = "004464634275636b65743a3a436c757374657243726561746564000000000000"
+	ClusterNodeAddedEventId             = "004464634275636b65743a3a436c75737465724e6f6465416464656400000000"
+	ClusterNodeRemovedEventId           = "004464634275636b65743a3a436c75737465724e6f646552656d6f7665640000"
+	ClusterCdnNodeAddedEventId          = "004464634275636b65743a3a436c757374657243646e4e6f6465416464656400"
+	ClusterCdnNodeRemovedEventId        = "e8920de02c833de0d4c7a1cc213877437ddcc0e1f03f65dd88c7a79c91cde9d9"
+	ClusterParamsSetEventId             = "004464634275636b65743a3a436c7573746572506172616d7353657400000000"
+	ClusterRemovedEventId               = "004464634275636b65743a3a436c757374657252656d6f766564000000000000"
+	ClusterNodeStatusSetEventId         = "004464634275636b65743a3a436c75737465724e6f6465537461747573536574"
+	ClusterCdnNodeStatusSetEventId      = "b3c6265529c37cd82b1e4875fa439024770d825e335f643195801131645f3d26"
 	ClusterNodeReplacedEventId          = "004464634275636b65743a3a436c75737465724e6f64655265706c6163656400"
+	ClusterNodeResetEventId             = "004464634275636b65743a3a436c75737465724e6f6465526573657400000000"
 	ClusterReserveResourceEventId       = "84d6d26a3275dced8e359779bf21488762a1d88029f52522d8fc27607759399e"
 	ClusterDistributeRevenuesEventId    = "65441936759a16fb28d0e059b878f2e48283ca2eac57c396a8035cce9e2acdd3"
-	CdnClusterCreatedEventId            = "004464634275636b65743a3a43646e436c757374657243726561746564000000"
-	CdnClusterDistributeRevenuesEventId = "4e19fc4683a9a741a09d89a1d62b22d592a8bf10e2b8b6eff7c6742a0ed88bb4"
+	ClusterDistributeCdnRevenuesEventId = "ec0e9cad0816c5f7e9c252a83e85ca177e162dcb4a284bf80b342942f3e9faa5"
 	CdnNodeCreatedEventId               = "004464634275636b65743a3a43646e4e6f646543726561746564000000000000"
-	NodeCreatedEventId                  = "004464634275636b65743a3a4e6f646543726561746564000000000000000000"
+	CdnNodeRemovedEventId               = "004464634275636b65743a3a43646e4e6f646552656d6f766564000000000000"
+	CdnNodeParamsSetEventId             = "004464634275636b65743a3a43646e4e6f6465506172616d7353657400000000"
 	DepositEventId                      = "004464634275636b65743a3a4465706f73697400000000000000000000000000"
-	GrantPermissionEventId              = "004464634275636b65743a3a4772616e745065726d697373696f6e0000000000"
-	RevokePermissionEventId             = "004464634275636b65743a3a5265766f6b655065726d697373696f6e00000000"
+	NodeRemovedEventId                  = "004464634275636b65743a3a4e6f646552656d6f766564000000000000000000"
+	NodeParamsSetEventId                = "004464634275636b65743a3a4e6f6465506172616d7353657400000000000000"
+	NodeCreatedEventId                  = "004464634275636b65743a3a4e6f646543726561746564000000000000000000"
+	GrantPermissionEventId              = "004464634275636b65743a3a5065726d697373696f6e4772616e746564000000"
+	RevokePermissionEventId             = "004464634275636b65743a3a5065726d697373696f6e5265766f6b6564000000"
+	NodeOwnershipTransferredEventId     = "f8da30f579016091acfaa384eee0ddbfcb94d408abc09fde35338ea47c83a0a2"
+	CdnNodeOwnershipTransferredEventId  = "ad2b04ceaba2414e23695e96e4bd645d7616ba94cc155679497ef730c086b224"
 )
 
 type (
@@ -155,13 +170,29 @@ var eventDispatchTable = map[string]reflect.Type{
 	ClusterNodeReplacedEventId:          reflect.TypeOf(ClusterNodeReplacedEvent{}),
 	ClusterReserveResourceEventId:       reflect.TypeOf(ClusterReserveResourceEvent{}),
 	ClusterDistributeRevenuesEventId:    reflect.TypeOf(ClusterDistributeRevenuesEvent{}),
-	CdnClusterCreatedEventId:            reflect.TypeOf(CdnClusterCreatedEvent{}),
-	CdnClusterDistributeRevenuesEventId: reflect.TypeOf(CdnClusterDistributeRevenuesEvent{}),
 	CdnNodeCreatedEventId:               reflect.TypeOf(CdnNodeCreatedEvent{}),
 	NodeCreatedEventId:                  reflect.TypeOf(NodeCreatedEvent{}),
 	DepositEventId:                      reflect.TypeOf(DepositEvent{}),
 	GrantPermissionEventId:              reflect.TypeOf(GrantPermissionEvent{}),
-	RevokePermissionEventId:             reflect.TypeOf(RevokePermissionEvent{})}
+	RevokePermissionEventId:             reflect.TypeOf(RevokePermissionEvent{}),
+	BucketParamsSetEventId:              reflect.TypeOf(BucketParamsSetEvent{}),
+	ClusterNodeAddedEventId:             reflect.TypeOf(ClusterNodeAddedEvent{}),
+	ClusterNodeRemovedEventId:           reflect.TypeOf(ClusterNodeRemovedEvent{}),
+	ClusterCdnNodeAddedEventId:          reflect.TypeOf(ClusterCdnNodeAddedEvent{}),
+	ClusterCdnNodeRemovedEventId:        reflect.TypeOf(ClusterCdnNodeRemovedEvent{}),
+	ClusterParamsSetEventId:             reflect.TypeOf(ClusterParamsSetEvent{}),
+	ClusterRemovedEventId:               reflect.TypeOf(ClusterRemovedEvent{}),
+	ClusterNodeStatusSetEventId:         reflect.TypeOf(ClusterNodeStatusSetEvent{}),
+	ClusterCdnNodeStatusSetEventId:      reflect.TypeOf(ClusterCdnNodeStatusSetEvent{}),
+	ClusterNodeResetEventId:             reflect.TypeOf(ClusterNodeResetEvent{}),
+	ClusterDistributeCdnRevenuesEventId: reflect.TypeOf(ClusterDistributeCdnRevenuesEvent{}),
+	CdnNodeRemovedEventId:               reflect.TypeOf(CdnNodeRemovedEvent{}),
+	CdnNodeParamsSetEventId:             reflect.TypeOf(CdnNodeParamsSetEvent{}),
+	NodeRemovedEventId:                  reflect.TypeOf(NodeRemovedEvent{}),
+	NodeParamsSetEventId:                reflect.TypeOf(NodeParamsSetEvent{}),
+	NodeOwnershipTransferredEventId:     reflect.TypeOf(NodeOwnershipTransferredEvent{}),
+	CdnNodeOwnershipTransferredEventId:  reflect.TypeOf(CdnNodeOwnershipTransferredEvent{}),
+}
 
 func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
 	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)

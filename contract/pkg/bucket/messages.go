@@ -9,18 +9,20 @@ import (
 )
 
 type (
-	Balance      = types.U128
-	Cash         = Balance
-	Resource     = uint32
-	NodeKey      = string
-	Token        = uint64
-	ClusterId    = uint32
-	AccountId    = types.AccountID
-	ProviderId   = AccountId
-	BucketId     = uint32
-	Params       = string
-	BucketParams = Params
-	NodeState    = byte
+	Balance       = types.U128
+	Cash          = Balance
+	Resource      = uint32
+	Token         = uint64
+	ClusterId     = uint32
+	AccountId     = types.AccountID
+	ProviderId    = AccountId
+	BucketId      = uint32
+	Params        = string
+	BucketParams  = Params
+	CdnNodeParams = Params
+	NodeState     = byte
+	NodeKey       = string
+	VNodes        = [][]Token
 )
 
 const (
@@ -155,15 +157,77 @@ type BucketAvailabilityUpdatedEvent struct {
 	PublicAvailability bool
 }
 
+type BucketParamsSetEvent struct {
+	BucketId     BucketId
+	BucketParams BucketParams
+}
+
 type ClusterCreatedEvent struct {
 	ClusterId     ClusterId
 	AccountId     AccountId
 	ClusterParams Params
 }
 
+type ClusterParamsSetEvent struct {
+	ClusterId     ClusterId
+	ClusterParams ClusterParams
+}
+
+type ClusterRemovedEvent struct {
+	ClusterId ClusterId
+}
+
+type ClusterNodeStatusSetEvent struct {
+	ClusterId  ClusterId
+	NodeKey    NodeKey
+	NodeStatus NodeStatus
+}
+
+type ClusterNodeAddedEvent struct {
+	ClusterId ClusterId
+	NodeKey   NodeKey
+	VNodes    VNodes
+}
+
+type ClusterNodeRemovedEvent struct {
+	ClusterId ClusterId
+	NodeKey   NodeKey
+}
+
+type ClusterCdnNodeAddedEvent struct {
+	ClusterId  ClusterId
+	CdnNodeKey AccountId
+}
+
+type ClusterCdnNodeRemovedEvent struct {
+	ClusterId  ClusterId
+	CdnNodeKey AccountId
+}
+
+type CdnNodeRemovedEvent struct {
+	CdnNodeKey AccountId
+}
+
+type NodeRemovedEvent struct {
+	NodeKey NodeKey
+}
+
+type ClusterNodeResetEvent struct {
+	ClusterId ClusterId
+	NodeKey   NodeKey
+	VNodes    VNodes
+}
+
+type ClusterCdnNodeStatusSetEvent struct {
+	CdnNodeKey AccountId
+	ClusterId  ClusterId
+	NodeStatus NodeState
+}
+
 type ClusterNodeReplacedEvent struct {
 	ClusterId ClusterId
 	NodeKey   NodeKey
+	VNodes    VNodes
 }
 
 type ClusterReserveResourceEvent struct {
@@ -176,15 +240,15 @@ type ClusterDistributeRevenuesEvent struct {
 	AccountId AccountId
 }
 
-type CdnClusterCreatedEvent struct {
-	ClusterId ClusterId
-	AccountId AccountId
-}
+// type CdnClusterCreatedEvent struct {
+// 	ClusterId ClusterId
+// 	AccountId AccountId
+// }
 
-type CdnClusterDistributeRevenuesEvent struct {
-	ClusterId  ClusterId
-	ProviderId AccountId
-}
+// type CdnClusterDistributeRevenuesEvent struct {
+// 	ClusterId  ClusterId
+// 	ProviderId AccountId
+// }
 
 type CdnNodeCreatedEvent struct {
 	NodeKey   NodeKey
@@ -212,6 +276,41 @@ type GrantPermissionEvent struct {
 type RevokePermissionEvent struct {
 	AccountId  AccountId
 	Permission byte
+}
+
+type CdnNodeOwnershipTransferredEvent struct {
+	AccountId  AccountId
+	CdnNodeKey AccountId
+}
+
+type NodeOwnershipTransferredEvent struct {
+	AccountId AccountId
+	NodeKey   NodeKey
+}
+
+type PermissionRevokedEvent struct {
+	AccountId  AccountId
+	Permission byte
+}
+
+type PermissionGrantedEvent struct {
+	AccountId  AccountId
+	Permission byte
+}
+
+type CdnNodeParamsSetEvent struct {
+	CdnNodeKey    AccountId
+	CdnNodeParams CdnNodeParams
+}
+
+type NodeParamsSetEvent struct {
+	NodeKey    NodeKey
+	NodeParams Params
+}
+
+type ClusterDistributeCdnRevenuesEvent struct {
+	ClusterId  ClusterId
+	ProviderId AccountId
 }
 
 func (a *Account) HasBalance() bool {
