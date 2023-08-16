@@ -3,6 +3,7 @@ package mock
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -148,7 +149,12 @@ func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, err
 		}
 	}
 
-	return nil, errors.New("unknown node")
+	available := []string{}
+	for _, node := range d.nodes {
+		available = append(available, node.Key)
+	}
+
+	return nil, fmt.Errorf("unknown node with key %v | available nodes are: %v", nodeKey, available)
 }
 
 func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
