@@ -74,7 +74,7 @@ type (
 	}
 )
 
-func mapNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
+func MapTestNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
 	var nodesVNodes []bucket.NodeVNodesInfo
 	for _, node := range nodes {
 		nodeVNodes := bucket.NodeVNodesInfo{
@@ -125,7 +125,7 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				NodesVNodes: mapNodesVNodes(cluster.NodesVNodes),
+				NodesVNodes: MapTestNodesVNodes(cluster.NodesVNodes),
 			}, nil
 		}
 	}
@@ -212,7 +212,7 @@ func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Acc
 		}
 	}
 
-	return nil, errors.New("account doesn't exist")
+	return nil, fmt.Errorf("account doesn't exist %x | available nodes are: %v", account, writerIds)
 }
 
 func (d *ddcBucketContractMock) GetApiUrl() string {
