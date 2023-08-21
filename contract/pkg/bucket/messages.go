@@ -68,19 +68,6 @@ type NewCluster struct {
 	ResourcePerVNode Resource
 }
 
-// type CDNCluster struct {
-// 	ManagerId    AccountId
-// 	CDNNodes     []NodeKey
-// 	ResourceUsed Resource
-// 	Revenues     Cash
-// 	UsdPerGb     Balance
-// }
-
-// type CDNClusterStatus struct {
-// 	ClusterId  ClusterId
-// 	CDNCluster CDNCluster
-// }
-
 type Node struct {
 	ProviderId    ProviderId
 	RentPerMonth  Balance
@@ -239,16 +226,6 @@ type ClusterDistributeRevenuesEvent struct {
 	ClusterId ClusterId
 	AccountId AccountId
 }
-
-// type CdnClusterCreatedEvent struct {
-// 	ClusterId ClusterId
-// 	AccountId AccountId
-// }
-
-// type CdnClusterDistributeRevenuesEvent struct {
-// 	ClusterId  ClusterId
-// 	ProviderId AccountId
-// }
 
 type CdnNodeCreatedEvent struct {
 	NodeKey   NodeKey
