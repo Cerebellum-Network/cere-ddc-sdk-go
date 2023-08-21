@@ -3,6 +3,7 @@ package mock
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -67,7 +68,7 @@ type (
 	}
 )
 
-func mapNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
+func MapTestNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
 	var nodesVNodes []bucket.NodeVNodesInfo
 	for _, node := range nodes {
 		nodeVNodes := bucket.NodeVNodesInfo{
@@ -117,12 +118,17 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 					Revenues:         types.NewU128(*big.NewInt(1)),
 					TotalRent:        types.NewU128(*big.NewInt(1)),
 				},
-				NodesVNodes: mapNodesVNodes(cluster.NodesVNodes),
+				NodesVNodes: MapTestNodesVNodes(cluster.NodesVNodes),
 			}, nil
 		}
 	}
 
-	return nil, errors.New("unknown cluster")
+	available := []uint32{}
+	for _, cluster := range d.clusters {
+		available = append(available, cluster.Id)
+	}
+
+	return nil, fmt.Errorf("unknown cluster with id %v | available clusters are: %v", clusterId, available)
 }
 
 func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
@@ -141,7 +147,12 @@ func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, err
 		}
 	}
 
-	return nil, errors.New("unknown node")
+	available := []string{}
+	for _, node := range d.nodes {
+		available = append(available, node.Key)
+	}
+
+	return nil, fmt.Errorf("unknown node with key %v | available nodes are: %v", nodeKey, available)
 }
 
 func (d *ddcBucketContractMock) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
@@ -175,7 +186,7 @@ func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Acc
 		}
 	}
 
-	return nil, errors.New("account doesn't exist")
+	return nil, fmt.Errorf("account doesn't exist %x | available nodes are: %v", account, writerIds)
 }
 
 func (d *ddcBucketContractMock) GetApiUrl() string {
