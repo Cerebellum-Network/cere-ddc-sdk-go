@@ -57,11 +57,6 @@ type (
 		PublicKey string `json:"publicKey"`
 	}
 
-	CDNCluster struct {
-		Id    uint32
-		Nodes []string
-	}
-
 	ddcBucketContractMock struct {
 		accountId      string
 		apiUrl         string
@@ -69,7 +64,6 @@ type (
 		nodes          []Node
 		clusters       []Cluster
 		cdnNodes       []CDNNode
-		cdnClusters    []CDNCluster
 	}
 )
 
@@ -85,14 +79,13 @@ func mapNodesVNodes(nodes []NodeVNodes) []bucket.NodeVNodesInfo {
 	return nodesVNodes
 }
 
-func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster, cdnNodes []CDNNode, cdnClusters []CDNCluster) bucket.DdcBucketContract {
+func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, clusters []Cluster, cdnNodes []CDNNode) bucket.DdcBucketContract {
 	log.Info("DDC Bucket contract configured [MOCK]")
 	return &ddcBucketContractMock{
 		accountId:      accountId,
 		apiUrl:         apiUrl,
 		nodes:          nodes,
 		clusters:       clusters,
-		cdnClusters:    cdnClusters,
 		cdnNodes:       cdnNodes,
 		lastAccessTime: time.Now(),
 	}
@@ -149,25 +142,6 @@ func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, err
 	}
 
 	return nil, errors.New("unknown node")
-}
-
-func (d *ddcBucketContractMock) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
-	for _, cluster := range d.cdnClusters {
-		if cluster.Id == clusterId {
-			return &bucket.CDNClusterStatus{
-				ClusterId: clusterId,
-				CDNCluster: bucket.CDNCluster{
-					ManagerId:    types.AccountID{},
-					CDNNodes:     cluster.Nodes,
-					ResourceUsed: 0,
-					Revenues:     types.NewU128(*big.NewInt(1)),
-					UsdPerGb:     types.NewU128(*big.NewInt(1)),
-				},
-			}, nil
-		}
-	}
-
-	return nil, errors.New("unknown cluster")
 }
 
 func (d *ddcBucketContractMock) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {

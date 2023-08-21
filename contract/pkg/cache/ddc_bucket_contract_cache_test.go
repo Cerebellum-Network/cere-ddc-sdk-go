@@ -36,11 +36,6 @@ func (m *mockedDdcBucketContract) NodeGet(nodeKey string) (*bucket.NodeStatus, e
 	return args.Get(0).(*bucket.NodeStatus), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) CDNClusterGet(clusterId uint32) (*bucket.CDNClusterStatus, error) {
-	args := m.Called(clusterId)
-	return args.Get(0).(*bucket.CDNClusterStatus), args.Error(1)
-}
-
 func (m *mockedDdcBucketContract) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
 	args := m.Called(nodeKey)
 	return args.Get(0).(*bucket.CDNNodeStatus), args.Error(1)
@@ -242,4 +237,4 @@ func TestBucketGetCached(t *testing.T) {
 //     assert.Equal(t, result, nodes)
 //     ddcBucketContract.AssertExpectations(t)
 // }
-// 
+//

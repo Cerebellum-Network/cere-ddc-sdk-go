@@ -68,18 +68,18 @@ type NewCluster struct {
 	ResourcePerVNode Resource
 }
 
-type CDNCluster struct {
-	ManagerId    AccountId
-	CDNNodes     []NodeKey
-	ResourceUsed Resource
-	Revenues     Cash
-	UsdPerGb     Balance
-}
+// type CDNCluster struct {
+// 	ManagerId    AccountId
+// 	CDNNodes     []NodeKey
+// 	ResourceUsed Resource
+// 	Revenues     Cash
+// 	UsdPerGb     Balance
+// }
 
-type CDNClusterStatus struct {
-	ClusterId  ClusterId
-	CDNCluster CDNCluster
-}
+// type CDNClusterStatus struct {
+// 	ClusterId  ClusterId
+// 	CDNCluster CDNCluster
+// }
 
 type Node struct {
 	ProviderId    ProviderId
