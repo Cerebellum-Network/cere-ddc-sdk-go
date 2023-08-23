@@ -2,6 +2,7 @@ package bucket
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -9,19 +10,19 @@ import (
 )
 
 type (
-	Balance       = types.U128
-	Cash          = Balance
-	Resource      = uint32
-	Token         = uint64
-	ClusterId     = uint32
-	AccountId     = types.AccountID
-	ProviderId    = AccountId
-	BucketId      = uint32
-	Params        = string
-	BucketParams  = Params
-	CdnNodeParams = Params
-	NodeState     = byte
-	NodeKey       = string
+	Balance             = types.U128
+	Cash                = Balance
+	Resource            = uint32
+	Token               = uint64
+	ClusterId           = uint32
+	AccountId           = types.AccountID
+	ProviderId          = AccountId
+	BucketId            = uint32
+	Params              = string
+	BucketParams        = Params
+	CdnNodeParams       = Params
+	NodeStatusInCluster = byte
+	NodeKey             = string
 )
 
 const (
@@ -31,7 +32,7 @@ const (
 	OFFLINE
 )
 
-var NodeTags = map[string]byte{
+var NodeStatusesInClusterMap = map[string]byte{
 	"ADDING":   ADDING,
 	"ACTIVE":   ACTIVE,
 	"DELETING": DELETING,
@@ -56,7 +57,7 @@ type NodeVNodesInfo struct {
 	VNodes  []Token
 }
 
-type ClusterStatus struct {
+type ClusterInfo struct {
 	ClusterId   ClusterId
 	Cluster     Cluster
 	NodesVNodes []NodeVNodesInfo
@@ -76,7 +77,7 @@ type Node struct {
 	StatusInCluster types.OptionBytes
 }
 
-type NodeStatus struct {
+type NodeInfo struct {
 	Key    string
 	Node   Node
 	VNodes []Token
@@ -90,7 +91,7 @@ type CDNNode struct {
 	StatusInCluster      types.OptionBytes
 }
 
-type CDNNodeStatus struct {
+type CDNNodeInfo struct {
 	Key  string
 	Node CDNNode
 }
@@ -108,7 +109,7 @@ type Schedule struct {
 	Offset Balance
 }
 
-type BucketStatus struct {
+type BucketInfo struct {
 	BucketId           BucketId
 	Bucket             Bucket
 	Params             BucketParams
@@ -168,9 +169,9 @@ type ClusterRemovedEvent struct {
 }
 
 type ClusterNodeStatusSetEvent struct {
-	ClusterId  ClusterId
-	NodeKey    NodeKey
-	NodeStatus NodeStatus
+	ClusterId           ClusterId
+	NodeKey             NodeKey
+	NodeStatusInCluster NodeStatusInCluster
 }
 
 type ClusterNodeAddedEvent struct {
@@ -209,9 +210,9 @@ type ClusterNodeResetEvent struct {
 }
 
 type ClusterCdnNodeStatusSetEvent struct {
-	CdnNodeKey AccountId
-	ClusterId  ClusterId
-	NodeStatus NodeState
+	CdnNodeKey          AccountId
+	ClusterId           ClusterId
+	NodeStatusInCluster NodeStatusInCluster
 }
 
 type ClusterNodeReplacedEvent struct {
@@ -301,7 +302,7 @@ type ClusterParams struct {
 	ReplicationFactor FlexInt `json:"replicationFactor"`
 }
 
-func (c *ClusterStatus) ReplicationFactor() uint {
+func (c *ClusterInfo) ReplicationFactor() uint {
 	params := &ClusterParams{}
 	err := json.Unmarshal([]byte(c.Cluster.Params), params)
 	if err != nil || params.ReplicationFactor <= 0 {
@@ -311,11 +312,11 @@ func (c *ClusterStatus) ReplicationFactor() uint {
 	return uint(params.ReplicationFactor)
 }
 
-func (b *BucketStatus) RentExpired() bool {
+func (b *BucketInfo) RentExpired() bool {
 	return b.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
 }
 
-func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
+func (b *BucketInfo) HasWriteAccess(publicKey []byte) bool {
 	address, err := types.NewAddressFromAccountID(publicKey)
 	if err != nil {
 		return false
@@ -324,7 +325,7 @@ func (b *BucketStatus) HasWriteAccess(publicKey []byte) bool {
 	return b.isOwner(address) || b.isWriter(address)
 }
 
-func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
+func (b *BucketInfo) HasReadAccess(publicKey []byte) bool {
 	address, err := types.NewAddressFromAccountID(publicKey)
 	if err != nil {
 		return false
@@ -333,7 +334,7 @@ func (b *BucketStatus) HasReadAccess(publicKey []byte) bool {
 	return b.isOwner(address) || b.isWriter(address) || b.isReader(address)
 }
 
-func (b *BucketStatus) IsOwner(publicKey []byte) bool {
+func (b *BucketInfo) IsOwner(publicKey []byte) bool {
 	address, err := types.NewAddressFromAccountID(publicKey)
 	if err != nil {
 		return false
@@ -342,11 +343,11 @@ func (b *BucketStatus) IsOwner(publicKey []byte) bool {
 	return b.isOwner(address)
 }
 
-func (b *BucketStatus) isOwner(address types.Address) bool {
+func (b *BucketInfo) isOwner(address types.Address) bool {
 	return b.Bucket.OwnerId == address.AsAccountID
 }
 
-func (b *BucketStatus) isWriter(address types.Address) bool {
+func (b *BucketInfo) isWriter(address types.Address) bool {
 	for _, writerId := range b.WriterIds {
 		if writerId == address.AsAccountID {
 			return true
@@ -356,7 +357,7 @@ func (b *BucketStatus) isWriter(address types.Address) bool {
 	return false
 }
 
-func (b *BucketStatus) isReader(address types.Address) bool {
+func (b *BucketInfo) isReader(address types.Address) bool {
 	for _, readerId := range b.ReaderIds {
 		if readerId == address.AsAccountID {
 			return true
@@ -364,4 +365,22 @@ func (b *BucketStatus) isReader(address types.Address) bool {
 	}
 
 	return false
+}
+
+func (n *NodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
+	hasValue, status := n.Node.StatusInCluster.Unwrap()
+	if !hasValue {
+		return 0xFF, fmt.Errorf("storage node %v has an unknown status in cluster", n.Key)
+	} else {
+		return status[0], nil
+	}
+}
+
+func (n *CDNNodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
+	hasValue, status := n.Node.StatusInCluster.Unwrap()
+	if !hasValue {
+		return 0xFF, fmt.Errorf("cdn node %v has an unknown status in cluster", n.Key)
+	} else {
+		return status[0], nil
+	}
 }

@@ -26,24 +26,24 @@ func (m *mockedDdcBucketContract) GetLastAccessTime() time.Time {
 	return args.Get(0).(time.Time)
 }
 
-func (m *mockedDdcBucketContract) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
+func (m *mockedDdcBucketContract) ClusterGet(clusterId uint32) (*bucket.ClusterInfo, error) {
 	args := m.Called(clusterId)
-	return args.Get(0).(*bucket.ClusterStatus), args.Error(1)
+	return args.Get(0).(*bucket.ClusterInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
+func (m *mockedDdcBucketContract) NodeGet(nodeKey string) (*bucket.NodeInfo, error) {
 	args := m.Called(nodeKey)
-	return args.Get(0).(*bucket.NodeStatus), args.Error(1)
+	return args.Get(0).(*bucket.NodeInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
+func (m *mockedDdcBucketContract) CDNNodeGet(nodeKey string) (*bucket.CDNNodeInfo, error) {
 	args := m.Called(nodeKey)
-	return args.Get(0).(*bucket.CDNNodeStatus), args.Error(1)
+	return args.Get(0).(*bucket.CDNNodeInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
+func (m *mockedDdcBucketContract) BucketGet(bucketId uint32) (*bucket.BucketInfo, error) {
 	args := m.Called(bucketId)
-	return args.Get(0).(*bucket.BucketStatus), args.Error(1)
+	return args.Get(0).(*bucket.BucketInfo), args.Error(1)
 }
 
 func (m *mockedDdcBucketContract) AccountGet(account types.AccountID) (*bucket.Account, error) {
@@ -51,14 +51,14 @@ func (m *mockedDdcBucketContract) AccountGet(account types.AccountID) (*bucket.A
 	return args.Get(0).(*bucket.Account), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
+func (m *mockedDdcBucketContract) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeInfo, error) {
 	args := m.Called(offset, limit, filterManagerId)
-	return args.Get(0).([]*bucket.CDNNodeStatus), args.Error(1)
+	return args.Get(0).([]*bucket.CDNNodeInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeStatus, error) {
+func (m *mockedDdcBucketContract) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeInfo, error) {
 	args := m.Called(offset, limit, filterManagerId)
-	return args.Get(0).([]*bucket.NodeStatus), args.Error(1)
+	return args.Get(0).([]*bucket.NodeInfo), args.Error(1)
 }
 
 func (m *mockedDdcBucketContract) ClusterCreate(cluster *bucket.NewCluster) (clusterId uint32, err error) {
@@ -123,9 +123,9 @@ func (m *mockedDdcBucketContract) ClusterAddNode(clusterId uint32, nodeKey strin
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterStatus {
+func (m *mockedDdcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterInfo {
 	args := m.Called(offset, limit, filterManagerId)
-	return args.Get(0).([]*bucket.ClusterStatus)
+	return args.Get(0).([]*bucket.ClusterInfo)
 }
 
 func (m *mockedDdcBucketContract) ClusterRemoveNode(clusterId uint32, nodeKey string) error {
@@ -192,7 +192,7 @@ func TestBucketGet(t *testing.T) {
 	//given
 	ddcBucketContract := &mockedDdcBucketContract{}
 	testSubject := &ddcBucketContractCached{bucketCache: cache.New(defaultExpiration, cleanupInterval), ddcBucketContract: ddcBucketContract}
-	result := &bucket.BucketStatus{}
+	result := &bucket.BucketInfo{}
 	ddcBucketContract.On("BucketGet", uint32(1)).Return(result, nil).Once()
 
 	//when
@@ -208,7 +208,7 @@ func TestBucketGetCached(t *testing.T) {
 	//given
 	ddcBucketContract := &mockedDdcBucketContract{}
 	testSubject := &ddcBucketContractCached{bucketCache: cache.New(defaultExpiration, cleanupInterval), ddcBucketContract: ddcBucketContract}
-	result := &bucket.BucketStatus{BucketId: uint32(1)}
+	result := &bucket.BucketInfo{BucketId: uint32(1)}
 	ddcBucketContract.On("BucketGet", uint32(1)).Return(result, nil).Once()
 	_, _ = testSubject.BucketGet(uint32(1))
 
@@ -226,7 +226,7 @@ func TestBucketGetCached(t *testing.T) {
 // 	//given
 //     ddcBucketContract := &mockedDdcBucketContract{}
 //     testSubject := &ddcBucketContractCached{bucketCache: cache.New(defaultExpiration, cleanupInterval), ddcBucketContract: ddcBucketContract}
-//     result := []*bucket.CDNNodeStatus{}
+//     result := []*bucket.CDNNodeInfo{}
 //     ddcBucketContract.On("CDNNodeGet", 0, 1, "filterManagerId").Return(result, nil).Once()
 
 //     //when

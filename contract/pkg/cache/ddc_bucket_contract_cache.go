@@ -98,11 +98,11 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
+func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterInfo, error) {
 	return d.ddcBucketContract.ClusterGet(clusterId)
 }
 
-func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
+func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeInfo, error) {
 
 	result, err := d.nodeSingleFlight.Do(nodeKey, func() (interface{}, error) {
 		if cached, ok := d.nodeCache.Get(nodeKey); ok {
@@ -118,15 +118,15 @@ func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeStatus, e
 		return value, nil
 	})
 
-	resp, _ := result.(*bucket.NodeStatus)
+	resp, _ := result.(*bucket.NodeInfo)
 	return resp, err
 }
 
-func (d *ddcBucketContractCached) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
+func (d *ddcBucketContractCached) CDNNodeGet(nodeKey string) (*bucket.CDNNodeInfo, error) {
 	return d.ddcBucketContract.CDNNodeGet(nodeKey)
 }
 
-func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
+func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketInfo, error) {
 	key := toString(bucketId)
 	result, err := d.bucketSingleFlight.Do(key, func() (interface{}, error) {
 		if cached, ok := d.bucketCache.Get(key); ok {
@@ -142,7 +142,7 @@ func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketStat
 		return value, nil
 	})
 
-	resp, _ := result.(*bucket.BucketStatus)
+	resp, _ := result.(*bucket.BucketInfo)
 	return resp, err
 }
 
@@ -497,11 +497,11 @@ func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnN
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterStatus {
+func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterInfo {
 	clusters := d.ddcBucketContract.ClusterList(offset, limit, filterManagerId)
 
 	if clusters == nil {
-		return []*bucket.ClusterStatus{}
+		return []*bucket.ClusterInfo{}
 	}
 
 	d.ClearBuckets()
@@ -551,7 +551,7 @@ func (d *ddcBucketContractCached) NodeSetParams(nodeKey string, params bucket.Pa
 	return nil
 }
 
-func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeStatus, error) {
+func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
@@ -616,7 +616,7 @@ func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket
 	return nil
 }
 
-func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
+func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}

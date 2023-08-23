@@ -18,7 +18,7 @@ func TestBucketWriteAccess(t *testing.T) {
 	publicKeyB, _ := hex.DecodeString(strings.TrimPrefix(publicKey, "0x"))
 
 	accountID, _ := pkg.DecodeAccountIDFromSS58(ss58)
-	bucketStatus := &BucketStatus{WriterIds: []types.AccountID{accountID}}
+	bucketStatus := &BucketInfo{WriterIds: []types.AccountID{accountID}}
 
 	//when
 	hasWriteAccess := bucketStatus.HasWriteAccess(publicKeyB)
@@ -71,7 +71,7 @@ func TestClusterStatus_ReplicationFactor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &ClusterStatus{
+			c := &ClusterInfo{
 				ClusterId:   tt.fields.ClusterId,
 				Cluster:     tt.fields.Cluster,
 				NodesVNodes: tt.fields.NodesVNodes,

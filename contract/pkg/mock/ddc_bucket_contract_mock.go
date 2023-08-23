@@ -30,9 +30,9 @@ var writerIds = getAccountIDs(accounts)
 
 type (
 	Node struct {
-		Key string
-		Url string
-		Tag string
+		Key             string
+		Url             string
+		StatusInCluster string
 	}
 
 	Cluster struct {
@@ -91,7 +91,7 @@ func CreateDdcBucketContractMock(apiUrl string, accountId string, nodes []Node, 
 	}
 }
 
-func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketStatus, error) {
+func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketInfo, error) {
 	if bucketId == 0 || len(d.clusters)*2 < int(bucketId) {
 		return nil, errors.New("unknown bucket")
 	}
@@ -104,10 +104,10 @@ func (d *ddcBucketContractMock) BucketGet(bucketId uint32) (*bucket.BucketStatus
 	return CreateBucket(bucketId, clusterId, "", writerIds), nil
 }
 
-func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterStatus, error) {
+func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterInfo, error) {
 	for _, cluster := range d.clusters {
 		if cluster.Id == clusterId {
-			return &bucket.ClusterStatus{
+			return &bucket.ClusterInfo{
 				ClusterId: clusterId,
 				Cluster: bucket.Cluster{
 					ManagerId:        types.AccountID{},
@@ -130,16 +130,16 @@ func (d *ddcBucketContractMock) ClusterGet(clusterId uint32) (*bucket.ClusterSta
 	return nil, fmt.Errorf("unknown cluster with id %v | available clusters are: %v", clusterId, available)
 }
 
-func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, error) {
+func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeInfo, error) {
 	for _, node := range d.nodes {
 		if node.Key == nodeKey {
-			return &bucket.NodeStatus{
+			return &bucket.NodeInfo{
 				Key: nodeKey,
 				Node: bucket.Node{
 					ProviderId:      types.AccountID{},
 					RentPerMonth:    types.NewU128(*big.NewInt(1)),
 					Params:          `{"url":"` + node.Url + `"}`,
-					StatusInCluster: types.NewOptionBytes([]byte{bucket.NodeTags[node.Tag]}),
+					StatusInCluster: types.NewOptionBytes([]byte{bucket.NodeStatusesInClusterMap[node.StatusInCluster]}),
 					FreeResources:   100,
 				},
 			}, nil
@@ -154,14 +154,14 @@ func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, err
 	return nil, fmt.Errorf("unknown node with key %v | available nodes are: %v", nodeKey, available)
 }
 
-func (d *ddcBucketContractMock) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatus, error) {
+func (d *ddcBucketContractMock) CDNNodeGet(nodeKey string) (*bucket.CDNNodeInfo, error) {
 	for _, node := range d.cdnNodes {
 		if node.Key == nodeKey {
 			params, err := json.Marshal(node.Params)
 			if err != nil {
 				return nil, err
 			}
-			return &bucket.CDNNodeStatus{
+			return &bucket.CDNNodeInfo{
 				Key: nodeKey,
 				Node: bucket.CDNNode{
 					ProviderId:           types.AccountID{},
@@ -208,8 +208,8 @@ func (d *ddcBucketContractMock) AddContractEventHandler(event string, handler fu
 	return nil
 }
 
-func CreateBucket(bucketId uint32, clusterId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketStatus {
-	return &bucket.BucketStatus{
+func CreateBucket(bucketId uint32, clusterId uint32, bucketParams string, writerIds []types.AccountID) *bucket.BucketInfo {
+	return &bucket.BucketInfo{
 		BucketId: bucketId,
 		Bucket: bucket.Bucket{
 			OwnerId:            writerIds[0],
@@ -296,7 +296,7 @@ func (d *ddcBucketContractMock) ClusterSetCdnNodeStatus(clusterId uint32, cdnNod
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterStatus {
+func (d *ddcBucketContractMock) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterInfo {
 	//TODO implement me
 	panic("implement me")
 }
@@ -316,7 +316,7 @@ func (d *ddcBucketContractMock) NodeSetParams(nodeKey string, params bucket.Para
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeStatus, error) {
+func (d *ddcBucketContractMock) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -336,7 +336,7 @@ func (d *ddcBucketContractMock) CDNNodeSetParams(nodeKey string, params bucket.C
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeStatus, error) {
+func (d *ddcBucketContractMock) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }

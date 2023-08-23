@@ -84,8 +84,8 @@ type (
 		GetContractAddress() string
 		GetLastAccessTime() time.Time
 
-		BucketGet(bucketId uint32) (*BucketStatus, error)
-		ClusterGet(clusterId uint32) (*ClusterStatus, error)
+		BucketGet(bucketId uint32) (*BucketInfo, error)
+		ClusterGet(clusterId uint32) (*ClusterInfo, error)
 		ClusterCreate(cluster *NewCluster) (clusterId uint32, err error)
 		ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]Token) error
 		ClusterRemoveNode(clusterId uint32, nodeKey string) error
@@ -97,17 +97,17 @@ type (
 		ClusterRemove(clusterId uint32) error
 		ClusterSetNodeStatus(clusterId uint32, nodeKey string, statusInCluster string) error
 		ClusterSetCdnNodeStatus(clusterId uint32, cdnNodeKey string, statusInCluster string) error
-		ClusterList(offset uint32, limit uint32, filterManagerId string) []*ClusterStatus
-		NodeGet(nodeKey string) (*NodeStatus, error)
+		ClusterList(offset uint32, limit uint32, filterManagerId string) []*ClusterInfo
+		NodeGet(nodeKey string) (*NodeInfo, error)
 		NodeCreate(nodeKey string, params Params, capacity Resource) (key string, err error)
 		NodeRemove(nodeKey string) error
 		NodeSetParams(nodeKey string, params Params) error
-		NodeList(offset uint32, limit uint32, filterManagerId string) ([]*NodeStatus, error)
-		CDNNodeGet(nodeKey string) (*CDNNodeStatus, error)
+		NodeList(offset uint32, limit uint32, filterManagerId string) ([]*NodeInfo, error)
+		CDNNodeGet(nodeKey string) (*CDNNodeInfo, error)
 		CDNNodeCreate(nodeKey string, params CDNNodeParams) error
 		CDNNodeRemove(nodeKey string) error
 		CDNNodeSetParams(nodeKey string, params CDNNodeParams) error
-		CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*CDNNodeStatus, error)
+		CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*CDNNodeInfo, error)
 		AccountGet(account types.AccountID) (*Account, error)
 		HasPermission(account types.AccountID, permission string) (bool, error)
 		GrantTrustedManagerPermission(managerId types.AccountID) error
@@ -404,29 +404,29 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 	}
 }
 
-func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketStatus, error) {
-	res := &BucketStatus{}
+func (d *ddcBucketContract) BucketGet(bucketId uint32) (*BucketInfo, error) {
+	res := &BucketInfo{}
 	err := d.callToRead(res, d.bucketGetMethodId, types.U32(bucketId))
 
 	return res, err
 }
 
-func (d *ddcBucketContract) ClusterGet(clusterId uint32) (*ClusterStatus, error) {
-	res := &ClusterStatus{}
+func (d *ddcBucketContract) ClusterGet(clusterId uint32) (*ClusterInfo, error) {
+	res := &ClusterInfo{}
 	err := d.callToRead(res, d.clusterGetMethodId, types.U32(clusterId))
 
 	return res, err
 }
 
-func (d *ddcBucketContract) NodeGet(nodeKey string) (*NodeStatus, error) {
-	res := &NodeStatus{}
+func (d *ddcBucketContract) NodeGet(nodeKey string) (*NodeInfo, error) {
+	res := &NodeInfo{}
 	err := d.callToRead(res, d.nodeGetMethodId, nodeKey)
 
 	return res, err
 }
 
-func (d *ddcBucketContract) CDNNodeGet(nodeKey string) (*CDNNodeStatus, error) {
-	res := &CDNNodeStatus{}
+func (d *ddcBucketContract) CDNNodeGet(nodeKey string) (*CDNNodeInfo, error) {
+	res := &CDNNodeInfo{}
 	err := d.callToRead(res, d.cdnNodeGetMethodId, nodeKey)
 
 	return res, err
@@ -541,7 +541,7 @@ func (d *ddcBucketContract) ClusterSetCdnNodeStatus(clusterId uint32, cdnNodeKey
 	return err
 }
 
-func (d *ddcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId string) (clusters []*ClusterStatus) {
+func (d *ddcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId string) (clusters []*ClusterInfo) {
 	_ = d.callToRead(clusters, d.clusterListMethodId, offset, limit, filterManagerId)
 	return clusters
 }
@@ -561,7 +561,7 @@ func (d *ddcBucketContract) NodeSetParams(nodeKey string, params Params) error {
 	return err
 }
 
-func (d *ddcBucketContract) NodeList(offset uint32, limit uint32, filterManagerId string) (nodes []*NodeStatus, err error) {
+func (d *ddcBucketContract) NodeList(offset uint32, limit uint32, filterManagerId string) (nodes []*NodeInfo, err error) {
 	err = d.callToRead(nodes, d.nodeListMethodId, offset, limit, filterManagerId)
 	return nodes, err
 }
@@ -581,7 +581,7 @@ func (d *ddcBucketContract) CDNNodeSetParams(nodeKey string, params CDNNodeParam
 	return err
 }
 
-func (d *ddcBucketContract) CDNNodeList(offset uint32, limit uint32, filterManagerId string) (nodes []*CDNNodeStatus, err error) {
+func (d *ddcBucketContract) CDNNodeList(offset uint32, limit uint32, filterManagerId string) (nodes []*CDNNodeInfo, err error) {
 	err = d.callToRead(nodes, d.cdnNodeListMethodId, offset, limit, filterManagerId)
 	return nodes, err
 }
