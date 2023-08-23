@@ -1,6 +1,7 @@
 packages = ./model/... ./core/... ./contract/... ./contentadrstorage/...
 
-tests:
+.PHONY: test
+test:
 	go test ${packages}
 
 lint:

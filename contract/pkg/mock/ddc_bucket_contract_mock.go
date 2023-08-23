@@ -52,10 +52,9 @@ type (
 	}
 
 	CDNNodeParams struct {
-		Url       string `json:"url"`
-		Size      int    `json:"size"`
-		Location  string `json:"location"`
-		PublicKey string `json:"publicKey"`
+		Url      string `json:"url"`
+		Size     int    `json:"size"`
+		Location string `json:"location"`
 	}
 
 	ddcBucketContractMock struct {

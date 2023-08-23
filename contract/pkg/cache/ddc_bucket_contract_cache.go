@@ -247,9 +247,6 @@ func validateCDNNodeParams(params bucket.CDNNodeParams) error {
 	if params.Location == "" {
 		return errors.New("Empty CDN node location.")
 	}
-	if params.PublicKey == "" {
-		return errors.New("Empty CDN node public key.")
-	}
 
 	return nil
 }

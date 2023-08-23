@@ -17,23 +17,21 @@ func TestReadCDNNodeParams(t *testing.T) {
 	}{
 		{
 			name: "Positive test",
-			args: args{s: `{"url":"http://localhost:8080", "publicKey": "NodePublicKey", "size":1, "location":"US"}`},
+			args: args{s: `{"url":"http://localhost:8080", "size":1, "location":"US"}`},
 			wantP: CDNNodeParams{
-				Url:       "http://localhost:8080",
-				Size:      1,
-				Location:  "US",
-				PublicKey: "NodePublicKey",
+				Url:      "http://localhost:8080",
+				Size:     1,
+				Location: "US",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Positive test with size as string",
-			args: args{s: `{"url":"http://localhost:8080", "publicKey": "NodePublicKey", "size":"1", "location":"US"}`},
+			args: args{s: `{"url":"http://localhost:8080", "size":"1", "location":"US"}`},
 			wantP: CDNNodeParams{
-				Url:       "http://localhost:8080",
-				Size:      1,
-				Location:  "US",
-				PublicKey: "NodePublicKey",
+				Url:      "http://localhost:8080",
+				Size:     1,
+				Location: "US",
 			},
 			wantErr: false,
 		},
