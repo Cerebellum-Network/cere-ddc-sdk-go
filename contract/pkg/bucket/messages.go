@@ -32,6 +32,8 @@ const (
 	OFFLINE
 )
 
+const UNKNOWN_NODE_STATUS_IN_CLUSTER byte = 0xFF
+
 var NodeStatusesInClusterMap = map[string]byte{
 	"ADDING":   ADDING,
 	"ACTIVE":   ACTIVE,
@@ -367,20 +369,28 @@ func (b *BucketInfo) isReader(address types.Address) bool {
 	return false
 }
 
-func (n *NodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
-	hasValue, status := n.Node.StatusInCluster.Unwrap()
+func (n *Node) GetStatusInCluster() (NodeStatusInCluster, error) {
+	hasValue, status := n.StatusInCluster.Unwrap()
 	if !hasValue {
-		return 0xFF, fmt.Errorf("storage node %v has an unknown status in cluster", n.Key)
+		return UNKNOWN_NODE_STATUS_IN_CLUSTER, fmt.Errorf("unknown storage node status in cluster")
 	} else {
 		return status[0], nil
 	}
 }
 
-func (n *CDNNodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
-	hasValue, status := n.Node.StatusInCluster.Unwrap()
+func (n *CDNNode) GetStatusInCluster() (NodeStatusInCluster, error) {
+	hasValue, status := n.StatusInCluster.Unwrap()
 	if !hasValue {
-		return 0xFF, fmt.Errorf("cdn node %v has an unknown status in cluster", n.Key)
+		return UNKNOWN_NODE_STATUS_IN_CLUSTER, fmt.Errorf("unknown cdn node status in cluster")
 	} else {
 		return status[0], nil
 	}
+}
+
+func (n *NodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
+	return n.Node.GetStatusInCluster()
+}
+
+func (n *CDNNodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
+	return n.Node.GetStatusInCluster()
 }
