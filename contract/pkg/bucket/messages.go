@@ -22,7 +22,6 @@ type (
 	CdnNodeParams = Params
 	NodeState     = byte
 	NodeKey       = string
-	VNodes        = [][]Token
 )
 
 const (
@@ -69,27 +68,31 @@ type NewCluster struct {
 }
 
 type Node struct {
-	ProviderId    ProviderId
-	RentPerMonth  Balance
-	FreeResources Resource
-	NodeState     NodeState
+	ProviderId      ProviderId
+	RentPerMonth    Balance
+	FreeResources   Resource
+	Params          string
+	ClusterId       types.OptionU32
+	StatusInCluster types.OptionBytes
 }
 
 type NodeStatus struct {
 	Key    string
 	Node   Node
-	Params string
+	VNodes []Token
 }
 
 type CDNNode struct {
 	ProviderId           ProviderId
 	UndistributedPayment Balance
+	Params               string
+	ClusterId            types.OptionU32
+	StatusInCluster      types.OptionBytes
 }
 
 type CDNNodeStatus struct {
-	Key    string
-	Node   CDNNode
-	Params string
+	Key  string
+	Node CDNNode
 }
 
 type Bucket struct {
@@ -173,7 +176,7 @@ type ClusterNodeStatusSetEvent struct {
 type ClusterNodeAddedEvent struct {
 	ClusterId ClusterId
 	NodeKey   NodeKey
-	VNodes    VNodes
+	VNodes    []Token
 }
 
 type ClusterNodeRemovedEvent struct {
@@ -202,7 +205,7 @@ type NodeRemovedEvent struct {
 type ClusterNodeResetEvent struct {
 	ClusterId ClusterId
 	NodeKey   NodeKey
-	VNodes    VNodes
+	VNodes    []Token
 }
 
 type ClusterCdnNodeStatusSetEvent struct {
@@ -214,7 +217,7 @@ type ClusterCdnNodeStatusSetEvent struct {
 type ClusterNodeReplacedEvent struct {
 	ClusterId ClusterId
 	NodeKey   NodeKey
-	VNodes    VNodes
+	VNodes    []Token
 }
 
 type ClusterReserveResourceEvent struct {

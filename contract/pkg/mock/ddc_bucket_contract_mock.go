@@ -136,12 +136,12 @@ func (d *ddcBucketContractMock) NodeGet(nodeKey string) (*bucket.NodeStatus, err
 			return &bucket.NodeStatus{
 				Key: nodeKey,
 				Node: bucket.Node{
-					ProviderId:    types.AccountID{},
-					RentPerMonth:  types.NewU128(*big.NewInt(1)),
-					NodeState:     bucket.NodeTags[node.Tag],
-					FreeResources: 100,
+					ProviderId:      types.AccountID{},
+					RentPerMonth:    types.NewU128(*big.NewInt(1)),
+					Params:          `{"url":"` + node.Url + `"}`,
+					StatusInCluster: types.NewOptionBytes([]byte{bucket.NodeTags[node.Tag]}),
+					FreeResources:   100,
 				},
-				Params: `{"url":"` + node.Url + `"}`,
 			}, nil
 		}
 	}
@@ -166,8 +166,8 @@ func (d *ddcBucketContractMock) CDNNodeGet(nodeKey string) (*bucket.CDNNodeStatu
 				Node: bucket.CDNNode{
 					ProviderId:           types.AccountID{},
 					UndistributedPayment: types.NewU128(*big.NewInt(1)),
+					Params:               string(params),
 				},
-				Params: string(params),
 			}, nil
 		}
 	}
