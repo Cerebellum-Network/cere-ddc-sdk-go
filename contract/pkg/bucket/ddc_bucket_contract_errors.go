@@ -3,11 +3,7 @@ package bucket
 import "errors"
 
 const (
-	bucketDoesNotExist = iota
-	providerDoesNotExist
-	unauthorizedProvider
-	transferFailed
-	nodeDoesNotExist
+	nodeDoesNotExist = iota
 	cdnNodeDoesNotExist
 	nodeAlreadyExists
 	cdnNodeAlreadyExists
@@ -42,18 +38,18 @@ const (
 	atLeastOneVNodeHasToBeAssigned
 	nodeProviderIsNotSuperAdmin
 	cdnNodeOwnerIsNotSuperAdmin
+	bucketDoesNotExist
 	bondingPeriodNotFinished
+	transferFailed
 	insufficientBalance
 	insufficientNodeResources
 	insufficientClusterResources
 	eraSettingFailed
 )
 
-//ToDo update error regarding latest contract
+// ToDo update error regarding latest contract
 var (
 	ErrBucketDoesNotExist                  = errors.New("bucket doesn't exist")
-	ErrProviderDoesNotExist                = errors.New("provider doesn't exist")
-	ErrUnauthorizedProvider                = errors.New("unauthorized provider")
 	ErrTransferFailed                      = errors.New("transfer failed")
 	ErrUndefined                           = errors.New("undefined error")
 	ErrNodeDoesNotExist                    = errors.New("node does not exist")
@@ -102,10 +98,6 @@ func parseDdcBucketContractError(error uint8) error {
 	switch error {
 	case bucketDoesNotExist:
 		return ErrBucketDoesNotExist
-	case providerDoesNotExist:
-		return ErrProviderDoesNotExist
-	case unauthorizedProvider:
-		return ErrUnauthorizedProvider
 	case transferFailed:
 		return ErrTransferFailed
 	case nodeDoesNotExist:
