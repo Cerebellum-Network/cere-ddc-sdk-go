@@ -12,17 +12,19 @@ import (
 type (
 	Balance             = types.U128
 	Cash                = Balance
-	Resource            = uint32
-	Token               = uint64
-	ClusterId           = uint32
+	Resource            = types.U32
+	Token               = types.U64
+	ClusterId           = types.U32
 	AccountId           = types.AccountID
 	ProviderId          = AccountId
-	BucketId            = uint32
+	BucketId            = types.U32
 	Params              = string
 	BucketParams        = Params
+	NodeParams          = Params
 	CdnNodeParams       = Params
-	NodeStatusInCluster = byte
-	NodeKey             = string
+	NodeStatusInCluster = uint8
+	NodeKey             = AccountId
+	CdnNodeKey          = AccountId
 )
 
 const (
@@ -49,7 +51,7 @@ type Cluster struct {
 	ResourceUsed     Resource
 	Revenues         Cash
 	TotalRent        Balance
-	CdnNodesKeys     []NodeKey
+	CdnNodesKeys     []CdnNodeKey
 	CdnRevenues      Cash
 	CdnUsdPerGb      Balance
 }
@@ -65,6 +67,11 @@ type ClusterInfo struct {
 	NodesVNodes []NodeVNodesInfo
 }
 
+type ClusterListInfo struct {
+	Clusters []ClusterInfo
+	Total    types.U32
+}
+
 type NewCluster struct {
 	Params           Params
 	ResourcePerVNode Resource
@@ -74,28 +81,38 @@ type Node struct {
 	ProviderId      ProviderId
 	RentPerMonth    Balance
 	FreeResources   Resource
-	Params          string
+	Params          NodeParams
 	ClusterId       types.OptionU32
-	StatusInCluster types.OptionBytes
+	StatusInCluster types.OptionU8
 }
 
 type NodeInfo struct {
-	Key    string
+	Key    NodeKey
 	Node   Node
 	VNodes []Token
 }
 
-type CDNNode struct {
-	ProviderId           ProviderId
-	UndistributedPayment Balance
-	Params               string
-	ClusterId            types.OptionU32
-	StatusInCluster      types.OptionBytes
+type NodeListInfo struct {
+	Nodes []NodeInfo
+	Total types.U32
 }
 
-type CDNNodeInfo struct {
-	Key  string
-	Node CDNNode
+type CdnNode struct {
+	ProviderId           ProviderId
+	UndistributedPayment Balance
+	Params               CdnNodeParams
+	ClusterId            types.OptionU32
+	StatusInCluster      types.OptionU8
+}
+
+type CdnNodeInfo struct {
+	Key  CdnNodeKey
+	Node CdnNode
+}
+
+type CdnNodeListInfo struct {
+	Nodes []CdnNodeInfo
+	Total types.U32
 }
 
 type Bucket struct {
@@ -118,6 +135,11 @@ type BucketInfo struct {
 	WriterIds          []AccountId
 	ReaderIds          []AccountId
 	RentCoveredUntilMs uint64
+}
+
+type BucketListInfo struct {
+	Buckets []BucketListInfo
+	Total   types.U32
 }
 
 type Account struct {
@@ -370,20 +392,20 @@ func (b *BucketInfo) isReader(address types.Address) bool {
 }
 
 func (n *Node) GetStatusInCluster() (NodeStatusInCluster, error) {
-	hasValue, status := n.StatusInCluster.Unwrap()
+	hasValue, val := n.StatusInCluster.Unwrap()
 	if !hasValue {
 		return UNKNOWN_NODE_STATUS_IN_CLUSTER, fmt.Errorf("unknown storage node status in cluster")
 	} else {
-		return status[0], nil
+		return uint8(val), nil
 	}
 }
 
-func (n *CDNNode) GetStatusInCluster() (NodeStatusInCluster, error) {
-	hasValue, status := n.StatusInCluster.Unwrap()
+func (n *CdnNode) GetStatusInCluster() (NodeStatusInCluster, error) {
+	hasValue, val := n.StatusInCluster.Unwrap()
 	if !hasValue {
 		return UNKNOWN_NODE_STATUS_IN_CLUSTER, fmt.Errorf("unknown cdn node status in cluster")
 	} else {
-		return status[0], nil
+		return uint8(val), nil
 	}
 }
 
@@ -391,6 +413,6 @@ func (n *NodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
 	return n.Node.GetStatusInCluster()
 }
 
-func (n *CDNNodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
+func (n *CdnNodeInfo) GetStatusInCluster() (NodeStatusInCluster, error) {
 	return n.Node.GetStatusInCluster()
 }

@@ -19,6 +19,7 @@ type Result struct {
 }
 
 func (result *Result) decodeDdcBucketContract(encodedData string) error {
+
 	if strings.HasPrefix(encodedData, okPrefix) {
 		encodedData = strings.TrimPrefix(encodedData, okPrefix)
 		if err := codec.DecodeFromHex(encodedData, result.data); err != nil {

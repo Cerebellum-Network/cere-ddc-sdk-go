@@ -231,6 +231,7 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 }
 
 func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
+
 	params := Request{
 		Origin:    fromAddress,
 		Dest:      contractAddressSS58,
