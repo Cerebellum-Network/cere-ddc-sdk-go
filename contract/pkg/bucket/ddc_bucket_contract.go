@@ -46,6 +46,28 @@ const (
 	adminTransferCdnNodeOwnershipMethod  = "cd9821be"
 	bucketGetMethod                      = "3802cb77"
 	accountGetMethod                     = "1d4220fa"
+	accountDepositMethod                 = "1"
+	accountBondMethod                    = "2"
+	accountUnbondMethod                  = "3"
+	accountGetUsdPerCereMethod           = "4"
+	accountSetUsdPerCereMethod           = "5"
+	accountWithdrawUnbondedMethod        = "6"
+	getAccountsMethod                    = "7"
+	bucketCreateMethod                   = ""
+	bucketChangeOwnerMethod              = ""
+	bucketAllocIntoClusterMethod         = ""
+	bucketSettlePaymentMethod            = ""
+	bucketChangeParamsMethod             = ""
+	bucketListMethod                     = ""
+	bucketListForAccountMethod           = ""
+	bucketSetAvailabilityMethod          = ""
+	bucketSetResourceCapMethod           = ""
+	betBucketWritersMethod               = ""
+	betBucketReadersMethod               = ""
+	bucketSetWriterPermMethod            = ""
+	bucketRevokeWriterPermMethod         = ""
+	bucketSetReaderPermMethod            = ""
+	bucketRevokeReaderPermMethod         = ""
 
 	BucketCreatedEventId                = "004464634275636b65743a3a4275636b65744372656174656400000000000000"
 	BucketAllocatedEventId              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
@@ -84,7 +106,31 @@ type (
 		GetContractAddress() string
 		GetLastAccessTime() time.Time
 
+		AccountDeposit() error
+		AccountBond(bondAmount Balance) error
+		AccountUnbond(bondAmount Balance) error
+		AccountGetUsdPerCere() (balance Balance, err error)
+		AccountSetUsdPerCere(usdPerCere Balance) error
+		AccountWithdrawUnbonded() error
+		GetAccounts() ([]types.AccountID, error)
+
 		BucketGet(bucketId uint32) (*BucketInfo, error)
+		BucketCreate(bucketParams BucketParams, clusterId uint32, oenrtId types.AccountID) (bucketId uint32, err error)
+		BucketChangeOwner(bucketId uint32, ownerId types.AccountID) error
+		BucketAllocIntoCluster(bucketId uint32, resource Resource) error
+		BucketSettlePayment(bucketId uint32) error
+		BucketChangeParams(bucketId uint32, bucketParams BucketParams) error
+		BucketList(offset uint32, limit uint32, ownerId string) []*BucketInfo
+		BucketListForAccount(ownerId types.AccountID) ([]*Bucket, error)
+		BucketSetAvailability(bucketId uint32, publicAvailability bool) error
+		BucketSetResourceCap(bucketId uint32, newResourceCap Resource) error
+		GetBucketWriters(bucketId uint32) ([]types.AccountID, error)
+		GetBucketReaders(bucketId uint32) ([]types.AccountID, error)
+		BucketSetWriterPerm(bucketId uint32, writer types.AccountID) error
+		BucketRevokeWriterPerm(bucketId uint32, writer types.AccountID) error
+		BucketSetReaderPerm(bucketId uint32, reader types.AccountID) error
+		BucketRevokeReaderPerm(bucketId uint32, reader types.AccountID) error
+
 		ClusterGet(clusterId uint32) (*ClusterInfo, error)
 		ClusterCreate(cluster *NewCluster) (clusterId uint32, err error)
 		ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]Token) error
@@ -155,9 +201,32 @@ type (
 		adminRevokePermissionMethodId          []byte
 		adminTransferNodeOwnershipMethodId     []byte
 		adminTransferCdnNodeOwnershipMethodId  []byte
-		bucketGetMethodId                      []byte
 		accountGetMethodId                     []byte
-		eventDispatcher                        map[types.Hash]pkg.ContractEventDispatchEntry
+		accountDepositMethodId                 []byte
+		accountBondMethodId                    []byte
+		accountUnbondMethodId                  []byte
+		accountGetUsdPerCereMethodId           []byte
+		accountSetUsdPerCereMethodId           []byte
+		accountWithdrawUnbondedMethodId        []byte
+		getAccountsMethodId                    []byte
+		bucketGetMethodId                      []byte
+		bucketCreateMethodId                   []byte
+		bucketChangeOwnerMethodId              []byte
+		bucketAllocIntoClusterMethodId         []byte
+		bucketSettlePaymentMethodId            []byte
+		bucketChangeParamsMethodId             []byte
+		bucketListMethodId                     []byte
+		bucketListForAccountMethodId           []byte
+		bucketSetAvailabilityMethodId          []byte
+		bucketSetResourceCapMethodId           []byte
+		betBucketWritersMethodId               []byte
+		betBucketReadersMethodId               []byte
+		bucketSetWriterPermMethodId            []byte
+		bucketRevokeWriterPermMethodId         []byte
+		bucketSetReaderPermMethodId            []byte
+		bucketRevokeReaderPermMethodId         []byte
+
+		eventDispatcher map[types.Hash]pkg.ContractEventDispatchEntry
 	}
 )
 
@@ -355,6 +424,116 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", adminTransferCdnNodeOwnershipMethod).Fatal("Can't decode method adminTransferCdnNodeOwnershipMethodId")
 	}
 
+	accountDepositMethodId, err := hex.DecodeString(accountDepositMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountDepositMethod).Fatal("Can't decode method accountDepositMethodId")
+	}
+
+	accountBondMethodId, err := hex.DecodeString(accountBondMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountBondMethod).Fatal("Can't decode method accountBondMethodId")
+	}
+
+	accountUnbondMethodId, err := hex.DecodeString(accountUnbondMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountUnbondMethod).Fatal("Can't decode method accountUnbondMethodId")
+	}
+
+	accountGetUsdPerCereMethodId, err := hex.DecodeString(accountGetUsdPerCereMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountGetUsdPerCereMethod).Fatal("Can't decode method accountGetUsdPerCereMethodId")
+	}
+
+	accountSetUsdPerCereMethodId, err := hex.DecodeString(accountSetUsdPerCereMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountSetUsdPerCereMethod).Fatal("Can't decode method accountSetUsdPerCereMethodId")
+	}
+
+	accountWithdrawUnbondedMethodId, err := hex.DecodeString(accountWithdrawUnbondedMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", accountWithdrawUnbondedMethod).Fatal("Can't decode method accountWithdrawUnbondedMethodId")
+	}
+
+	getAccountsMethodId, err := hex.DecodeString(getAccountsMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", getAccountsMethod).Fatal("Can't decode method getAccountsMethodId")
+	}
+
+	bucketCreateMethodId, err := hex.DecodeString(bucketCreateMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketCreateMethod).Fatal("Can't decode method bucketCreateMethodId")
+	}
+
+	bucketChangeOwnerMethodId, err := hex.DecodeString(bucketChangeOwnerMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketChangeOwnerMethod).Fatal("Can't decode method bucketChangeOwnerMethodId")
+	}
+
+	bucketAllocIntoClusterMethodId, err := hex.DecodeString(bucketAllocIntoClusterMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketAllocIntoClusterMethod).Fatal("Can't decode method bucketAllocIntoClusterMethodId")
+	}
+
+	bucketSettlePaymentMethodId, err := hex.DecodeString(bucketSettlePaymentMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSettlePaymentMethod).Fatal("Can't decode method bucketSettlePaymentMethodId")
+	}
+
+	bucketChangeParamsMethodId, err := hex.DecodeString(bucketChangeParamsMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketChangeParamsMethod).Fatal("Can't decode method bucketChangeParamsMethodId")
+	}
+
+	bucketListMethodId, err := hex.DecodeString(bucketListMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketListMethod).Fatal("Can't decode method bucketListMethodId")
+	}
+
+	bucketListForAccountMethodId, err := hex.DecodeString(bucketListForAccountMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketListForAccountMethod).Fatal("Can't decode method bucketListForAccountMethodId")
+	}
+
+	bucketSetAvailabilityMethodId, err := hex.DecodeString(bucketSetAvailabilityMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSetAvailabilityMethod).Fatal("Can't decode method bucketSetAvailabilityMethodId")
+	}
+
+	bucketSetResourceCapMethodId, err := hex.DecodeString(bucketSetResourceCapMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSetResourceCapMethod).Fatal("Can't decode method bucketSetResourceCapMethodId")
+	}
+
+	betBucketWritersMethodId, err := hex.DecodeString(bucketSetResourceCapMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSetResourceCapMethod).Fatal("Can't decode method bucketSetResourceCapMethodId")
+	}
+
+	betBucketReadersMethodId, err := hex.DecodeString(betBucketReadersMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", betBucketReadersMethod).Fatal("Can't decode method betBucketReadersMethodId")
+	}
+
+	bucketSetWriterPermMethodId, err := hex.DecodeString(bucketSetWriterPermMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSetWriterPermMethod).Fatal("Can't decode method bucketSetWriterPermMethod")
+	}
+
+	bucketRevokeWriterPermMethodId, err := hex.DecodeString(bucketRevokeWriterPermMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketRevokeWriterPermMethod).Fatal("Can't decode method bucketRevokeWriterPermMethodId")
+	}
+
+	bucketSetReaderPermMethodId, err := hex.DecodeString(bucketSetReaderPermMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketSetReaderPermMethod).Fatal("Can't decode method bucketSetReaderPermMethodId")
+	}
+
+	bucketRevokeReaderPermMethodId, err := hex.DecodeString(bucketRevokeReaderPermMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", bucketRevokeReaderPermMethod).Fatal("Can't decode method bucketRevokeReaderPermMethodId")
+	}
+
 	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
 		if key, err := types.NewHashFromHexString(k); err != nil {
@@ -401,6 +580,28 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		adminTransferNodeOwnershipMethodId:     adminTransferNodeOwnershipMethodId,
 		adminTransferCdnNodeOwnershipMethodId:  adminTransferCdnNodeOwnershipMethodId,
 		eventDispatcher:                        eventDispatcher,
+		accountDepositMethodId:                 accountDepositMethodId,
+		accountBondMethodId:                    accountBondMethodId,
+		accountUnbondMethodId:                  accountUnbondMethodId,
+		accountGetUsdPerCereMethodId:           accountGetUsdPerCereMethodId,
+		accountSetUsdPerCereMethodId:           accountSetUsdPerCereMethodId,
+		accountWithdrawUnbondedMethodId:        accountWithdrawUnbondedMethodId,
+		getAccountsMethodId:                    getAccountsMethodId,
+		bucketCreateMethodId:                   bucketCreateMethodId,
+		bucketChangeOwnerMethodId:              bucketChangeOwnerMethodId,
+		bucketAllocIntoClusterMethodId:         bucketAllocIntoClusterMethodId,
+		bucketSettlePaymentMethodId:            bucketSettlePaymentMethodId,
+		bucketChangeParamsMethodId:             bucketChangeParamsMethodId,
+		bucketListMethodId:                     bucketListMethodId,
+		bucketListForAccountMethodId:           bucketListForAccountMethodId,
+		bucketSetAvailabilityMethodId:          bucketSetAvailabilityMethodId,
+		bucketSetResourceCapMethodId:           bucketSetResourceCapMethodId,
+		betBucketWritersMethodId:               betBucketWritersMethodId,
+		betBucketReadersMethodId:               betBucketReadersMethodId,
+		bucketSetWriterPermMethodId:            bucketSetWriterPermMethodId,
+		bucketRevokeWriterPermMethodId:         bucketRevokeWriterPermMethodId,
+		bucketSetReaderPermMethodId:            bucketSetReaderPermMethodId,
+		bucketRevokeReaderPermMethodId:         bucketRevokeReaderPermMethodId,
 	}
 }
 
@@ -619,4 +820,114 @@ func (d *ddcBucketContract) AdminTransferNodeOwnership(nodeKey string, newOwner 
 func (d *ddcBucketContract) AdminTransferCdnNodeOwnership(cdnNodeKey string, newOwner types.AccountID) error {
 	err := d.callToRead(newOwner, d.adminTransferCdnNodeOwnershipMethodId, cdnNodeKey, newOwner)
 	return err
+}
+
+func (d *ddcBucketContract) AccountDeposit() error {
+	err := d.callToRead(nil, d.accountDepositMethodId, nil)
+	return err
+}
+
+func (d *ddcBucketContract) AccountBond(bondAmount Balance) error {
+	err := d.callToRead(bondAmount, d.accountBondMethodId, bondAmount)
+	return err
+}
+
+func (d *ddcBucketContract) AccountUnbond(bondAmount Balance) error {
+	err := d.callToRead(bondAmount, d.accountUnbondMethodId)
+	return err
+}
+
+func (d *ddcBucketContract) AccountGetUsdPerCere() (balance Balance, err error) {
+	err = d.callToRead(balance, d.accountGetUsdPerCereMethodId, balance)
+	return balance, err
+}
+
+func (d *ddcBucketContract) AccountSetUsdPerCere(usdPerCere Balance) error {
+	err := d.callToRead(usdPerCere, d.accountSetUsdPerCereMethodId)
+	return err
+}
+
+func (d *ddcBucketContract) AccountWithdrawUnbonded() error {
+	err := d.callToRead(nil, d.accountWithdrawUnbondedMethodId, nil)
+	return err
+}
+
+func (d *ddcBucketContract) GetAccounts() (accounts []types.AccountID, err error) {
+	err = d.callToRead(accounts, d.getAccountsMethodId, accounts)
+	return accounts, err
+}
+
+func (d *ddcBucketContract) BucketCreate(bucketParams BucketParams, clusterId uint32, ownerId types.AccountID) (bucketId uint32, err error) {
+	err = d.callToRead(bucketId, d.bucketCreateMethodId, bucketParams, clusterId, ownerId)
+	return bucketId, err
+}
+
+func (d *ddcBucketContract) BucketChangeOwner(bucketId uint32, newOwnerId types.AccountID) error {
+	err := d.callToRead(newOwnerId, d.bucketChangeOwnerMethodId, bucketId, newOwnerId)
+	return err
+}
+
+func (d *ddcBucketContract) BucketAllocIntoCluster(bucketId uint32, resource Resource) error {
+	// TODO Implement BucketAllocIntoCluster logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketSettlePayment(bucketId uint32) error {
+	// TODO Implement BucketSettlePayment logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketChangeParams(bucketId uint32, bucketParams BucketParams) error {
+	// TODO Implement BucketChangeParams logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, ownerId string) []*BucketInfo {
+	// TODO Implement BucketList logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketListForAccount(ownerId types.AccountID) ([]*Bucket, error) {
+	// TODO Implement BucketListForAccount logic
+	return nil, nil
+}
+
+func (d *ddcBucketContract) BucketSetAvailability(bucketId uint32, publicAvailability bool) error {
+	// TODO Implement BucketSetAvailability logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketSetResourceCap(bucketId uint32, newResourceCap Resource) error {
+	// TODO Implement BucketSetResourceCap logic
+	return nil
+}
+
+func (d *ddcBucketContract) GetBucketWriters(bucketId uint32) ([]types.AccountID, error) {
+	// TODO Implement GetBucketWriters logic
+	return nil, nil
+}
+
+func (d *ddcBucketContract) GetBucketReaders(bucketId uint32) ([]types.AccountID, error) {
+	// TODO Implement GetBucketReaders logic
+	return nil, nil
+}
+
+func (d *ddcBucketContract) BucketSetWriterPerm(bucketId uint32, writer types.AccountID) error {
+	// Implement BucketSetWriterPerm logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId uint32, writer types.AccountID) error {
+	// TODO Implement BucketRevokeWriterPerm logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketSetReaderPerm(bucketId uint32, reader types.AccountID) error {
+	// TODO Implement BucketSetReaderPerm logic
+	return nil
+}
+
+func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId uint32, reader types.AccountID) error {
+	// TODO Implement BucketRevokeReaderPerm logic
+	return nil
 }
