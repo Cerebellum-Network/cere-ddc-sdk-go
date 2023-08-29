@@ -98,14 +98,14 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterGet(clusterId uint32) (*bucket.ClusterInfo, error) {
+func (d *ddcBucketContractCached) ClusterGet(clusterId bucket.ClusterId) (*bucket.ClusterInfo, error) {
 	return d.ddcBucketContract.ClusterGet(clusterId)
 }
 
-func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeInfo, error) {
+func (d *ddcBucketContractCached) NodeGet(nodeKey bucket.NodeKey) (*bucket.NodeInfo, error) {
 
-	result, err := d.nodeSingleFlight.Do(nodeKey, func() (interface{}, error) {
-		if cached, ok := d.nodeCache.Get(nodeKey); ok {
+	result, err := d.nodeSingleFlight.Do(nodeKey.ToHexString(), func() (interface{}, error) {
+		if cached, ok := d.nodeCache.Get(nodeKey.ToHexString()); ok {
 			return cached, nil
 		}
 
@@ -114,7 +114,7 @@ func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeInfo, err
 			return nil, err
 		}
 
-		d.nodeCache.SetDefault(nodeKey, value)
+		d.nodeCache.SetDefault(nodeKey.ToHexString(), value)
 		return value, nil
 	})
 
@@ -122,11 +122,11 @@ func (d *ddcBucketContractCached) NodeGet(nodeKey string) (*bucket.NodeInfo, err
 	return resp, err
 }
 
-func (d *ddcBucketContractCached) CDNNodeGet(nodeKey string) (*bucket.CDNNodeInfo, error) {
-	return d.ddcBucketContract.CDNNodeGet(nodeKey)
+func (d *ddcBucketContractCached) CdnNodeGet(nodeKey bucket.CdnNodeKey) (*bucket.CdnNodeInfo, error) {
+	return d.ddcBucketContract.CdnNodeGet(nodeKey)
 }
 
-func (d *ddcBucketContractCached) BucketGet(bucketId uint32) (*bucket.BucketInfo, error) {
+func (d *ddcBucketContractCached) BucketGet(bucketId bucket.BucketId) (*bucket.BucketInfo, error) {
 	key := toString(bucketId)
 	result, err := d.bucketSingleFlight.Do(key, func() (interface{}, error) {
 		if cached, ok := d.bucketCache.Get(key); ok {
@@ -201,11 +201,11 @@ func (d *ddcBucketContractCached) ClearAccounts() {
 }
 
 func (d *ddcBucketContractCached) ClearNodeById(key bucket.NodeKey) { //nolint:golint,unused
-	d.nodeCache.Delete(key)
+	d.nodeCache.Delete(key.ToHexString())
 }
 
-func (d *ddcBucketContractCached) ClearNodeByKey(nodeKey string) {
-	d.nodeCache.Delete(nodeKey)
+func (d *ddcBucketContractCached) ClearNodeByKey(nodeKey bucket.NodeKey) {
+	d.nodeCache.Delete(nodeKey.ToHexString())
 }
 
 func (d *ddcBucketContractCached) ClearBucketById(id bucket.BucketId) {
@@ -224,7 +224,7 @@ func cacheDurationOrDefault(duration time.Duration, defaultDuration time.Duratio
 	return defaultDuration
 }
 
-func isNodeKeyPresent(nodeKeys []string, nodeKey string) bool {
+func isNodeKeyPresent(nodeKeys []bucket.NodeKey, nodeKey bucket.NodeKey) bool {
 	for _, key := range nodeKeys {
 		if key == nodeKey {
 			return true
@@ -233,7 +233,7 @@ func isNodeKeyPresent(nodeKeys []string, nodeKey string) bool {
 	return false
 }
 
-func toString(value uint32) string {
+func toString(value bucket.BucketId) string {
 	return strconv.FormatUint(uint64(value), 10)
 }
 
@@ -251,7 +251,7 @@ func validateCDNNodeParams(params bucket.CDNNodeParams) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId uint32, err error) {
+func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId bucket.ClusterId, err error) {
 	clusterId, err = d.ddcBucketContract.ClusterCreate(cluster)
 
 	if err != nil {
@@ -264,10 +264,7 @@ func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clu
 	return clusterId, nil
 }
 
-func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
+func (d *ddcBucketContractCached) ClusterAddNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	if len(vNodes) == 0 {
 		return errors.New("No vNodes provided.")
 	}
@@ -292,7 +289,7 @@ func (d *ddcBucketContractCached) ClusterAddNode(clusterId uint32, nodeKey strin
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey string) error {
+func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
 	err := d.ddcBucketContract.ClusterRemoveNode(clusterId, nodeKey)
 	if err != nil {
 		return err
@@ -304,7 +301,7 @@ func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId uint32, nodeKey st
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey string, vNodes [][]bucket.Token) error {
+func (d *ddcBucketContractCached) ClusterResetNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	clusterStatus, err := d.ClusterGet(clusterId)
 	if err != nil {
 		return bucket.ErrClusterDoesNotExist
@@ -325,10 +322,7 @@ func (d *ddcBucketContractCached) ClusterResetNode(clusterId uint32, nodeKey str
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes [][]bucket.Token, newNodeKey string) error {
-	if newNodeKey == "" {
-		return errors.New("Empty new node key.")
-	}
+func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
 	if len(vNodes) == 0 {
 		return errors.New("No vNodes provided.")
 	}
@@ -353,11 +347,7 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId uint32, vNodes []
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey string) error {
-	if cdnNodeKey == "" {
-		return errors.New("Empty CDN node key.")
-	}
-
+func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	clusterStatus, responseError := d.ClusterGet(clusterId)
 	if responseError != nil {
 		return bucket.ErrClusterDoesNotExist
@@ -378,10 +368,7 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId uint32, cdnNodeKey
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNodeKey string) error {
-	if cdnNodeKey == "" {
-		return errors.New("Empty CDN node key.")
-	}
+func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 
 	clusterStatus, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
@@ -402,7 +389,7 @@ func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId uint32, cdnNode
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params bucket.Params) error {
+func (d *ddcBucketContractCached) ClusterSetParams(clusterId bucket.ClusterId, params bucket.Params) error {
 	if params == "" {
 		return errors.New("Empty cluster parameters.")
 	}
@@ -423,7 +410,7 @@ func (d *ddcBucketContractCached) ClusterSetParams(clusterId uint32, params buck
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemove(clusterId uint32) error {
+func (d *ddcBucketContractCached) ClusterRemove(clusterId bucket.ClusterId) error {
 	_, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
 		return bucket.ErrClusterDoesNotExist
@@ -440,11 +427,7 @@ func (d *ddcBucketContractCached) ClusterRemove(clusterId uint32) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId uint32, nodeKey string, statusInCluster string) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
-
+func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
 	if statusInCluster == "" {
 		return errors.New("Empty status in cluster.")
 	}
@@ -469,11 +452,7 @@ func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId uint32, nodeKey
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnNodeKey string, statusInCluster string) error {
-	if cdnNodeKey == "" {
-		return errors.New("Empty CDN node key.")
-	}
-
+func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
 	if statusInCluster == "" {
 		return errors.New("Empty status in cluster.")
 	}
@@ -497,20 +476,24 @@ func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId uint32, cdnN
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId string) []*bucket.ClusterInfo {
-	clusters := d.ddcBucketContract.ClusterList(offset, limit, filterManagerId)
+func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
+	if limit == 0 {
+		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
+	}
 
-	if clusters == nil {
-		return []*bucket.ClusterInfo{}
+	clusters, err := d.ddcBucketContract.ClusterList(offset, limit, filterManagerId)
+
+	if err != nil {
+		return nil, err
 	}
 
 	d.ClearBuckets()
 	d.ClearNodes()
 
-	return clusters
+	return clusters, nil
 }
 
-func (d *ddcBucketContractCached) NodeCreate(nodeKey string, params bucket.Params, capacity bucket.Resource) (key string, err error) {
+func (d *ddcBucketContractCached) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource) (key bucket.NodeKey, err error) {
 	key, err = d.ddcBucketContract.NodeCreate(nodeKey, params, capacity)
 
 	d.ClearNodes()
@@ -518,11 +501,7 @@ func (d *ddcBucketContractCached) NodeCreate(nodeKey string, params bucket.Param
 	return key, err
 }
 
-func (d *ddcBucketContractCached) NodeRemove(nodeKey string) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
-
+func (d *ddcBucketContractCached) NodeRemove(nodeKey bucket.NodeKey) error {
 	err := d.ddcBucketContract.NodeRemove(nodeKey)
 
 	if err != nil {
@@ -535,11 +514,7 @@ func (d *ddcBucketContractCached) NodeRemove(nodeKey string) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) NodeSetParams(nodeKey string, params bucket.Params) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
-
+func (d *ddcBucketContractCached) NodeSetParams(nodeKey bucket.NodeKey, params bucket.Params) error {
 	err := d.ddcBucketContract.NodeSetParams(nodeKey, params)
 
 	if err != nil {
@@ -551,12 +526,12 @@ func (d *ddcBucketContractCached) NodeSetParams(nodeKey string, params bucket.Pa
 	return nil
 }
 
-func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.NodeInfo, error) {
+func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
 
-	nodes, err := d.ddcBucketContract.NodeList(offset, limit, filterManagerId)
+	nodes, err := d.ddcBucketContract.NodeList(offset, limit, filterProviderId)
 	if err != nil {
 		return nil, err
 	}
@@ -564,12 +539,8 @@ func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterMa
 	return nodes, nil
 }
 
-func (d *ddcBucketContractCached) CDNNodeCreate(nodeKey string, params bucket.CDNNodeParams) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
-
-	err := d.ddcBucketContract.CDNNodeCreate(nodeKey, params)
+func (d *ddcBucketContractCached) CdnNodeCreate(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+	err := d.ddcBucketContract.CdnNodeCreate(nodeKey, params)
 
 	if err != nil {
 		return err
@@ -580,12 +551,8 @@ func (d *ddcBucketContractCached) CDNNodeCreate(nodeKey string, params bucket.CD
 	return err
 }
 
-func (d *ddcBucketContractCached) CDNNodeRemove(nodeKey string) error {
-	if nodeKey == "" {
-		return errors.New("Empty CDN node key.")
-	}
-
-	err := d.ddcBucketContract.CDNNodeRemove(nodeKey)
+func (d *ddcBucketContractCached) CdnNodeRemove(nodeKey bucket.CdnNodeKey) error {
+	err := d.ddcBucketContract.CdnNodeRemove(nodeKey)
 	if err != nil {
 		return err
 	}
@@ -597,16 +564,12 @@ func (d *ddcBucketContractCached) CDNNodeRemove(nodeKey string) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket.CDNNodeParams) error {
-	if nodeKey == "" {
-		return errors.New("Empty node key.")
-	}
-
+func (d *ddcBucketContractCached) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
 	if err := validateCDNNodeParams(params); err != nil {
 		return errors.Wrap(err, "Invalid CDN node params.")
 	}
 
-	err := d.ddcBucketContract.CDNNodeSetParams(nodeKey, params)
+	err := d.ddcBucketContract.CdnNodeSetParams(nodeKey, params)
 	if err != nil {
 		return err
 	}
@@ -616,16 +579,12 @@ func (d *ddcBucketContractCached) CDNNodeSetParams(nodeKey string, params bucket
 	return nil
 }
 
-func (d *ddcBucketContractCached) CDNNodeList(offset uint32, limit uint32, filterManagerId string) ([]*bucket.CDNNodeInfo, error) {
+func (d *ddcBucketContractCached) CdnNodeList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
 
-	if filterManagerId == "" {
-		return nil, errors.New("Filter manager id is empty.")
-	}
-
-	nodes, err := d.ddcBucketContract.CDNNodeList(offset, limit, filterManagerId)
+	nodes, err := d.ddcBucketContract.CdnNodeList(offset, limit, filterManagerId)
 	if err != nil {
 		return nil, err
 	}
@@ -641,7 +600,7 @@ func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permiss
 	return d.ddcBucketContract.HasPermission(account, permission)
 }
 
-func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId types.AccountID) error {
+func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId bucket.AccountId) error {
 	err := d.ddcBucketContract.GrantTrustedManagerPermission(managerId)
 
 	d.ClearBuckets()
@@ -650,7 +609,7 @@ func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId types.
 	return err
 }
 
-func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId types.AccountID) error {
+func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId bucket.AccountId) error {
 	err := d.ddcBucketContract.RevokeTrustedManagerPermission(managerId)
 
 	d.ClearBuckets()
@@ -659,7 +618,7 @@ func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId types
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminGrantPermission(grantee types.AccountID, permission string) error {
+func (d *ddcBucketContractCached) AdminGrantPermission(grantee bucket.AccountId, permission string) error {
 	if permission == "" {
 		return errors.New("Empty permission string.")
 	}
@@ -671,7 +630,7 @@ func (d *ddcBucketContractCached) AdminGrantPermission(grantee types.AccountID, 
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminRevokePermission(grantee types.AccountID, permission string) error {
+func (d *ddcBucketContractCached) AdminRevokePermission(grantee bucket.AccountId, permission string) error {
 	if permission == "" {
 		return errors.New("Empty permission string.")
 	}
@@ -683,10 +642,7 @@ func (d *ddcBucketContractCached) AdminRevokePermission(grantee types.AccountID,
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey string, newOwner types.AccountID) error {
-	if nodeKey == "" {
-		return errors.New("Empty nodeKey string.")
-	}
+func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
 	err := d.ddcBucketContract.AdminTransferNodeOwnership(nodeKey, newOwner)
 
 	d.ClearBuckets()
@@ -695,14 +651,100 @@ func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey string, new
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(cdnNodeKey string, newOwner types.AccountID) error {
-	if cdnNodeKey == "" {
-		return errors.New("Empty cdnNodeKey string.")
-	}
+func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
 	err := d.ddcBucketContract.AdminTransferCdnNodeOwnership(cdnNodeKey, newOwner)
 
 	d.ClearBuckets()
 	d.ClearNodes()
 
 	return err
+}
+
+// TODO implement caching for underlying methods
+func (d *ddcBucketContractCached) AccountDeposit() error {
+	return d.ddcBucketContract.AccountDeposit()
+}
+
+func (d *ddcBucketContractCached) AccountBond(bondAmount bucket.Balance) error {
+	return d.ddcBucketContract.AccountBond(bondAmount)
+}
+
+func (d *ddcBucketContractCached) AccountUnbond(bondAmount bucket.Balance) error {
+	return d.ddcBucketContract.AccountUnbond(bondAmount)
+}
+
+func (d *ddcBucketContractCached) AccountGetUsdPerCere() (balance bucket.Balance, err error) {
+	return d.ddcBucketContract.AccountGetUsdPerCere()
+}
+
+func (d *ddcBucketContractCached) AccountSetUsdPerCere(usdPerCere bucket.Balance) error {
+	return d.ddcBucketContract.AccountSetUsdPerCere(usdPerCere)
+}
+
+func (d *ddcBucketContractCached) AccountWithdrawUnbonded() error {
+	return d.ddcBucketContract.AccountWithdrawUnbonded()
+}
+
+func (d *ddcBucketContractCached) GetAccounts() ([]types.AccountID, error) {
+	return d.ddcBucketContract.GetAccounts()
+}
+
+func (d *ddcBucketContractCached) BucketCreate(bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (bucketId bucket.BucketId, err error) {
+	return d.ddcBucketContract.BucketCreate(bucketParams, clusterId, ownerId)
+}
+
+func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.AccountID) error {
+	return d.ddcBucketContract.BucketChangeOwner(bucketId, ownerId)
+}
+
+func (d *ddcBucketContractCached) BucketAllocIntoCluster(bucketId bucket.BucketId, resource bucket.Resource) error {
+	return d.ddcBucketContract.BucketAllocIntoCluster(bucketId, resource)
+}
+
+func (d *ddcBucketContractCached) BucketSettlePayment(bucketId bucket.BucketId) error {
+	return d.ddcBucketContract.BucketSettlePayment(bucketId)
+}
+
+func (d *ddcBucketContractCached) BucketChangeParams(bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
+	return d.ddcBucketContract.BucketChangeParams(bucketId, bucketParams)
+}
+
+func (d *ddcBucketContractCached) BucketList(offset uint32, limit uint32, filterOwnerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
+	return d.ddcBucketContract.BucketList(offset, limit, filterOwnerId)
+}
+
+func (d *ddcBucketContractCached) BucketListForAccount(ownerId types.AccountID) ([]*bucket.Bucket, error) {
+	return d.ddcBucketContract.BucketListForAccount(ownerId)
+}
+
+func (d *ddcBucketContractCached) BucketSetAvailability(bucketId bucket.BucketId, publicAvailability bool) error {
+	return d.ddcBucketContract.BucketSetAvailability(bucketId, publicAvailability)
+}
+
+func (d *ddcBucketContractCached) BucketSetResourceCap(bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
+	return d.ddcBucketContract.BucketSetResourceCap(bucketId, newResourceCap)
+}
+
+func (d *ddcBucketContractCached) GetBucketWriters(bucketId bucket.BucketId) ([]types.AccountID, error) {
+	return d.ddcBucketContract.GetBucketWriters(bucketId)
+}
+
+func (d *ddcBucketContractCached) GetBucketReaders(bucketId bucket.BucketId) ([]types.AccountID, error) {
+	return d.ddcBucketContract.GetBucketReaders(bucketId)
+}
+
+func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+	return d.ddcBucketContract.BucketSetWriterPerm(bucketId, writer)
+}
+
+func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+	return d.ddcBucketContract.BucketRevokeWriterPerm(bucketId, writer)
+}
+
+func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+	return d.ddcBucketContract.BucketSetReaderPerm(bucketId, reader)
+}
+
+func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+	return d.ddcBucketContract.BucketRevokeReaderPerm(bucketId, reader)
 }
