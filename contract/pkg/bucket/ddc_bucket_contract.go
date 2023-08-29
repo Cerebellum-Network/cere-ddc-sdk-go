@@ -900,7 +900,7 @@ func (d *ddcBucketContract) BucketChangeParams(bucketId BucketId, bucketParams B
 
 func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, filterOwnerId types.OptionAccountID) (*BucketListInfo, error) {
 	res := BucketListInfo{}
-	err := d.callToReadNoResult(&res, d.cdnNodeListMethodId, offset, limit, filterOwnerId)
+	err := d.callToReadNoResult(&res, d.bucketListMethodId, offset, limit, filterOwnerId)
 	return &res, err
 }
 
