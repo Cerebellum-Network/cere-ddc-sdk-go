@@ -68,6 +68,8 @@ const (
 	bucketRevokeWriterPermMethod         = ""
 	bucketSetReaderPermMethod            = ""
 	bucketRevokeReaderPermMethod         = ""
+	getBucketWritersMethod               = ""
+	getBucketReadersMethod               = ""
 
 	BucketCreatedEventId                = "004464634275636b65743a3a4275636b65744372656174656400000000000000"
 	BucketAllocatedEventId              = "004464634275636b65743a3a4275636b6574416c6c6f63617465640000000000"
@@ -120,7 +122,7 @@ type (
 		BucketAllocIntoCluster(bucketId uint32, resource Resource) error
 		BucketSettlePayment(bucketId uint32) error
 		BucketChangeParams(bucketId uint32, bucketParams BucketParams) error
-		BucketList(offset uint32, limit uint32, ownerId string) []*BucketInfo
+		BucketList(offset uint32, limit uint32, ownerId string) ([]*BucketInfo, error)
 		BucketListForAccount(ownerId types.AccountID) ([]*Bucket, error)
 		BucketSetAvailability(bucketId uint32, publicAvailability bool) error
 		BucketSetResourceCap(bucketId uint32, newResourceCap Resource) error
@@ -225,6 +227,8 @@ type (
 		bucketRevokeWriterPermMethodId         []byte
 		bucketSetReaderPermMethodId            []byte
 		bucketRevokeReaderPermMethodId         []byte
+		getBucketReadersMethodId               []byte
+		getBucketWritersMethodId               []byte
 
 		eventDispatcher map[types.Hash]pkg.ContractEventDispatchEntry
 	}
@@ -534,6 +538,16 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		log.WithError(err).WithField("method", bucketRevokeReaderPermMethod).Fatal("Can't decode method bucketRevokeReaderPermMethodId")
 	}
 
+	getBucketWritersMethodId, err := hex.DecodeString(getBucketWritersMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", getBucketWritersMethod).Fatal("Can't decode method getBucketWritersMethodId")
+	}
+
+	getBucketReadersMethodId, err := hex.DecodeString(getBucketReadersMethod)
+	if err != nil {
+		log.WithError(err).WithField("method", getBucketReadersMethod).Fatal("Can't decode method getBucketReadersMethodId")
+	}
+
 	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
 		if key, err := types.NewHashFromHexString(k); err != nil {
@@ -602,6 +616,8 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 		bucketRevokeWriterPermMethodId:         bucketRevokeWriterPermMethodId,
 		bucketSetReaderPermMethodId:            bucketSetReaderPermMethodId,
 		bucketRevokeReaderPermMethodId:         bucketRevokeReaderPermMethodId,
+		getBucketWritersMethodId:               getBucketWritersMethodId,
+		getBucketReadersMethodId:               getBucketReadersMethodId,
 	}
 }
 
@@ -868,66 +884,66 @@ func (d *ddcBucketContract) BucketChangeOwner(bucketId uint32, newOwnerId types.
 }
 
 func (d *ddcBucketContract) BucketAllocIntoCluster(bucketId uint32, resource Resource) error {
-	// TODO Implement BucketAllocIntoCluster logic
-	return nil
+	err := d.callToRead(bucketId, d.bucketAllocIntoClusterMethodId, resource, bucketId)
+	return err
 }
 
 func (d *ddcBucketContract) BucketSettlePayment(bucketId uint32) error {
-	// TODO Implement BucketSettlePayment logic
-	return nil
+	err := d.callToRead(bucketId, d.bucketSettlePaymentMethodId, bucketId)
+	return err
 }
 
 func (d *ddcBucketContract) BucketChangeParams(bucketId uint32, bucketParams BucketParams) error {
-	// TODO Implement BucketChangeParams logic
-	return nil
+	err := d.callToRead(bucketId, d.bucketChangeParamsMethodId, bucketParams, bucketId)
+	return err
 }
 
-func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, ownerId string) []*BucketInfo {
-	// TODO Implement BucketList logic
-	return nil
+func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, ownerId string) (buckets []*BucketInfo, err error) {
+	err = d.callToRead(buckets, d.bucketListMethodId, offset, limit, ownerId)
+	return buckets, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId types.AccountID) ([]*Bucket, error) {
-	// TODO Implement BucketListForAccount logic
-	return nil, nil
+func (d *ddcBucketContract) BucketListForAccount(ownerId types.AccountID) (buckets []*Bucket, err error) {
+	err = d.callToRead(buckets, d.bucketListForAccountMethodId, ownerId)
+	return buckets, err
 }
 
 func (d *ddcBucketContract) BucketSetAvailability(bucketId uint32, publicAvailability bool) error {
-	// TODO Implement BucketSetAvailability logic
-	return nil
+	err := d.callToRead(bucketId, d.bucketSetAvailabilityMethodId, publicAvailability, bucketId)
+	return err
 }
 
 func (d *ddcBucketContract) BucketSetResourceCap(bucketId uint32, newResourceCap Resource) error {
-	// TODO Implement BucketSetResourceCap logic
-	return nil
+	err := d.callToRead(bucketId, d.bucketSetResourceCapMethodId, newResourceCap, bucketId)
+	return err
 }
 
-func (d *ddcBucketContract) GetBucketWriters(bucketId uint32) ([]types.AccountID, error) {
-	// TODO Implement GetBucketWriters logic
-	return nil, nil
+func (d *ddcBucketContract) GetBucketWriters(bucketId uint32) (writers []types.AccountID, err error) {
+	err = d.callToRead(writers, d.getBucketWritersMethodId, bucketId)
+	return writers, err
 }
 
-func (d *ddcBucketContract) GetBucketReaders(bucketId uint32) ([]types.AccountID, error) {
-	// TODO Implement GetBucketReaders logic
-	return nil, nil
+func (d *ddcBucketContract) GetBucketReaders(bucketId uint32) (readers []types.AccountID, err error) {
+	err = d.callToRead(readers, d.getBucketReadersMethodId, bucketId)
+	return readers, err
 }
 
 func (d *ddcBucketContract) BucketSetWriterPerm(bucketId uint32, writer types.AccountID) error {
-	// Implement BucketSetWriterPerm logic
-	return nil
+	err := d.callToRead(writer, d.bucketSetWriterPermMethodId, bucketId, writer)
+	return err
 }
 
 func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId uint32, writer types.AccountID) error {
-	// TODO Implement BucketRevokeWriterPerm logic
-	return nil
+	err := d.callToRead(writer, d.bucketRevokeWriterPermMethodId, bucketId, writer)
+	return err
 }
 
 func (d *ddcBucketContract) BucketSetReaderPerm(bucketId uint32, reader types.AccountID) error {
-	// TODO Implement BucketSetReaderPerm logic
-	return nil
+	err := d.callToRead(reader, d.bucketSetReaderPermMethodId, bucketId, reader)
+	return err
 }
 
 func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId uint32, reader types.AccountID) error {
-	// TODO Implement BucketRevokeReaderPerm logic
-	return nil
+	err := d.callToRead(reader, d.bucketRevokeReaderPermMethodId, bucketId, reader)
+	return err
 }
