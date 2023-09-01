@@ -117,7 +117,7 @@ type (
 
 		BucketGet(bucketId BucketId) (*BucketInfo, error)
 		BucketCreate(bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (bucketId BucketId, err error)
-		BucketChangeOwner(bucketId BucketId, ownerId AccountId) error
+		BucketChangeOwner(bucketId BucketId, ownerId types.OptionAccountID) error
 		BucketAllocIntoCluster(bucketId BucketId, resource Resource) error
 		BucketSettlePayment(bucketId BucketId) error
 		BucketChangeParams(bucketId BucketId, bucketParams BucketParams) error
@@ -878,7 +878,7 @@ func (d *ddcBucketContract) BucketCreate(bucketParams BucketParams, clusterId Cl
 	return bucketId, err
 }
 
-func (d *ddcBucketContract) BucketChangeOwner(bucketId BucketId, newOwnerId types.AccountID) error {
+func (d *ddcBucketContract) BucketChangeOwner(bucketId BucketId, newOwnerId types.OptionAccountID) error {
 	err := d.callToRead(newOwnerId, d.bucketChangeOwnerMethodId, bucketId, newOwnerId)
 	return err
 }
