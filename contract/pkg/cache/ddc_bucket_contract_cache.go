@@ -686,14 +686,15 @@ func (d *ddcBucketContractCached) AccountWithdrawUnbonded() error {
 }
 
 func (d *ddcBucketContractCached) GetAccounts() ([]types.AccountID, error) {
-	return d.ddcBucketContract.GetAccounts()
+	accounts, err := d.ddcBucketContract.GetAccounts()
+	return accounts, err
 }
 
 func (d *ddcBucketContractCached) BucketCreate(bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (bucketId bucket.BucketId, err error) {
 	return d.ddcBucketContract.BucketCreate(bucketParams, clusterId, ownerId)
 }
 
-func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.AccountID) error {
+func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
 	return d.ddcBucketContract.BucketChangeOwner(bucketId, ownerId)
 }
 
