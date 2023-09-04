@@ -122,15 +122,15 @@ type (
 		BucketSettlePayment(bucketId BucketId) error
 		BucketChangeParams(bucketId BucketId, bucketParams BucketParams) error
 		BucketList(offset uint32, limit uint32, ownerId types.OptionAccountID) (*BucketListInfo, error)
-		BucketListForAccount(ownerId AccountId) ([]*Bucket, error)
+		BucketListForAccount(ownerId types.OptionAccountID) ([]*Bucket, error)
 		BucketSetAvailability(bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(bucketId BucketId) ([]AccountId, error)
 		GetBucketReaders(bucketId BucketId) ([]AccountId, error)
-		BucketSetWriterPerm(bucketId BucketId, writer AccountId) error
-		BucketRevokeWriterPerm(bucketId BucketId, writer AccountId) error
-		BucketSetReaderPerm(bucketId BucketId, reader AccountId) error
-		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
+		BucketSetWriterPerm(bucketId BucketId, writer types.OptionAccountID) error
+		BucketRevokeWriterPerm(bucketId BucketId, writer types.OptionAccountID) error
+		BucketSetReaderPerm(bucketId BucketId, reader types.OptionAccountID) error
+		BucketRevokeReaderPerm(bucketId BucketId, reader types.OptionAccountID) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
 		ClusterCreate(cluster *NewCluster) (clusterId ClusterId, err error)
@@ -904,7 +904,7 @@ func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, filterOwnerI
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId types.AccountID) (buckets []*Bucket, err error) {
+func (d *ddcBucketContract) BucketListForAccount(ownerId types.OptionAccountID) (buckets []*Bucket, err error) {
 	err = d.callToRead(buckets, d.bucketListForAccountMethodId, ownerId)
 	return buckets, err
 }
@@ -929,22 +929,22 @@ func (d *ddcBucketContract) GetBucketReaders(bucketId types.U32) (readers []type
 	return readers, err
 }
 
-func (d *ddcBucketContract) BucketSetWriterPerm(bucketId types.U32, writer types.AccountID) error {
+func (d *ddcBucketContract) BucketSetWriterPerm(bucketId types.U32, writer types.OptionAccountID) error {
 	err := d.callToRead(writer, d.bucketSetWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId types.U32, writer types.AccountID) error {
+func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId types.U32, writer types.OptionAccountID) error {
 	err := d.callToRead(writer, d.bucketRevokeWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketSetReaderPerm(bucketId types.U32, reader types.AccountID) error {
+func (d *ddcBucketContract) BucketSetReaderPerm(bucketId types.U32, reader types.OptionAccountID) error {
 	err := d.callToRead(reader, d.bucketSetReaderPermMethodId, bucketId, reader)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId types.U32, reader types.AccountID) error {
+func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId types.U32, reader types.OptionAccountID) error {
 	err := d.callToRead(reader, d.bucketRevokeReaderPermMethodId, bucketId, reader)
 	return err
 }
