@@ -267,19 +267,19 @@ func (m *mockedDdcBucketContract) GetBucketReaders(bucketId bucket.BucketId) ([]
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+func (m *mockedDdcBucketContract) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+func (m *mockedDdcBucketContract) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	panic("implement me")
 }
 
