@@ -714,7 +714,7 @@ func (d *ddcBucketContractCached) BucketList(offset uint32, limit uint32, filter
 	return d.ddcBucketContract.BucketList(offset, limit, filterOwnerId)
 }
 
-func (d *ddcBucketContractCached) BucketListForAccount(ownerId types.AccountID) ([]*bucket.Bucket, error) {
+func (d *ddcBucketContractCached) BucketListForAccount(ownerId types.OptionAccountID) ([]*bucket.Bucket, error) {
 	return d.ddcBucketContract.BucketListForAccount(ownerId)
 }
 
@@ -734,18 +734,18 @@ func (d *ddcBucketContractCached) GetBucketReaders(bucketId bucket.BucketId) ([]
 	return d.ddcBucketContract.GetBucketReaders(bucketId)
 }
 
-func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	return d.ddcBucketContract.BucketSetWriterPerm(bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.AccountID) error {
+func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	return d.ddcBucketContract.BucketRevokeWriterPerm(bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	return d.ddcBucketContract.BucketSetReaderPerm(bucketId, reader)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.AccountID) error {
+func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	return d.ddcBucketContract.BucketRevokeReaderPerm(bucketId, reader)
 }

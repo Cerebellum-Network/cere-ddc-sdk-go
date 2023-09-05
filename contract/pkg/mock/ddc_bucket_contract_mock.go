@@ -429,7 +429,7 @@ func (d *ddcBucketContractMock) BucketCreate(bucketParams bucket.BucketParams, c
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.AccountID) error {
+func (d *ddcBucketContractMock) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -454,7 +454,7 @@ func (d *ddcBucketContractMock) BucketList(offset uint32, limit uint32, filterOn
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketListForAccount(ownerId types.AccountID) ([]*bucket.Bucket, error) {
+func (d *ddcBucketContractMock) BucketListForAccount(ownerId types.OptionAccountID) ([]*bucket.Bucket, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -479,22 +479,22 @@ func (d *ddcBucketContractMock) GetBucketReaders(bucketId bucket.BucketId) ([]bu
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
 	//TODO implement me
 	panic("implement me")
 }
