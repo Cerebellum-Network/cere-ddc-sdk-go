@@ -227,7 +227,7 @@ func (m *mockedDdcBucketContract) BucketCreate(bucketParams bucket.BucketParams,
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.AccountID) error {
+func (m *mockedDdcBucketContract) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
 	panic("implement me")
 }
 
