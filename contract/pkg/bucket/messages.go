@@ -120,15 +120,10 @@ type Bucket struct {
 	OwnerId            AccountId
 	ClusterId          ClusterId
 	ResourceReserved   Resource
-	Flow               Flow
 	PublicAvailability bool
 	GasConsumptionCap  Resource
 }
 
-type Flow struct {
-	From     AccountId
-	Schedule Schedule
-}
 type Schedule struct {
 	Rate   Balance
 	Offset Balance
