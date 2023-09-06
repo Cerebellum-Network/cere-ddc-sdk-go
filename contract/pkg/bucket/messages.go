@@ -83,7 +83,7 @@ type Node struct {
 	FreeResources   Resource
 	Params          NodeParams
 	ClusterId       types.OptionU32
-	StatusInCluster types.OptionU8
+	StatusInCluster byte
 }
 
 type NodeInfo struct {
