@@ -193,7 +193,7 @@ func (d *ddcBucketContractMock) AccountGet(account types.AccountID) (*bucket.Acc
 		if acc == account {
 			return &bucket.Account{
 				Bonded:            types.NewU128(*big.NewInt(100000)),
-				UnbondedTimestamp: uint64(time.Now().UnixMilli()),
+				UnbondedTimestamp: types.U64(time.Now().UnixMilli()),
 			}, nil
 		}
 	}
@@ -233,7 +233,7 @@ func CreateBucket(bucketId bucket.BucketId, clusterId uint32, bucketParams strin
 		},
 		Params:             bucketParams,
 		WriterIds:          writerIds,
-		RentCoveredUntilMs: uint64(time.Now().UnixMilli() + time.Hour.Milliseconds()),
+		RentCoveredUntilMs: types.U64(time.Now().UnixMilli() + time.Hour.Milliseconds()),
 	}
 }
 
@@ -309,12 +309,12 @@ func (d *ddcBucketContractMock) ClusterSetCdnNodeStatus(clusterId bucket.Cluster
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
+func (d *ddcBucketContractMock) ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource) (key bucket.NodeKey, err error) {
+func (d *ddcBucketContractMock) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -329,7 +329,7 @@ func (d *ddcBucketContractMock) NodeSetParams(nodeKey bucket.NodeKey, params buc
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
+func (d *ddcBucketContractMock) NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -349,7 +349,7 @@ func (d *ddcBucketContractMock) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, para
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) CdnNodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
+func (d *ddcBucketContractMock) CdnNodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -429,7 +429,7 @@ func (d *ddcBucketContractMock) BucketCreate(bucketParams bucket.BucketParams, c
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
+func (d *ddcBucketContractMock) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -449,12 +449,12 @@ func (d *ddcBucketContractMock) BucketChangeParams(bucketId bucket.BucketId, buc
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketList(offset uint32, limit uint32, filterOnwerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
+func (d *ddcBucketContractMock) BucketList(offset types.U32, limit types.U32, filterOnwerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketListForAccount(ownerId types.OptionAccountID) ([]*bucket.Bucket, error) {
+func (d *ddcBucketContractMock) BucketListForAccount(ownerId bucket.AccountId) ([]*bucket.Bucket, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -479,22 +479,22 @@ func (d *ddcBucketContractMock) GetBucketReaders(bucketId bucket.BucketId) ([]bu
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (d *ddcBucketContractMock) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (d *ddcBucketContractMock) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (d *ddcBucketContractMock) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (d *ddcBucketContractMock) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }

@@ -52,12 +52,12 @@ func (m *mockedDdcBucketContract) AccountGet(account bucket.AccountId) (*bucket.
 	return args.Get(0).(*bucket.Account), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) CdnNodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
+func (m *mockedDdcBucketContract) CdnNodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
 	args := m.Called(offset, limit, filterProviderId)
 	return args.Get(0).(*bucket.CdnNodeListInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
+func (m *mockedDdcBucketContract) NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
 	args := m.Called(offset, limit, filterProviderId)
 	return args.Get(0).(*bucket.NodeListInfo), args.Error(1)
 }
@@ -94,8 +94,8 @@ func (m *mockedDdcBucketContract) CdnNodeCreate(nodeKey bucket.NodeKey, params b
 	return nil
 }
 
-func (m *mockedDdcBucketContract) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource) (key bucket.NodeKey, err error) {
-	args := m.Called(nodeKey, params, capacity)
+func (m *mockedDdcBucketContract) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
+	args := m.Called(nodeKey, params, capacity, rent)
 	accountId, err := types.NewAccountIDFromHexString(args.Get(0).(string))
 	if err != nil {
 		log.Fatalf("Failed to create AccountID from hex string: %v", err)
@@ -130,7 +130,7 @@ func (m *mockedDdcBucketContract) ClusterAddNode(clusterId bucket.ClusterId, nod
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
+func (m *mockedDdcBucketContract) ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
 	args := m.Called(offset, limit, filterManagerId)
 	return args.Get(0).(*bucket.ClusterListInfo), args.Error(1)
 }
@@ -227,7 +227,7 @@ func (m *mockedDdcBucketContract) BucketCreate(bucketParams bucket.BucketParams,
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
+func (m *mockedDdcBucketContract) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
 	panic("implement me")
 }
 
@@ -247,11 +247,11 @@ func (m *mockedDdcBucketContract) BucketChangeParams(bucketId bucket.BucketId, b
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketList(offset uint32, limit uint32, ownerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
+func (m *mockedDdcBucketContract) BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketListForAccount(ownerId types.OptionAccountID) ([]*bucket.Bucket, error) {
+func (m *mockedDdcBucketContract) BucketListForAccount(ownerId bucket.AccountId) ([]*bucket.Bucket, error) {
 	panic("implement me")
 }
 
@@ -267,19 +267,19 @@ func (m *mockedDdcBucketContract) GetBucketReaders(bucketId bucket.BucketId) ([]
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (m *mockedDdcBucketContract) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (m *mockedDdcBucketContract) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	panic("implement me")
 }
 

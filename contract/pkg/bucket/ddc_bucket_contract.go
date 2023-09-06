@@ -109,7 +109,7 @@ type (
 
 		AccountDeposit() error
 		AccountBond(bondAmount Balance) error
-		AccountUnbond(bondAmount Balance) error
+		AccountUnbond(bondAmount Cash) error
 		AccountGetUsdPerCere() (balance Balance, err error)
 		AccountSetUsdPerCere(usdPerCere Balance) error
 		AccountWithdrawUnbonded() error
@@ -117,20 +117,20 @@ type (
 
 		BucketGet(bucketId BucketId) (*BucketInfo, error)
 		BucketCreate(bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (bucketId BucketId, err error)
-		BucketChangeOwner(bucketId BucketId, ownerId types.OptionAccountID) error
+		BucketChangeOwner(bucketId BucketId, ownerId AccountId) error
 		BucketAllocIntoCluster(bucketId BucketId, resource Resource) error
 		BucketSettlePayment(bucketId BucketId) error
 		BucketChangeParams(bucketId BucketId, bucketParams BucketParams) error
-		BucketList(offset uint32, limit uint32, ownerId types.OptionAccountID) (*BucketListInfo, error)
-		BucketListForAccount(ownerId types.OptionAccountID) ([]*Bucket, error)
+		BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*BucketListInfo, error)
+		BucketListForAccount(ownerId AccountId) ([]*Bucket, error)
 		BucketSetAvailability(bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(bucketId BucketId) ([]AccountId, error)
 		GetBucketReaders(bucketId BucketId) ([]AccountId, error)
-		BucketSetWriterPerm(bucketId BucketId, writer types.OptionAccountID) error
-		BucketRevokeWriterPerm(bucketId BucketId, writer types.OptionAccountID) error
-		BucketSetReaderPerm(bucketId BucketId, reader types.OptionAccountID) error
-		BucketRevokeReaderPerm(bucketId BucketId, reader types.OptionAccountID) error
+		BucketSetWriterPerm(bucketId BucketId, writer AccountId) error
+		BucketRevokeWriterPerm(bucketId BucketId, writer AccountId) error
+		BucketSetReaderPerm(bucketId BucketId, reader AccountId) error
+		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
 		ClusterCreate(cluster *NewCluster) (clusterId ClusterId, err error)
@@ -144,18 +144,18 @@ type (
 		ClusterRemove(clusterId ClusterId) error
 		ClusterSetNodeStatus(clusterId ClusterId, nodeKey NodeKey, statusInCluster string) error
 		ClusterSetCdnNodeStatus(clusterId ClusterId, nodeKey CdnNodeKey, statusInCluster string) error
-		ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error)
+		ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error)
 
 		NodeGet(nodeKey NodeKey) (*NodeInfo, error)
-		NodeCreate(nodeKey NodeKey, params Params, capacity Resource) (key NodeKey, err error)
+		NodeCreate(nodeKey NodeKey, params Params, capacity Resource, rent Rent) (key NodeKey, err error)
 		NodeRemove(nodeKey NodeKey) error
 		NodeSetParams(nodeKey NodeKey, params Params) error
-		NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*NodeListInfo, error)
+		NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*NodeListInfo, error)
 		CdnNodeGet(nodeKey CdnNodeKey) (*CdnNodeInfo, error)
 		CdnNodeCreate(nodeKey CdnNodeKey, params CDNNodeParams) error
 		CdnNodeRemove(nodeKey CdnNodeKey) error
 		CdnNodeSetParams(nodeKey CdnNodeKey, params CDNNodeParams) error
-		CdnNodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*CdnNodeListInfo, error)
+		CdnNodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*CdnNodeListInfo, error)
 		AccountGet(account AccountId) (*Account, error)
 		HasPermission(account AccountId, permission string) (bool, error)
 		GrantTrustedManagerPermission(managerId AccountId) error
@@ -755,14 +755,14 @@ func (d *ddcBucketContract) ClusterSetCdnNodeStatus(clusterId ClusterId, nodeKey
 	return err
 }
 
-func (d *ddcBucketContract) ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error) {
+func (d *ddcBucketContract) ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error) {
 	res := ClusterListInfo{}
 	err := d.callToReadNoResult(&res, d.clusterListMethodId, offset, limit, filterManagerId)
 	return &res, err
 }
 
-func (d *ddcBucketContract) NodeCreate(nodeKey NodeKey, params Params, capacity Resource) (key NodeKey, err error) {
-	err = d.callToRead(nodeKey, d.nodeCreateMethodId, nodeKey, params, capacity)
+func (d *ddcBucketContract) NodeCreate(nodeKey NodeKey, params Params, capacity Resource, rent Rent) (key NodeKey, err error) {
+	err = d.callToRead(nodeKey, d.nodeCreateMethodId, nodeKey, params, capacity, rent)
 	return key, err
 }
 
@@ -776,7 +776,7 @@ func (d *ddcBucketContract) NodeSetParams(nodeKey NodeKey, params Params) error 
 	return err
 }
 
-func (d *ddcBucketContract) NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*NodeListInfo, error) {
+func (d *ddcBucketContract) NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*NodeListInfo, error) {
 	res := NodeListInfo{}
 	err := d.callToReadNoResult(&res, d.nodeListMethodId, offset, limit, filterProviderId)
 	return &res, err
@@ -797,7 +797,7 @@ func (d *ddcBucketContract) CdnNodeSetParams(nodeKey CdnNodeKey, params CDNNodeP
 	return err
 }
 
-func (d *ddcBucketContract) CdnNodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*CdnNodeListInfo, error) {
+func (d *ddcBucketContract) CdnNodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*CdnNodeListInfo, error) {
 	res := CdnNodeListInfo{}
 	err := d.callToReadNoResult(&res, d.cdnNodeListMethodId, offset, limit, filterProviderId)
 	return &res, err
@@ -878,7 +878,7 @@ func (d *ddcBucketContract) BucketCreate(bucketParams BucketParams, clusterId Cl
 	return bucketId, err
 }
 
-func (d *ddcBucketContract) BucketChangeOwner(bucketId BucketId, newOwnerId types.OptionAccountID) error {
+func (d *ddcBucketContract) BucketChangeOwner(bucketId BucketId, newOwnerId AccountId) error {
 	err := d.callToRead(newOwnerId, d.bucketChangeOwnerMethodId, bucketId, newOwnerId)
 	return err
 }
@@ -898,13 +898,13 @@ func (d *ddcBucketContract) BucketChangeParams(bucketId types.U32, bucketParams 
 	return err
 }
 
-func (d *ddcBucketContract) BucketList(offset uint32, limit uint32, filterOwnerId types.OptionAccountID) (*BucketListInfo, error) {
+func (d *ddcBucketContract) BucketList(offset types.U32, limit types.U32, filterOwnerId types.OptionAccountID) (*BucketListInfo, error) {
 	res := BucketListInfo{}
 	err := d.callToReadNoResult(&res, d.bucketListMethodId, offset, limit, filterOwnerId)
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId types.OptionAccountID) (buckets []*Bucket, err error) {
+func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (buckets []*Bucket, err error) {
 	err = d.callToRead(buckets, d.bucketListForAccountMethodId, ownerId)
 	return buckets, err
 }
@@ -929,22 +929,22 @@ func (d *ddcBucketContract) GetBucketReaders(bucketId types.U32) (readers []type
 	return readers, err
 }
 
-func (d *ddcBucketContract) BucketSetWriterPerm(bucketId types.U32, writer types.OptionAccountID) error {
+func (d *ddcBucketContract) BucketSetWriterPerm(bucketId types.U32, writer AccountId) error {
 	err := d.callToRead(writer, d.bucketSetWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId types.U32, writer types.OptionAccountID) error {
+func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId types.U32, writer AccountId) error {
 	err := d.callToRead(writer, d.bucketRevokeWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketSetReaderPerm(bucketId types.U32, reader types.OptionAccountID) error {
+func (d *ddcBucketContract) BucketSetReaderPerm(bucketId types.U32, reader AccountId) error {
 	err := d.callToRead(reader, d.bucketSetReaderPermMethodId, bucketId, reader)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId types.U32, reader types.OptionAccountID) error {
+func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId types.U32, reader AccountId) error {
 	err := d.callToRead(reader, d.bucketRevokeReaderPermMethodId, bucketId, reader)
 	return err
 }

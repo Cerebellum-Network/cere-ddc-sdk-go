@@ -25,6 +25,7 @@ type (
 	NodeStatusInCluster = uint8
 	NodeKey             = AccountId
 	CdnNodeKey          = AccountId
+	Rent                = Balance
 )
 
 const (
@@ -119,10 +120,15 @@ type Bucket struct {
 	OwnerId            AccountId
 	ClusterId          ClusterId
 	ResourceReserved   Resource
+	Flow               Flow
 	PublicAvailability bool
 	GasConsumptionCap  Resource
 }
 
+type Flow struct {
+	From     AccountId
+	Schedule Schedule
+}
 type Schedule struct {
 	Rate   Balance
 	Offset Balance
@@ -134,7 +140,7 @@ type BucketInfo struct {
 	Params             BucketParams
 	WriterIds          []AccountId
 	ReaderIds          []AccountId
-	RentCoveredUntilMs uint64
+	RentCoveredUntilMs types.U64
 }
 
 type BucketListInfo struct {
@@ -147,7 +153,7 @@ type Account struct {
 	Bonded            Cash
 	Negative          Cash
 	UnboundedAmount   Cash
-	UnbondedTimestamp uint64
+	UnbondedTimestamp types.U64
 	PayableSchedule   Schedule
 }
 
@@ -337,7 +343,7 @@ func (c *ClusterInfo) ReplicationFactor() uint {
 }
 
 func (b *BucketInfo) RentExpired() bool {
-	return b.RentCoveredUntilMs < uint64(time.Now().UnixMilli())
+	return b.RentCoveredUntilMs < types.U64(time.Now().UnixMilli())
 }
 
 func (b *BucketInfo) HasWriteAccess(publicKey []byte) bool {

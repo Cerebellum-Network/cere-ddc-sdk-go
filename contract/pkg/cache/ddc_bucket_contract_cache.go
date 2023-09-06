@@ -476,7 +476,7 @@ func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId bucket.Clust
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
+func (d *ddcBucketContractCached) ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*bucket.ClusterListInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
@@ -493,8 +493,8 @@ func (d *ddcBucketContractCached) ClusterList(offset uint32, limit uint32, filte
 	return clusters, nil
 }
 
-func (d *ddcBucketContractCached) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource) (key bucket.NodeKey, err error) {
-	key, err = d.ddcBucketContract.NodeCreate(nodeKey, params, capacity)
+func (d *ddcBucketContractCached) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
+	key, err = d.ddcBucketContract.NodeCreate(nodeKey, params, capacity, rent)
 
 	d.ClearNodes()
 
@@ -526,7 +526,7 @@ func (d *ddcBucketContractCached) NodeSetParams(nodeKey bucket.NodeKey, params b
 	return nil
 }
 
-func (d *ddcBucketContractCached) NodeList(offset uint32, limit uint32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
+func (d *ddcBucketContractCached) NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*bucket.NodeListInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
@@ -579,7 +579,7 @@ func (d *ddcBucketContractCached) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, pa
 	return nil
 }
 
-func (d *ddcBucketContractCached) CdnNodeList(offset uint32, limit uint32, filterManagerId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
+func (d *ddcBucketContractCached) CdnNodeList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*bucket.CdnNodeListInfo, error) {
 	if limit == 0 {
 		return nil, errors.New("Invalid limit. Limit must be greater than zero.")
 	}
@@ -694,7 +694,7 @@ func (d *ddcBucketContractCached) BucketCreate(bucketParams bucket.BucketParams,
 	return d.ddcBucketContract.BucketCreate(bucketParams, clusterId, ownerId)
 }
 
-func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId types.OptionAccountID) error {
+func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
 	return d.ddcBucketContract.BucketChangeOwner(bucketId, ownerId)
 }
 
@@ -710,11 +710,11 @@ func (d *ddcBucketContractCached) BucketChangeParams(bucketId bucket.BucketId, b
 	return d.ddcBucketContract.BucketChangeParams(bucketId, bucketParams)
 }
 
-func (d *ddcBucketContractCached) BucketList(offset uint32, limit uint32, filterOwnerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
+func (d *ddcBucketContractCached) BucketList(offset types.U32, limit types.U32, filterOwnerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
 	return d.ddcBucketContract.BucketList(offset, limit, filterOwnerId)
 }
 
-func (d *ddcBucketContractCached) BucketListForAccount(ownerId types.OptionAccountID) ([]*bucket.Bucket, error) {
+func (d *ddcBucketContractCached) BucketListForAccount(ownerId bucket.AccountId) ([]*bucket.Bucket, error) {
 	return d.ddcBucketContract.BucketListForAccount(ownerId)
 }
 
@@ -734,18 +734,18 @@ func (d *ddcBucketContractCached) GetBucketReaders(bucketId bucket.BucketId) ([]
 	return d.ddcBucketContract.GetBucketReaders(bucketId)
 }
 
-func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	return d.ddcBucketContract.BucketSetWriterPerm(bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer types.OptionAccountID) error {
+func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
 	return d.ddcBucketContract.BucketRevokeWriterPerm(bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	return d.ddcBucketContract.BucketSetReaderPerm(bucketId, reader)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader types.OptionAccountID) error {
+func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
 	return d.ddcBucketContract.BucketRevokeReaderPerm(bucketId, reader)
 }
