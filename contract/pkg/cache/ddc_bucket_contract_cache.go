@@ -74,7 +74,6 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 		args := raw.(*bucket.BucketAllocatedEvent)
 		d.ClearBucketById(args.BucketId)
 	}); err != nil {
-		//return bucket.parseDdcBucketContractError(err)
 		return errors.Wrap(err, "Unable to hook event "+bucket.BucketAllocatedEventId)
 	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketSettlePaymentEventId, func(raw interface{}) {
@@ -95,6 +94,154 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.DepositEventId)
 	}
+
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketCreatedEventId, func(raw interface{}) {
+		args := raw.(*bucket.BucketCreatedEvent)
+		d.ClearBucketById(args.BucketId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.BucketCreatedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.BucketParamsSetEventId, func(raw interface{}) {
+		args := raw.(*bucket.BucketParamsSetEvent)
+		d.ClearBucketById(args.BucketId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.BucketParamsSetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeAddedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterNodeAddedEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterNodeAddedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeRemovedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterNodeRemovedEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterNodeRemovedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterCdnNodeAddedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterCdnNodeAddedEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeAddedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterCdnNodeRemovedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterCdnNodeRemovedEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeRemovedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterCdnNodeRemovedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterCdnNodeRemovedEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeRemovedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeStatusSetEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterNodeStatusSetEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterNodeStatusSetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterCdnNodeStatusSetEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterCdnNodeStatusSetEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeStatusSetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeReplacedEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterNodeReplacedEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterNodeReplacedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeResetEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterNodeResetEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterNodeResetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.CdnNodeCreatedEventId, func(raw interface{}) {
+		args := raw.(*bucket.CdnNodeCreatedEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.CdnNodeCreatedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.CdnNodeRemovedEventId, func(raw interface{}) {
+		args := raw.(*bucket.CdnNodeRemovedEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.CdnNodeRemovedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.CdnNodeParamsSetEventId, func(raw interface{}) {
+		args := raw.(*bucket.CdnNodeParamsSetEvent)
+		d.ClearNodeByKey(args.CdnNodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.CdnNodeParamsSetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.NodeRemovedEventId, func(raw interface{}) {
+		args := raw.(*bucket.NodeRemovedEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.NodeRemovedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.NodeParamsSetEventId, func(raw interface{}) {
+		args := raw.(*bucket.NodeParamsSetEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.NodeParamsSetEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.NodeCreatedEventId, func(raw interface{}) {
+		args := raw.(*bucket.NodeCreatedEvent)
+		d.ClearNodeByKey(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.NodeCreatedEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.GrantPermissionEventId, func(raw interface{}) {
+		args := raw.(*bucket.GrantPermissionEvent)
+		d.ClearAccountById(args.AccountId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.GrantPermissionEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.RevokePermissionEventId, func(raw interface{}) {
+		args := raw.(*bucket.RevokePermissionEvent)
+		d.ClearAccountById(args.AccountId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.RevokePermissionEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.NodeOwnershipTransferredEventId, func(raw interface{}) {
+		args := raw.(*bucket.NodeOwnershipTransferredEvent)
+		d.ClearNodeById(args.NodeKey)
+		d.ClearAccountById(args.AccountId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.NodeOwnershipTransferredEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.CdnNodeOwnershipTransferredEventId, func(raw interface{}) {
+		args := raw.(*bucket.CdnNodeOwnershipTransferredEvent)
+		d.ClearNodeById(args.CdnNodeKey)
+		d.ClearAccountById(args.AccountId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.CdnNodeOwnershipTransferredEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterReserveResourceEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterReserveResourceEvent)
+		d.ClearNodeById(args.NodeKey)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterReserveResourceEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterDistributeRevenuesEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterDistributeRevenuesEvent)
+		d.ClearAccountById(args.AccountId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterDistributeRevenuesEventId)
+	}
+	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterDistributeCdnRevenuesEventId, func(raw interface{}) {
+		args := raw.(*bucket.ClusterDistributeCdnRevenuesEvent)
+		d.ClearAccountById(args.ProviderId)
+	}); err != nil {
+		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterDistributeCdnRevenuesEventId)
+	}
+
 	return nil
 }
 

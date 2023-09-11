@@ -212,16 +212,16 @@ type ClusterNodeRemovedEvent struct {
 
 type ClusterCdnNodeAddedEvent struct {
 	ClusterId  ClusterId
-	CdnNodeKey AccountId
+	CdnNodeKey CdnNodeKey
 }
 
 type ClusterCdnNodeRemovedEvent struct {
 	ClusterId  ClusterId
-	CdnNodeKey AccountId
+	CdnNodeKey CdnNodeKey
 }
 
 type CdnNodeRemovedEvent struct {
-	CdnNodeKey AccountId
+	CdnNodeKey CdnNodeKey
 }
 
 type NodeRemovedEvent struct {
@@ -235,7 +235,7 @@ type ClusterNodeResetEvent struct {
 }
 
 type ClusterCdnNodeStatusSetEvent struct {
-	CdnNodeKey          AccountId
+	CdnNodeKey          CdnNodeKey
 	ClusterId           ClusterId
 	NodeStatusInCluster NodeStatusInCluster
 }
@@ -257,9 +257,9 @@ type ClusterDistributeRevenuesEvent struct {
 }
 
 type CdnNodeCreatedEvent struct {
-	NodeKey   NodeKey
-	AccountId AccountId
-	Payment   Balance
+	CdnNodeKey CdnNodeKey
+	AccountId  AccountId
+	Payment    Balance
 }
 
 type NodeCreatedEvent struct {
@@ -286,7 +286,7 @@ type RevokePermissionEvent struct {
 
 type CdnNodeOwnershipTransferredEvent struct {
 	AccountId  AccountId
-	CdnNodeKey AccountId
+	CdnNodeKey CdnNodeKey
 }
 
 type NodeOwnershipTransferredEvent struct {
@@ -305,7 +305,7 @@ type PermissionGrantedEvent struct {
 }
 
 type CdnNodeParamsSetEvent struct {
-	CdnNodeKey    AccountId
+	CdnNodeKey    CdnNodeKey
 	CdnNodeParams CdnNodeParams
 }
 
