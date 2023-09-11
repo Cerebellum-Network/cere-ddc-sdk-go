@@ -131,12 +131,6 @@ func (d *ddcBucketContractCached) HookContractEvents() error {
 	}); err != nil {
 		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeRemovedEventId)
 	}
-	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterCdnNodeRemovedEventId, func(raw interface{}) {
-		args := raw.(*bucket.ClusterCdnNodeRemovedEvent)
-		d.ClearNodeByKey(args.CdnNodeKey)
-	}); err != nil {
-		return errors.Wrap(err, "Unable to hook event "+bucket.ClusterCdnNodeRemovedEventId)
-	}
 	if err := d.ddcBucketContract.AddContractEventHandler(bucket.ClusterNodeStatusSetEventId, func(raw interface{}) {
 		args := raw.(*bucket.ClusterNodeStatusSetEvent)
 		d.ClearNodeByKey(args.NodeKey)
