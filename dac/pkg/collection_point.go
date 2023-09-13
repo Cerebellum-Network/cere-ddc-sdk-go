@@ -28,6 +28,7 @@ type (
 		BytesSent          uint32 `json:"bytesSent"`
 		FulfilledTimestamp uint64 `json:"fulfilledTimestamp"`
 		WorkerSignature    []byte `json:"workerSignature"`
+		WorkerAddress      string `json:"workerAddress"`
 	}
 )
 
