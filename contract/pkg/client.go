@@ -109,6 +109,16 @@ func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispat
 	return nil
 }
 
+type ContractsCalledEvent struct {
+	Caller   types.AccountID
+	Contract types.AccountID
+}
+
+type Events struct {
+	types.EventRecords
+	Contracts_Called []ContractsCalledEvent
+}
+
 func (b *blockchainClient) listenContractEvents() error {
 	meta, err := b.RPC.State.GetMetadataLatest()
 	if err != nil {
@@ -165,8 +175,8 @@ func (b *blockchainClient) listenContractEvents() error {
 						// skip, we are only interested in events with content
 						continue
 					}
-
-					events := types.EventRecords{}
+					// Events
+					events := Events{} //types.EventRecords{}
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
 						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
@@ -342,7 +352,7 @@ func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *t
 
 	for _, st := range storage {
 		for _, chng := range st.Changes {
-			events := types.EventRecords{}
+			events := Events{} // types.EventRecords{}
 			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 			if err != nil {
 				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
