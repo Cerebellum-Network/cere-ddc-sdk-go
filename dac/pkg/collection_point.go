@@ -55,7 +55,8 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dacTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", d.url.JoinPath(fulfillmentPath).String(), bytes.NewBuffer(json))
+	req, err := http.NewRequestWithContext(
+		ctx, "POST", d.url.JoinPath(fulfillmentPath).String(), bytes.NewBuffer(json))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
