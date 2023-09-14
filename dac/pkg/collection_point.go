@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -56,7 +57,7 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dacTimeout)
 	defer cancel()
 
-	fmt.Sprint(string(json))
+	log.Info(fmt.Sprint(string(json)))
 
 	req, err := http.NewRequestWithContext(
 		ctx,
