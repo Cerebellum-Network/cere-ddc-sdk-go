@@ -116,7 +116,7 @@ type ContractsCalledEvent struct {
 
 type Events struct {
 	types.EventRecords
-	Contracts_Called []ContractsCalledEvent
+	// Contracts_Called []ContractsCalledEvent
 }
 
 func (b *blockchainClient) listenContractEvents() error {
