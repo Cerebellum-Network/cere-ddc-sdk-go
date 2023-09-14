@@ -110,8 +110,10 @@ func (b *blockchainClient) SetEventDispatcher(contractAddressSS58 string, dispat
 }
 
 type ContractsCalledEvent struct {
+	Phase    types.Phase
 	Caller   types.AccountID
 	Contract types.AccountID
+	Topics   []types.Hash
 }
 
 type Events struct {
