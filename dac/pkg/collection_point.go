@@ -36,7 +36,7 @@ type (
 
 const (
 	dacTimeout      = 10 * time.Second
-	fulfillmentPath = "fulfillment"
+	fulfillmentPath = "/fulfillment"
 )
 
 func CreateCollectionPoint(url url.URL, httpClient http.Client) CollectionPoint {
