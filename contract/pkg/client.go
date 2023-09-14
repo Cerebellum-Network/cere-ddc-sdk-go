@@ -114,10 +114,10 @@ type ContractsCalledEvent struct {
 	Contract types.AccountID
 }
 
-// type Events struct {
-// 	types.EventRecords
-// 	// Contracts_Called []ContractsCalledEvent
-// }
+type Events struct {
+	types.EventRecords
+	Contracts_Called []ContractsCalledEvent
+}
 
 func (b *blockchainClient) listenContractEvents() error {
 	meta, err := b.RPC.State.GetMetadataLatest()
@@ -176,8 +176,8 @@ func (b *blockchainClient) listenContractEvents() error {
 						continue
 					}
 					// Events
-					events := types.EventRecords{}
-					// events := Events{}
+					// events := types.EventRecords{}
+					events := Events{}
 					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
 						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
@@ -353,8 +353,8 @@ func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *t
 
 	for _, st := range storage {
 		for _, chng := range st.Changes {
-			events := types.EventRecords{}
-			// events := Events{}
+			// events := types.EventRecords{}
+			events := Events{}
 			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 			if err != nil {
 				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
