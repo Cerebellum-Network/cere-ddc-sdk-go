@@ -56,6 +56,8 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dacTimeout)
 	defer cancel()
 
+	fmt.Sprint(string(json))
+
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
