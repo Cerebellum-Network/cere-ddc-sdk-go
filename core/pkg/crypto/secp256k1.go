@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/vedhavyas/go-subkey"
 )
@@ -15,7 +16,7 @@ type secp256k1Scheme struct {
 }
 
 func (s *secp256k1Scheme) Address() (string, error) {
-	return subkey.SS58Address(s.publicKey, 42)
+	return subkey.SS58Encode(s.publicKey, 42), nil
 }
 
 func (s *secp256k1Scheme) PublicKeyHex() string {

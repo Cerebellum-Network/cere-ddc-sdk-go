@@ -24,8 +24,8 @@ func (a *ApplicationTestSuite) TestEventHandling() {
 	t.Run("Deploy bucket contract", func(t *testing.T) {
 		c, err := a.deployBucketContract(client)
 		assert.NoError(t, err)
-		contractAddress, err = subkey.SS58Address(c.ToBytes(), 54)
-		assert.NoError(t, err)
+		contractAddress /*, err */ = subkey.SS58Encode(c.ToBytes(), 54)
+		// assert.NoError(t, err)
 	})
 
 	buck := bucket.CreateDdcBucketContract(client, contractAddress)
