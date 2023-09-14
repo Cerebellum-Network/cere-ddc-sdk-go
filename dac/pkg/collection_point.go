@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -65,8 +66,11 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if _, err := d.httpClient.Do(req); err != nil {
-		return fmt.Errorf("DAC collection point put: %w", err)
+	if response, err := d.httpClient.Do(req); err != nil {
+		return err
+	} else if response.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(response.Body)
+		return fmt.Errorf("DAC collection point post: %d %w", response.StatusCode, body)
 	}
 
 	return nil
