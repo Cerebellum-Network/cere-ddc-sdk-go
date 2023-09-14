@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -57,14 +56,15 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dacTimeout)
 	defer cancel()
 
-	log.Info(fmt.Sprint(string(json)))
-
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
 		d.url.String()+fulfillmentPath,
 		bytes.NewBuffer(json),
 	)
+
+	req.Header.Set("Content-Type", "application/json")
+
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
