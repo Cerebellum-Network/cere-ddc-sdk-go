@@ -1,7 +1,7 @@
 module github.com/cerebellum-network/cere-ddc-sdk-go/contract
 
 require (
-	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.16
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
 	github.com/decred/base58 v1.0.4
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7
 	github.com/patrickmn/go-cache v2.1.0+incompatible
