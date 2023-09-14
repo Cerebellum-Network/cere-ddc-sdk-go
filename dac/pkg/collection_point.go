@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -62,5 +64,14 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 		return fmt.Errorf("DAC collection point put: %w", err)
 	}
 
+	return nil
+}
+
+func SignFulfillment(fulfillment *Fulfillment, scheme crypto.Scheme) error {
+	signature, err := scheme.Sign([]byte(fulfillment.Cid + string(fulfillment.SessionId) + fulfillment.RequestId + strconv.FormatUint(fulfillment.FulfilledTimestamp, 10)))
+	if err != nil {
+		return err
+	}
+	fulfillment.WorkerSignature = signature
 	return nil
 }
