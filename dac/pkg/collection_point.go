@@ -55,12 +55,10 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dacTimeout)
 	defer cancel()
 
-	fulfillmentPathUrl, _ := url.Parse(fulfillmentPath)
-
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
-		d.url.ResolveReference(fulfillmentPathUrl).String(),
+		d.url.String()+fulfillmentPath,
 		bytes.NewBuffer(json),
 	)
 	if err != nil {
