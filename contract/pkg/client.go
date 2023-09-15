@@ -13,6 +13,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -166,8 +167,8 @@ func (b *blockchainClient) listenContractEvents() error {
 						continue
 					}
 
-					events := types.EventRecords{}
-					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+					events := bucket.EventRecords{}
+					err = bucket.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
 						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
 						continue
@@ -342,8 +343,8 @@ func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *t
 
 	for _, st := range storage {
 		for _, chng := range st.Changes {
-			events := types.EventRecords{}
-			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+			events := bucket.EventRecords{}
+			err = bucket.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 			if err != nil {
 				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
 				continue

@@ -538,10 +538,10 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 
 	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
-		if nodeKey, err := types.NewHashFromHexString(k); err != nil {
+		if eventKey, err := types.NewHashFromHexString(k); err != nil {
 			log.WithError(err).WithField("hash", k).Fatalf("Bad event hash for event %s", v.Name())
 		} else {
-			eventDispatcher[nodeKey] = pkg.ContractEventDispatchEntry{ArgumentType: v}
+			eventDispatcher[eventKey] = pkg.ContractEventDispatchEntry{ArgumentType: v}
 		}
 	}
 
@@ -672,11 +672,11 @@ func (d *ddcBucketContract) callToReadNoResult(res interface{}, method []byte, a
 }
 
 func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(interface{})) error {
-	nodeKey, err := types.NewHashFromHexString(event)
+	eventKey, err := types.NewHashFromHexString(event)
 	if err != nil {
 		return err
 	}
-	entry, found := d.eventDispatcher[nodeKey]
+	entry, found := d.eventDispatcher[eventKey]
 	if !found {
 		return errors.New("Event not found")
 	}
@@ -684,7 +684,7 @@ func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(i
 		return errors.New("Contract event handler already set for " + event)
 	}
 	entry.Handler = handler
-	d.eventDispatcher[nodeKey] = entry
+	d.eventDispatcher[eventKey] = entry
 	return nil
 }
 
