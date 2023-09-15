@@ -139,7 +139,7 @@ type BucketInfo struct {
 }
 
 type BucketListInfo struct {
-	Buckets []BucketListInfo
+	Buckets []BucketInfo
 	Total   types.U32
 }
 
