@@ -73,11 +73,6 @@ type ClusterListInfo struct {
 	Total    types.U32
 }
 
-type NewCluster struct {
-	Params           Params
-	ResourcePerVNode Resource
-}
-
 type Node struct {
 	ProviderId      ProviderId
 	RentPerMonth    Balance

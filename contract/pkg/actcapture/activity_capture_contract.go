@@ -3,12 +3,13 @@ package actcapture
 import (
 	"context"
 	"encoding/hex"
+	"math/big"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 )
 
 const (
@@ -106,7 +107,7 @@ func (a *activityCaptureContract) SetCommit(ctx context.Context, hash []byte, ga
 		ContractAddressSS58: a.contractAddressSS58,
 		From:                a.keyringPair,
 		Value:               0,
-		GasLimit:            -1,
+		GasLimit:            0,
 		Method:              a.setCommitMethodId,
 		Args:                []interface{}{a.account, types.NewHash(hash), Gas, From, To},
 	}

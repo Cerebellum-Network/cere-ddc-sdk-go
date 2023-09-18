@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"context"
 	_ "embed"
 	"encoding/hex"
 	"errors"
@@ -133,7 +134,7 @@ type (
 		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
-		ClusterCreate(cluster *NewCluster) (clusterId ClusterId, err error)
+		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error)
 		ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
 		ClusterRemoveNode(clusterId ClusterId, nodeKey NodeKey) error
 		ClusterResetNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
@@ -169,7 +170,7 @@ type (
 	}
 
 	ddcBucketContract struct {
-		contract                               pkg.BlockchainClient
+		chainClient                            pkg.BlockchainClient
 		lastAccessTime                         time.Time
 		contractAddressSS58                    string
 		keyringPair                            signature.KeyringPair
@@ -264,6 +265,10 @@ var eventDispatchTable = map[string]reflect.Type{
 	NodeOwnershipTransferredEventId:     reflect.TypeOf(NodeOwnershipTransferredEvent{}),
 	CdnNodeOwnershipTransferredEventId:  reflect.TypeOf(CdnNodeOwnershipTransferredEvent{}),
 }
+
+const (
+	DEFAULT_GAS_LIMIT uint64 = 500_000 * pkg.MGAS
+)
 
 func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
 	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)
@@ -546,7 +551,7 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 	}
 
 	return &ddcBucketContract{
-		contract:                               client,
+		chainClient:                            client,
 		contractAddressSS58:                    contractAddressSS58,
 		keyringPair:                            signature.KeyringPair{Address: contractAddressSS58},
 		bucketGetMethodId:                      bucketGetMethodId,
@@ -644,8 +649,35 @@ func (d *ddcBucketContract) AccountGet(account AccountId) (*Account, error) {
 	return res, nil
 }
 
+func (d *ddcBucketContract) callToExec(ctx context.Context, keyPair signature.KeyringPair, method []byte, args ...interface{}) (types.Hash, error) {
+
+	contractAddress, err := pkg.DecodeAccountIDFromSS58(d.contractAddressSS58)
+	if err != nil {
+		return types.Hash{}, err
+	}
+
+	call := pkg.ContractCall{
+		ContractAddress:     contractAddress,
+		ContractAddressSS58: d.contractAddressSS58,
+		From:                keyPair,
+		Value:               0,
+		GasLimit:            DEFAULT_GAS_LIMIT,
+		Method:              method,
+		Args:                args,
+	}
+
+	blockHash, err := d.chainClient.CallToExec(ctx, call)
+	if err != nil {
+		return types.Hash{}, err
+	}
+
+	d.lastAccessTime = time.Now()
+
+	return blockHash, nil
+}
+
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
-	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
+	data, err := d.chainClient.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
 	if err != nil {
 		return err
 	}
@@ -661,7 +693,7 @@ func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args .
 }
 
 func (d *ddcBucketContract) callToReadNoResult(res interface{}, method []byte, args ...interface{}) error {
-	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
+	data, err := d.chainClient.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
 	if err != nil {
 		return err
 	}
@@ -700,9 +732,9 @@ func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEven
 	return d.eventDispatcher
 }
 
-func (d *ddcBucketContract) ClusterCreate(cluster *NewCluster) (clusterId ClusterId, err error) {
-	err = d.callToRead(clusterId, d.clusterCreateMethodId, cluster)
-	return clusterId, err
+func (d *ddcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error) {
+	blockHash, err = d.callToExec(ctx, keyPair, d.clusterCreateMethodId, params, resourcePerVNode)
+	return blockHash, err
 }
 
 func (d *ddcBucketContract) ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error {

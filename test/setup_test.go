@@ -3,6 +3,9 @@ package test
 import (
 	"context"
 	"encoding/hex"
+	"os"
+	"testing"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
@@ -13,8 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	tc "github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"os"
-	"testing"
 )
 
 type ApplicationTestSuite struct {
