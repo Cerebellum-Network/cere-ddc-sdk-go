@@ -122,7 +122,7 @@ type (
 		BucketSettlePayment(bucketId BucketId) error
 		BucketChangeParams(bucketId BucketId, bucketParams BucketParams) error
 		BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*BucketListInfo, error)
-		BucketListForAccount(ownerId AccountId) ([]*Bucket, error)
+		BucketListForAccount(ownerId AccountId) (*[]Bucket, error)
 		BucketSetAvailability(bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(bucketId BucketId) ([]AccountId, error)
@@ -868,8 +868,14 @@ func (d *ddcBucketContract) AccountWithdrawUnbonded() error {
 	return err
 }
 
-func (d *ddcBucketContract) GetAccounts() (accounts []types.AccountID, err error) {
-	err = d.callToRead(accounts, d.getAccountsMethodId, accounts)
+func (d *ddcBucketContract) GetAccounts() ([]types.AccountID, error) {
+	var accounts []types.AccountID
+	err := d.callToRead(&accounts, d.getAccountsMethodId)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return accounts, err
 }
 
@@ -904,9 +910,10 @@ func (d *ddcBucketContract) BucketList(offset types.U32, limit types.U32, filter
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (buckets []*Bucket, err error) {
-	err = d.callToRead(buckets, d.bucketListForAccountMethodId, ownerId)
-	return buckets, err
+func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (buckets *[]Bucket, err error) {
+	res := []Bucket{}
+	err = d.callToRead(&res, d.bucketListForAccountMethodId, ownerId)
+	return &res, err
 }
 
 func (d *ddcBucketContract) BucketSetAvailability(bucketId types.U32, publicAvailability bool) error {
