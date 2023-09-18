@@ -134,7 +134,7 @@ type (
 		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
-		ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *NewCluster) (blockHash types.Hash, err error)
+		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *NewCluster) (blockHash types.Hash, err error)
 		ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
 		ClusterRemoveNode(clusterId ClusterId, nodeKey NodeKey) error
 		ClusterResetNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
@@ -645,7 +645,7 @@ func (d *ddcBucketContract) AccountGet(account AccountId) (*Account, error) {
 	return res, nil
 }
 
-func (d *ddcBucketContract) callToExec(keyPair signature.KeyringPair, ctx context.Context, method []byte, args ...interface{}) (types.Hash, error) {
+func (d *ddcBucketContract) callToExec(ctx context.Context, keyPair signature.KeyringPair, method []byte, args ...interface{}) (types.Hash, error) {
 
 	contractAddress, err := pkg.DecodeAccountIDFromSS58(d.contractAddressSS58)
 	if err != nil {
@@ -728,8 +728,8 @@ func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEven
 	return d.eventDispatcher
 }
 
-func (d *ddcBucketContract) ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *NewCluster) (blockHash types.Hash, err error) {
-	blockHash, err = d.callToExec(keyPair, ctx, d.clusterCreateMethodId, cluster)
+func (d *ddcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *NewCluster) (blockHash types.Hash, err error) {
+	blockHash, err = d.callToExec(ctx, keyPair, d.clusterCreateMethodId, cluster.Params, cluster.ResourcePerVNode)
 	return blockHash, err
 }
 

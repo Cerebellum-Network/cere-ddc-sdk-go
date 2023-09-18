@@ -394,8 +394,8 @@ func validateCDNNodeParams(params bucket.CDNNodeParams) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
-	blockHash, err = d.ddcBucketContract.ClusterCreate(keyPair, ctx, cluster)
+func (d *ddcBucketContractCached) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
+	blockHash, err = d.ddcBucketContract.ClusterCreate(ctx, keyPair, cluster)
 
 	if err != nil {
 		return types.Hash{}, err
