@@ -266,6 +266,10 @@ var eventDispatchTable = map[string]reflect.Type{
 	CdnNodeOwnershipTransferredEventId:  reflect.TypeOf(CdnNodeOwnershipTransferredEvent{}),
 }
 
+const (
+	DEFAULT_GAS_LIMIT uint64 = 500_000 * pkg.MGAS
+)
+
 func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 string) DdcBucketContract {
 	bucketGetMethodId, err := hex.DecodeString(bucketGetMethod)
 	if err != nil {
@@ -657,7 +661,7 @@ func (d *ddcBucketContract) callToExec(ctx context.Context, keyPair signature.Ke
 		ContractAddressSS58: d.contractAddressSS58,
 		From:                keyPair,
 		Value:               0,
-		GasLimit:            500_000_000_000,
+		GasLimit:            DEFAULT_GAS_LIMIT,
 		Method:              method,
 		Args:                args,
 	}
