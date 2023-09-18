@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
@@ -254,7 +256,7 @@ func (d *ddcBucketContractMock) GetEventDispatcher() map[types.Hash]pkg.Contract
 	return nil
 }
 
-func (d *ddcBucketContractMock) ClusterCreate(cluster *bucket.NewCluster) (clusterId bucket.ClusterId, err error) {
+func (d *ddcBucketContractMock) ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -1,10 +1,12 @@
 package cache
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
@@ -62,8 +64,8 @@ func (m *mockedDdcBucketContract) NodeList(offset types.U32, limit types.U32, fi
 	return args.Get(0).(*bucket.NodeListInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterCreate(cluster *bucket.NewCluster) (clusterId bucket.ClusterId, err error) {
-	return 0, nil
+func (m *mockedDdcBucketContract) ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
+	return types.Hash{}, nil
 }
 
 func (d *mockedDdcBucketContract) AddContractEventHandler(event string, handler func(interface{})) error {

@@ -1,10 +1,12 @@
 package cache
 
 import (
+	"context"
 	"encoding/hex"
 	"strconv"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/bucket"
@@ -392,17 +394,17 @@ func validateCDNNodeParams(params bucket.CDNNodeParams) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterCreate(cluster *bucket.NewCluster) (clusterId bucket.ClusterId, err error) {
-	clusterId, err = d.ddcBucketContract.ClusterCreate(cluster)
+func (d *ddcBucketContractCached) ClusterCreate(keyPair signature.KeyringPair, ctx context.Context, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
+	blockHash, err = d.ddcBucketContract.ClusterCreate(keyPair, ctx, cluster)
 
 	if err != nil {
-		return 0, err
+		return types.Hash{}, err
 	}
 
 	d.ClearBuckets()
 	d.ClearNodes()
 
-	return clusterId, nil
+	return blockHash, nil
 }
 
 func (d *ddcBucketContractCached) ClusterAddNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
