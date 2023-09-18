@@ -3,6 +3,7 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/contract
 require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.8
 	github.com/decred/base58 v1.0.3
+	github.com/ethereum/go-ethereum v1.10.17
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -17,7 +18,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
-	github.com/ethereum/go-ethereum v1.10.17 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
