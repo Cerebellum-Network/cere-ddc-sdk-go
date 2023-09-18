@@ -803,9 +803,10 @@ func (d *ddcBucketContract) CdnNodeList(offset types.U32, limit types.U32, filte
 	return &res, err
 }
 
-func (d *ddcBucketContract) HasPermission(account AccountId, permission string) (has bool, err error) {
-	err = d.callToRead(has, d.hasPermissionMethodId, account, permission)
-	return has, err
+func (d *ddcBucketContract) HasPermission(account AccountId, permission string) (bool, error) {
+	hasPermission := false
+	err := d.callToRead(&hasPermission, d.hasPermissionMethodId, account, permission)
+	return hasPermission, err
 }
 
 func (d *ddcBucketContract) GrantTrustedManagerPermission(managerId AccountId) error {
@@ -853,8 +854,9 @@ func (d *ddcBucketContract) AccountUnbond(bondAmount Balance) error {
 	return err
 }
 
-func (d *ddcBucketContract) AccountGetUsdPerCere() (balance Balance, err error) {
-	err = d.callToRead(balance, d.accountGetUsdPerCereMethodId, balance)
+func (d *ddcBucketContract) AccountGetUsdPerCere() (Balance, error) {
+	var balance Balance
+	err := d.callToRead(&balance, d.accountGetUsdPerCereMethodId, balance)
 	return balance, err
 }
 
