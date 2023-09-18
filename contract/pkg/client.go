@@ -417,7 +417,7 @@ func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic
 	for {
 		select {
 		case status := <-sub.Chan():
-			if status.IsInBlock {
+			if status.IsInBlock || status.IsFinalized {
 				return status.AsInBlock, nil
 			}
 		case err := <-sub.Err():

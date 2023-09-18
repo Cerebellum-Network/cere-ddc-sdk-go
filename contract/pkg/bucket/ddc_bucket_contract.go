@@ -170,7 +170,7 @@ type (
 	}
 
 	ddcBucketContract struct {
-		contract                               pkg.BlockchainClient
+		chainClient                            pkg.BlockchainClient
 		lastAccessTime                         time.Time
 		contractAddressSS58                    string
 		keyringPair                            signature.KeyringPair
@@ -551,7 +551,7 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 	}
 
 	return &ddcBucketContract{
-		contract:                               client,
+		chainClient:                            client,
 		contractAddressSS58:                    contractAddressSS58,
 		keyringPair:                            signature.KeyringPair{Address: contractAddressSS58},
 		bucketGetMethodId:                      bucketGetMethodId,
@@ -666,7 +666,7 @@ func (d *ddcBucketContract) callToExec(ctx context.Context, keyPair signature.Ke
 		Args:                args,
 	}
 
-	blockHash, err := d.contract.CallToExec(ctx, call)
+	blockHash, err := d.chainClient.CallToExec(ctx, call)
 	if err != nil {
 		return types.Hash{}, err
 	}
@@ -677,7 +677,7 @@ func (d *ddcBucketContract) callToExec(ctx context.Context, keyPair signature.Ke
 }
 
 func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args ...interface{}) error {
-	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
+	data, err := d.chainClient.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
 	if err != nil {
 		return err
 	}
@@ -693,7 +693,7 @@ func (d *ddcBucketContract) callToRead(result interface{}, method []byte, args .
 }
 
 func (d *ddcBucketContract) callToReadNoResult(res interface{}, method []byte, args ...interface{}) error {
-	data, err := d.contract.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
+	data, err := d.chainClient.CallToReadEncoded(d.contractAddressSS58, d.contractAddressSS58, method, args...)
 	if err != nil {
 		return err
 	}
