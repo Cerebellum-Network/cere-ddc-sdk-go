@@ -256,7 +256,7 @@ func (d *ddcBucketContractMock) GetEventDispatcher() map[types.Hash]pkg.Contract
 	return nil
 }
 
-func (d *ddcBucketContractMock) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
+func (d *ddcBucketContractMock) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params bucket.Params, resourcePerVNode bucket.Resource) (blockHash types.Hash, err error) {
 	//TODO implement me
 	panic("implement me")
 }

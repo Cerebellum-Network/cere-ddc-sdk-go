@@ -64,7 +64,7 @@ func (m *mockedDdcBucketContract) NodeList(offset types.U32, limit types.U32, fi
 	return args.Get(0).(*bucket.NodeListInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *bucket.NewCluster) (blockHash types.Hash, err error) {
+func (m *mockedDdcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params bucket.Params, resourcePerVNode bucket.Resource) (blockHash types.Hash, err error) {
 	return types.Hash{}, nil
 }
 

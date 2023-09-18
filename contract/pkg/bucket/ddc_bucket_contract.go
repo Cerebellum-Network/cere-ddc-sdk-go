@@ -134,7 +134,7 @@ type (
 		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
-		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *NewCluster) (blockHash types.Hash, err error)
+		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error)
 		ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
 		ClusterRemoveNode(clusterId ClusterId, nodeKey NodeKey) error
 		ClusterResetNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
@@ -732,8 +732,8 @@ func (d *ddcBucketContract) GetEventDispatcher() map[types.Hash]pkg.ContractEven
 	return d.eventDispatcher
 }
 
-func (d *ddcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, cluster *NewCluster) (blockHash types.Hash, err error) {
-	blockHash, err = d.callToExec(ctx, keyPair, d.clusterCreateMethodId, cluster.Params, cluster.ResourcePerVNode)
+func (d *ddcBucketContract) ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error) {
+	blockHash, err = d.callToExec(ctx, keyPair, d.clusterCreateMethodId, params, resourcePerVNode)
 	return blockHash, err
 }
 
