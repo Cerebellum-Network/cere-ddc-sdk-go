@@ -538,10 +538,10 @@ func CreateDdcBucketContract(client pkg.BlockchainClient, contractAddressSS58 st
 
 	eventDispatcher := make(map[types.Hash]pkg.ContractEventDispatchEntry)
 	for k, v := range eventDispatchTable {
-		if eventKey, err := types.NewHashFromHexString(k); err != nil {
+		if nodeKey, err := types.NewHashFromHexString(k); err != nil {
 			log.WithError(err).WithField("hash", k).Fatalf("Bad event hash for event %s", v.Name())
 		} else {
-			eventDispatcher[eventKey] = pkg.ContractEventDispatchEntry{ArgumentType: v}
+			eventDispatcher[nodeKey] = pkg.ContractEventDispatchEntry{ArgumentType: v}
 		}
 	}
 
@@ -672,11 +672,11 @@ func (d *ddcBucketContract) callToReadNoResult(res interface{}, method []byte, a
 }
 
 func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(interface{})) error {
-	eventKey, err := types.NewHashFromHexString(event)
+	nodeKey, err := types.NewHashFromHexString(event)
 	if err != nil {
 		return err
 	}
-	entry, found := d.eventDispatcher[eventKey]
+	entry, found := d.eventDispatcher[nodeKey]
 	if !found {
 		return errors.New("Event not found")
 	}
@@ -684,7 +684,7 @@ func (d *ddcBucketContract) AddContractEventHandler(event string, handler func(i
 		return errors.New("Contract event handler already set for " + event)
 	}
 	entry.Handler = handler
-	d.eventDispatcher[eventKey] = entry
+	d.eventDispatcher[nodeKey] = entry
 	return nil
 }
 
@@ -910,9 +910,9 @@ func (d *ddcBucketContract) BucketList(offset types.U32, limit types.U32, filter
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (buckets *[]Bucket, err error) {
+func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (*[]Bucket, error) {
 	res := []Bucket{}
-	err = d.callToRead(&res, d.bucketListForAccountMethodId, ownerId)
+	err := d.callToRead(&res, d.bucketListForAccountMethodId, ownerId)
 	return &res, err
 }
 
