@@ -117,12 +117,6 @@ type Bucket struct {
 	ResourceReserved   Resource
 	PublicAvailability bool
 	GasConsumptionCap  Resource
-	Flow               Flow
-}
-
-type Flow struct {
-	From     AccountId
-	Schedule Schedule
 }
 
 type Schedule struct {
