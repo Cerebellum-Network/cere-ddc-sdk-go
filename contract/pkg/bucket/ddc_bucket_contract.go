@@ -160,12 +160,12 @@ type (
 
 		AccountGet(account AccountId) (*Account, error)
 		HasPermission(account AccountId, permission string) (bool, error)
-		GrantTrustedManagerPermission(managerId AccountId) error
-		RevokeTrustedManagerPermission(managerId AccountId) error
-		AdminGrantPermission(grantee AccountId, permission string) error
-		AdminRevokePermission(grantee AccountId, permission string) error
-		AdminTransferNodeOwnership(nodeKey NodeKey, newOwner AccountId) error
-		AdminTransferCdnNodeOwnership(nodeKey CdnNodeKey, newOwner AccountId) error
+		GrantTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId AccountId) error
+		RevokeTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId AccountId) error
+		AdminGrantPermission(ctx context.Context, keyPair signature.KeyringPair, grantee AccountId, permission string) error
+		AdminRevokePermission(ctx context.Context, keyPair signature.KeyringPair, grantee AccountId, permission string) error
+		AdminTransferNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, newOwner AccountId) error
+		AdminTransferCdnNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, newOwner AccountId) error
 		AddContractEventHandler(event string, handler func(interface{})) error
 		GetEventDispatcher() map[types.Hash]pkg.ContractEventDispatchEntry
 	}
@@ -842,33 +842,33 @@ func (d *ddcBucketContract) HasPermission(account AccountId, permission string) 
 	return hasPermission, err
 }
 
-func (d *ddcBucketContract) GrantTrustedManagerPermission(managerId AccountId) error {
-	err := d.callToRead(managerId, d.grantTrustedManagerPermissionMethodId, managerId)
+func (d *ddcBucketContract) GrantTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.grantTrustedManagerPermissionMethodId, managerId)
 	return err
 }
 
-func (d *ddcBucketContract) RevokeTrustedManagerPermission(managerId AccountId) error {
-	err := d.callToRead(managerId, d.revokeTrustedManagerPermissionMethodId, managerId)
+func (d *ddcBucketContract) RevokeTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.revokeTrustedManagerPermissionMethodId, managerId)
 	return err
 }
 
-func (d *ddcBucketContract) AdminGrantPermission(grantee AccountId, permission string) error {
-	err := d.callToRead(grantee, d.adminGrantPermissionMethodId, grantee, permission)
+func (d *ddcBucketContract) AdminGrantPermission(ctx context.Context, keyPair signature.KeyringPair, grantee AccountId, permission string) error {
+	_, err := d.callToExec(ctx, keyPair, d.adminGrantPermissionMethodId, grantee, permission)
 	return err
 }
 
-func (d *ddcBucketContract) AdminRevokePermission(grantee AccountId, permission string) error {
-	err := d.callToRead(grantee, d.adminRevokePermissionMethodId, grantee, permission)
+func (d *ddcBucketContract) AdminRevokePermission(ctx context.Context, keyPair signature.KeyringPair, grantee AccountId, permission string) error {
+	_, err := d.callToExec(ctx, keyPair, d.adminRevokePermissionMethodId, grantee, permission)
 	return err
 }
 
-func (d *ddcBucketContract) AdminTransferNodeOwnership(nodeKey NodeKey, newOwner AccountId) error {
-	err := d.callToRead(newOwner, d.adminTransferNodeOwnershipMethodId, nodeKey, newOwner)
+func (d *ddcBucketContract) AdminTransferNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, newOwner AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.adminTransferNodeOwnershipMethodId, nodeKey, newOwner)
 	return err
 }
 
-func (d *ddcBucketContract) AdminTransferCdnNodeOwnership(nodeKey CdnNodeKey, newOwner AccountId) error {
-	err := d.callToRead(newOwner, d.adminTransferCdnNodeOwnershipMethodId, nodeKey, newOwner)
+func (d *ddcBucketContract) AdminTransferCdnNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, newOwner AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.adminTransferCdnNodeOwnershipMethodId, nodeKey, newOwner)
 	return err
 }
 

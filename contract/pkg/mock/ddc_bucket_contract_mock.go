@@ -361,32 +361,32 @@ func (d *ddcBucketContractMock) HasPermission(account bucket.AccountId, permissi
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) GrantTrustedManagerPermission(managerId bucket.AccountId) error {
+func (d *ddcBucketContractMock) GrantTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) RevokeTrustedManagerPermission(managerId bucket.AccountId) error {
+func (d *ddcBucketContractMock) RevokeTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AdminGrantPermission(grantee bucket.AccountId, permission string) error {
+func (d *ddcBucketContractMock) AdminGrantPermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AdminRevokePermission(grantee bucket.AccountId, permission string) error {
+func (d *ddcBucketContractMock) AdminRevokePermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AdminTransferNodeOwnership(nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
+func (d *ddcBucketContractMock) AdminTransferNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AdminTransferCdnNodeOwnership(cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
+func (d *ddcBucketContractMock) AdminTransferCdnNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }

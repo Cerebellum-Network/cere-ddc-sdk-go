@@ -75,19 +75,19 @@ func (d *mockedDdcBucketContract) GetEventDispatcher() map[types.Hash]pkg.Contra
 	return nil
 }
 
-func (m *mockedDdcBucketContract) AdminGrantPermission(grantee bucket.AccountId, permission string) error {
+func (m *mockedDdcBucketContract) AdminGrantPermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	return nil
 }
 
-func (m *mockedDdcBucketContract) AdminRevokePermission(grantee bucket.AccountId, permission string) error {
+func (m *mockedDdcBucketContract) AdminRevokePermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	return nil
 }
 
-func (m *mockedDdcBucketContract) AdminTransferCdnNodeOwnership(cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
+func (m *mockedDdcBucketContract) AdminTransferCdnNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
 	return nil
 }
 
-func (m *mockedDdcBucketContract) AdminTransferNodeOwnership(nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
+func (m *mockedDdcBucketContract) AdminTransferNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (m *mockedDdcBucketContract) ClusterSetParams(ctx context.Context, keyPair 
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) GrantTrustedManagerPermission(managerId bucket.AccountId) error {
+func (m *mockedDdcBucketContract) GrantTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
 	args := m.Called(managerId)
 	return args.Error(1)
 }
@@ -184,7 +184,7 @@ func (m *mockedDdcBucketContract) NodeSetParams(ctx context.Context, keyPair sig
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) RevokeTrustedManagerPermission(managerId bucket.AccountId) error {
+func (m *mockedDdcBucketContract) RevokeTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
 	args := m.Called(managerId)
 	return args.Error(1)
 }

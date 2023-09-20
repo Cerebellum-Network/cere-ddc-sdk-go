@@ -740,8 +740,8 @@ func (d *ddcBucketContractCached) HasPermission(account types.AccountID, permiss
 	return d.ddcBucketContract.HasPermission(account, permission)
 }
 
-func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId bucket.AccountId) error {
-	err := d.ddcBucketContract.GrantTrustedManagerPermission(managerId)
+func (d *ddcBucketContractCached) GrantTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
+	err := d.ddcBucketContract.GrantTrustedManagerPermission(ctx, keyPair, managerId)
 
 	d.ClearBuckets()
 	d.ClearNodes()
@@ -749,8 +749,8 @@ func (d *ddcBucketContractCached) GrantTrustedManagerPermission(managerId bucket
 	return err
 }
 
-func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId bucket.AccountId) error {
-	err := d.ddcBucketContract.RevokeTrustedManagerPermission(managerId)
+func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(ctx context.Context, keyPair signature.KeyringPair, managerId bucket.AccountId) error {
+	err := d.ddcBucketContract.RevokeTrustedManagerPermission(ctx, keyPair, managerId)
 
 	d.ClearBuckets()
 	d.ClearNodes()
@@ -758,11 +758,11 @@ func (d *ddcBucketContractCached) RevokeTrustedManagerPermission(managerId bucke
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminGrantPermission(grantee bucket.AccountId, permission string) error {
+func (d *ddcBucketContractCached) AdminGrantPermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	if permission == "" {
 		return errors.New("Empty permission string.")
 	}
-	err := d.ddcBucketContract.AdminGrantPermission(grantee, permission)
+	err := d.ddcBucketContract.AdminGrantPermission(ctx, keyPair, grantee, permission)
 
 	d.ClearBuckets()
 	d.ClearNodes()
@@ -770,11 +770,11 @@ func (d *ddcBucketContractCached) AdminGrantPermission(grantee bucket.AccountId,
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminRevokePermission(grantee bucket.AccountId, permission string) error {
+func (d *ddcBucketContractCached) AdminRevokePermission(ctx context.Context, keyPair signature.KeyringPair, grantee bucket.AccountId, permission string) error {
 	if permission == "" {
 		return errors.New("Empty permission string.")
 	}
-	err := d.ddcBucketContract.AdminRevokePermission(grantee, permission)
+	err := d.ddcBucketContract.AdminRevokePermission(ctx, keyPair, grantee, permission)
 
 	d.ClearBuckets()
 	d.ClearNodes()
@@ -782,8 +782,8 @@ func (d *ddcBucketContractCached) AdminRevokePermission(grantee bucket.AccountId
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
-	err := d.ddcBucketContract.AdminTransferNodeOwnership(nodeKey, newOwner)
+func (d *ddcBucketContractCached) AdminTransferNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, newOwner bucket.AccountId) error {
+	err := d.ddcBucketContract.AdminTransferNodeOwnership(ctx, keyPair, nodeKey, newOwner)
 
 	d.ClearBuckets()
 	d.ClearNodes()
@@ -791,8 +791,8 @@ func (d *ddcBucketContractCached) AdminTransferNodeOwnership(nodeKey bucket.Node
 	return err
 }
 
-func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
-	err := d.ddcBucketContract.AdminTransferCdnNodeOwnership(cdnNodeKey, newOwner)
+func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(ctx context.Context, keyPair signature.KeyringPair, cdnNodeKey bucket.CdnNodeKey, newOwner bucket.AccountId) error {
+	err := d.ddcBucketContract.AdminTransferCdnNodeOwnership(ctx, keyPair, cdnNodeKey, newOwner)
 
 	d.ClearBuckets()
 	d.ClearNodes()
