@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -96,28 +95,21 @@ func (m *mockedDdcBucketContract) CdnNodeCreate(nodeKey bucket.NodeKey, params b
 	return nil
 }
 
-func (m *mockedDdcBucketContract) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
-	args := m.Called(nodeKey, params, capacity, rent)
-	accountId, err := types.NewAccountIDFromHexString(args.Get(0).(string))
-	if err != nil {
-		log.Fatalf("Failed to create AccountID from hex string: %v", err)
-		return types.AccountID{}, err
-	}
-	key = *accountId
-	return key, args.Error(1)
+func (m *mockedDdcBucketContract) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (blockHash types.Hash, err error) {
+	return types.Hash{}, nil
 }
 
-func (m *mockedDdcBucketContract) CdnNodeRemove(nodeKey bucket.CdnNodeKey) error {
+func (m *mockedDdcBucketContract) CdnNodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey) error {
 	args := m.Called(nodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) NodeRemove(nodeKey bucket.NodeKey) error {
+func (m *mockedDdcBucketContract) NodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey) error {
 	args := m.Called(nodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+func (m *mockedDdcBucketContract) CdnNodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
 	args := m.Called(nodeKey, params)
 	return args.Error(1)
 }

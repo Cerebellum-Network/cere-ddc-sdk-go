@@ -316,17 +316,17 @@ func (d *ddcBucketContractMock) ClusterList(offset types.U32, limit types.U32, f
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
+func (d *ddcBucketContractMock) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeRemove(nodeKey bucket.NodeKey) error {
+func (d *ddcBucketContractMock) NodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeSetParams(nodeKey bucket.NodeKey, params bucket.Params) error {
+func (d *ddcBucketContractMock) NodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -336,17 +336,17 @@ func (d *ddcBucketContractMock) NodeList(offset types.U32, limit types.U32, filt
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) CdnNodeCreate(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+func (d *ddcBucketContractMock) CdnNodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) CdnNodeRemove(nodeKey bucket.CdnNodeKey) error {
+func (d *ddcBucketContractMock) CdnNodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+func (d *ddcBucketContractMock) CdnNodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
 	//TODO implement me
 	panic("implement me")
 }

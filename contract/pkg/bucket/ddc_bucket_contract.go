@@ -148,15 +148,16 @@ type (
 		ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error)
 
 		NodeGet(nodeKey NodeKey) (*NodeInfo, error)
-		NodeCreate(nodeKey NodeKey, params Params, capacity Resource, rent Rent) (key NodeKey, err error)
-		NodeRemove(nodeKey NodeKey) error
-		NodeSetParams(nodeKey NodeKey, params Params) error
+		NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, params Params, capacity Resource, rent Rent) (blockHash types.Hash, err error)
+		NodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey) error
+		NodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, params Params) error
 		NodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*NodeListInfo, error)
 		CdnNodeGet(nodeKey CdnNodeKey) (*CdnNodeInfo, error)
-		CdnNodeCreate(nodeKey CdnNodeKey, params CDNNodeParams) error
-		CdnNodeRemove(nodeKey CdnNodeKey) error
-		CdnNodeSetParams(nodeKey CdnNodeKey, params CDNNodeParams) error
+		CdnNodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, params CDNNodeParams) error
+		CdnNodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey) error
+		CdnNodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, params CDNNodeParams) error
 		CdnNodeList(offset types.U32, limit types.U32, filterProviderId types.OptionAccountID) (*CdnNodeListInfo, error)
+
 		AccountGet(account AccountId) (*Account, error)
 		HasPermission(account AccountId, permission string) (bool, error)
 		GrantTrustedManagerPermission(managerId AccountId) error
@@ -793,18 +794,18 @@ func (d *ddcBucketContract) ClusterList(offset types.U32, limit types.U32, filte
 	return &res, err
 }
 
-func (d *ddcBucketContract) NodeCreate(nodeKey NodeKey, params Params, capacity Resource, rent Rent) (key NodeKey, err error) {
-	err = d.callToRead(nodeKey, d.nodeCreateMethodId, nodeKey, params, capacity, rent)
-	return key, err
+func (d *ddcBucketContract) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, params Params, capacity Resource, rent Rent) (blockHash types.Hash, err error) {
+	blockHash, err = d.callToExec(ctx, keyPair, d.nodeCreateMethodId, nodeKey, params, capacity, rent)
+	return blockHash, err
 }
 
-func (d *ddcBucketContract) NodeRemove(nodeKey NodeKey) error {
-	err := d.callToRead(nodeKey, d.nodeRemoveMethodId, nodeKey)
+func (d *ddcBucketContract) NodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.nodeRemoveMethodId, nodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) NodeSetParams(nodeKey NodeKey, params Params) error {
-	err := d.callToRead(nodeKey, d.nodeSetParamsMethodId, nodeKey, params)
+func (d *ddcBucketContract) NodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey NodeKey, params Params) error {
+	_, err := d.callToExec(ctx, keyPair, d.nodeSetParamsMethodId, nodeKey, params)
 	return err
 }
 
@@ -814,18 +815,18 @@ func (d *ddcBucketContract) NodeList(offset types.U32, limit types.U32, filterPr
 	return &res, err
 }
 
-func (d *ddcBucketContract) CdnNodeCreate(nodeKey CdnNodeKey, params CDNNodeParams) error {
-	err := d.callToRead(nodeKey, d.cdnNodeCreateMethodId, nodeKey, params)
+func (d *ddcBucketContract) CdnNodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, params CDNNodeParams) error {
+	_, err := d.callToExec(ctx, keyPair, d.cdnNodeCreateMethodId, nodeKey, params)
 	return err
 }
 
-func (d *ddcBucketContract) CdnNodeRemove(nodeKey CdnNodeKey) error {
-	err := d.callToRead(nodeKey, d.cdnNodeRemoveMethodId, nodeKey)
+func (d *ddcBucketContract) CdnNodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.cdnNodeRemoveMethodId, nodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) CdnNodeSetParams(nodeKey CdnNodeKey, params CDNNodeParams) error {
-	err := d.callToRead(nodeKey, d.cdnNodeSetParamsMethodId, nodeKey, params)
+func (d *ddcBucketContract) CdnNodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey CdnNodeKey, params CDNNodeParams) error {
+	_, err := d.callToExec(ctx, keyPair, d.cdnNodeSetParamsMethodId, nodeKey, params)
 	return err
 }
 

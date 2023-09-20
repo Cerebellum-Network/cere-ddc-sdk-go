@@ -633,16 +633,16 @@ func (d *ddcBucketContractCached) ClusterList(offset types.U32, limit types.U32,
 	return clusters, nil
 }
 
-func (d *ddcBucketContractCached) NodeCreate(nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
-	key, err = d.ddcBucketContract.NodeCreate(nodeKey, params, capacity, rent)
+func (d *ddcBucketContractCached) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (blockHash types.Hash, err error) {
+	blockHash, err = d.ddcBucketContract.NodeCreate(ctx, keyPair, nodeKey, params, capacity, rent)
 
 	d.ClearNodes()
 
-	return key, err
+	return blockHash, err
 }
 
-func (d *ddcBucketContractCached) NodeRemove(nodeKey bucket.NodeKey) error {
-	err := d.ddcBucketContract.NodeRemove(nodeKey)
+func (d *ddcBucketContractCached) NodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey) error {
+	err := d.ddcBucketContract.NodeRemove(ctx, keyPair, nodeKey)
 
 	if err != nil {
 		return err
@@ -654,8 +654,8 @@ func (d *ddcBucketContractCached) NodeRemove(nodeKey bucket.NodeKey) error {
 	return nil
 }
 
-func (d *ddcBucketContractCached) NodeSetParams(nodeKey bucket.NodeKey, params bucket.Params) error {
-	err := d.ddcBucketContract.NodeSetParams(nodeKey, params)
+func (d *ddcBucketContractCached) NodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params) error {
+	err := d.ddcBucketContract.NodeSetParams(ctx, keyPair, nodeKey, params)
 
 	if err != nil {
 		return err
@@ -679,8 +679,8 @@ func (d *ddcBucketContractCached) NodeList(offset types.U32, limit types.U32, fi
 	return nodes, nil
 }
 
-func (d *ddcBucketContractCached) CdnNodeCreate(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
-	err := d.ddcBucketContract.CdnNodeCreate(nodeKey, params)
+func (d *ddcBucketContractCached) CdnNodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+	err := d.ddcBucketContract.CdnNodeCreate(ctx, keyPair, nodeKey, params)
 
 	if err != nil {
 		return err
@@ -691,8 +691,8 @@ func (d *ddcBucketContractCached) CdnNodeCreate(nodeKey bucket.CdnNodeKey, param
 	return err
 }
 
-func (d *ddcBucketContractCached) CdnNodeRemove(nodeKey bucket.CdnNodeKey) error {
-	err := d.ddcBucketContract.CdnNodeRemove(nodeKey)
+func (d *ddcBucketContractCached) CdnNodeRemove(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey) error {
+	err := d.ddcBucketContract.CdnNodeRemove(ctx, keyPair, nodeKey)
 	if err != nil {
 		return err
 	}
@@ -704,12 +704,12 @@ func (d *ddcBucketContractCached) CdnNodeRemove(nodeKey bucket.CdnNodeKey) error
 	return nil
 }
 
-func (d *ddcBucketContractCached) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
+func (d *ddcBucketContractCached) CdnNodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.CdnNodeKey, params bucket.CDNNodeParams) error {
 	if err := validateCDNNodeParams(params); err != nil {
 		return errors.Wrap(err, "Invalid CDN node params.")
 	}
 
-	err := d.ddcBucketContract.CdnNodeSetParams(nodeKey, params)
+	err := d.ddcBucketContract.CdnNodeSetParams(ctx, keyPair, nodeKey, params)
 	if err != nil {
 		return err
 	}
