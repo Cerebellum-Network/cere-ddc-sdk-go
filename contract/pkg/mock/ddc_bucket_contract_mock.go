@@ -261,52 +261,52 @@ func (d *ddcBucketContractMock) ClusterCreate(ctx context.Context, keyPair signa
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterAddNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (d *ddcBucketContractMock) ClusterAddNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterRemoveNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
+func (d *ddcBucketContractMock) ClusterRemoveNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterResetNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (d *ddcBucketContractMock) ClusterResetNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterReplaceNode(clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
+func (d *ddcBucketContractMock) ClusterReplaceNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterAddCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (d *ddcBucketContractMock) ClusterAddCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterRemoveCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (d *ddcBucketContractMock) ClusterRemoveCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterSetParams(clusterId bucket.ClusterId, params bucket.Params) error {
+func (d *ddcBucketContractMock) ClusterSetParams(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, params bucket.Params) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterRemove(clusterId bucket.ClusterId) error {
+func (d *ddcBucketContractMock) ClusterRemove(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterSetNodeStatus(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
+func (d *ddcBucketContractMock) ClusterSetNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) ClusterSetCdnNodeStatus(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
+func (d *ddcBucketContractMock) ClusterSetCdnNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
 	//TODO implement me
 	panic("implement me")
 }

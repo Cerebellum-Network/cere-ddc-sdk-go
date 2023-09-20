@@ -135,16 +135,16 @@ type (
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
 		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error)
-		ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
-		ClusterRemoveNode(clusterId ClusterId, nodeKey NodeKey) error
-		ClusterResetNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
-		ClusterReplaceNode(clusterId ClusterId, vNodes [][]Token, newNodeKey NodeKey) error
-		ClusterAddCdnNode(clusterId ClusterId, nodeKey CdnNodeKey) error
-		ClusterRemoveCdnNode(clusterId ClusterId, nodeKey CdnNodeKey) error
-		ClusterSetParams(clusterId ClusterId, params Params) error
-		ClusterRemove(clusterId ClusterId) error
-		ClusterSetNodeStatus(clusterId ClusterId, nodeKey NodeKey, statusInCluster string) error
-		ClusterSetCdnNodeStatus(clusterId ClusterId, nodeKey CdnNodeKey, statusInCluster string) error
+		ClusterAddNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
+		ClusterRemoveNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey) error
+		ClusterResetNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error
+		ClusterReplaceNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, vNodes [][]Token, newNodeKey NodeKey) error
+		ClusterAddCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey) error
+		ClusterRemoveCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey) error
+		ClusterSetParams(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, params Params) error
+		ClusterRemove(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId) error
+		ClusterSetNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, statusInCluster string) error
+		ClusterSetCdnNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey, statusInCluster string) error
 		ClusterList(offset types.U32, limit types.U32, filterManagerId types.OptionAccountID) (*ClusterListInfo, error)
 
 		NodeGet(nodeKey NodeKey) (*NodeInfo, error)
@@ -737,53 +737,53 @@ func (d *ddcBucketContract) ClusterCreate(ctx context.Context, keyPair signature
 	return blockHash, err
 }
 
-func (d *ddcBucketContract) ClusterAddNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error {
-	err := d.callToRead(clusterId, d.clusterAddNodeMethodId, clusterId, nodeKey, vNodes)
+func (d *ddcBucketContract) ClusterAddNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterAddNodeMethodId, clusterId, nodeKey, vNodes)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterRemoveNode(clusterId ClusterId, nodeKey NodeKey) error {
-	err := d.callToRead(clusterId, d.clusterRemoveNodeMethodId, clusterId, nodeKey)
+func (d *ddcBucketContract) ClusterRemoveNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterRemoveNodeMethodId, clusterId, nodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterResetNode(clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error {
-	err := d.callToRead(clusterId, d.clusterResetNodeMethodId, clusterId, nodeKey, vNodes)
+func (d *ddcBucketContract) ClusterResetNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, vNodes [][]Token) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterResetNodeMethodId, clusterId, nodeKey, vNodes)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterReplaceNode(clusterId ClusterId, vNodes [][]Token, newNodeKey NodeKey) error {
-	err := d.callToRead(clusterId, d.clusterReplaceNodeMethodId, clusterId, vNodes, newNodeKey)
+func (d *ddcBucketContract) ClusterReplaceNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, vNodes [][]Token, newNodeKey NodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterReplaceNodeMethodId, clusterId, vNodes, newNodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterAddCdnNode(clusterId ClusterId, nodeKey CdnNodeKey) error {
-	err := d.callToRead(clusterId, d.clusterAddCdnNodeMethodId, clusterId, nodeKey)
+func (d *ddcBucketContract) ClusterAddCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterAddCdnNodeMethodId, clusterId, nodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterRemoveCdnNode(clusterId ClusterId, nodeKey CdnNodeKey) error {
-	err := d.callToRead(clusterId, d.clusterRemoveCdnNodeMethodId, clusterId, nodeKey)
+func (d *ddcBucketContract) ClusterRemoveCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterRemoveCdnNodeMethodId, clusterId, nodeKey)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterSetParams(clusterId ClusterId, params Params) error {
-	err := d.callToRead(clusterId, d.clusterSetParamsMethodId, clusterId, params)
+func (d *ddcBucketContract) ClusterSetParams(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, params Params) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterSetParamsMethodId, clusterId, params)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterRemove(clusterId ClusterId) error {
-	err := d.callToRead(clusterId, d.clusterRemoveMethodId, clusterId)
+func (d *ddcBucketContract) ClusterRemove(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterRemoveMethodId, clusterId)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterSetNodeStatus(clusterId ClusterId, nodeKey NodeKey, statusInCluster string) error {
-	err := d.callToRead(clusterId, d.clusterSetNodeStatusMethodId, clusterId, nodeKey, statusInCluster)
+func (d *ddcBucketContract) ClusterSetNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey NodeKey, statusInCluster string) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterSetNodeStatusMethodId, clusterId, nodeKey, statusInCluster)
 	return err
 }
 
-func (d *ddcBucketContract) ClusterSetCdnNodeStatus(clusterId ClusterId, nodeKey CdnNodeKey, statusInCluster string) error {
-	err := d.callToRead(clusterId, d.clusterSetCdnNodeStatusMethodId, clusterId, nodeKey, statusInCluster)
+func (d *ddcBucketContract) ClusterSetCdnNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId ClusterId, nodeKey CdnNodeKey, statusInCluster string) error {
+	_, err := d.callToExec(ctx, keyPair, d.clusterSetCdnNodeStatusMethodId, clusterId, nodeKey, statusInCluster)
 	return err
 }
 

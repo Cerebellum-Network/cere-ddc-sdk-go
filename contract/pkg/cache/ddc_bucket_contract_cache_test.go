@@ -122,12 +122,12 @@ func (m *mockedDdcBucketContract) CdnNodeSetParams(nodeKey bucket.CdnNodeKey, pa
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterAddCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (m *mockedDdcBucketContract) ClusterAddCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	args := m.Called(clusterId, cdnNodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterAddNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (m *mockedDdcBucketContract) ClusterAddNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	args := m.Called(clusterId, nodeKey, vNodes)
 	return args.Error(1)
 }
@@ -137,42 +137,42 @@ func (m *mockedDdcBucketContract) ClusterList(offset types.U32, limit types.U32,
 	return args.Get(0).(*bucket.ClusterListInfo), args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterRemoveNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
+func (m *mockedDdcBucketContract) ClusterRemoveNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
 	args := m.Called(clusterId, nodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterRemove(clusterId bucket.ClusterId) error {
+func (m *mockedDdcBucketContract) ClusterRemove(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId) error {
 	args := m.Called(clusterId)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterRemoveCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (m *mockedDdcBucketContract) ClusterRemoveCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	args := m.Called(clusterId, cdnNodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterReplaceNode(clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
+func (m *mockedDdcBucketContract) ClusterReplaceNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
 	args := m.Called(clusterId, vNodes, newNodeKey)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterResetNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (m *mockedDdcBucketContract) ClusterResetNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	args := m.Called(clusterId, nodeKey, vNodes)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterSetCdnNodeStatus(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
+func (m *mockedDdcBucketContract) ClusterSetCdnNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
 	args := m.Called(clusterId, cdnNodeKey, statusInCluster)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterSetNodeStatus(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
+func (m *mockedDdcBucketContract) ClusterSetNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
 	args := m.Called(clusterId, nodeKey, statusInCluster)
 	return args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) ClusterSetParams(clusterId bucket.ClusterId, params bucket.Params) error {
+func (m *mockedDdcBucketContract) ClusterSetParams(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, params bucket.Params) error {
 	args := m.Called(clusterId, params)
 	return args.Error(1)
 }

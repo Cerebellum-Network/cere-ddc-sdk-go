@@ -404,7 +404,7 @@ func (d *ddcBucketContractCached) ClusterCreate(ctx context.Context, keyPair sig
 	return blockHash, nil
 }
 
-func (d *ddcBucketContractCached) ClusterAddNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (d *ddcBucketContractCached) ClusterAddNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	if len(vNodes) == 0 {
 		return errors.New("No vNodes provided.")
 	}
@@ -418,7 +418,7 @@ func (d *ddcBucketContractCached) ClusterAddNode(clusterId bucket.ClusterId, nod
 		return bucket.ErrNodeAlreadyExists
 	}
 
-	err := d.ddcBucketContract.ClusterAddNode(clusterId, nodeKey, vNodes)
+	err := d.ddcBucketContract.ClusterAddNode(ctx, keyPair, clusterId, nodeKey, vNodes)
 	if err != nil {
 		return err
 	}
@@ -429,8 +429,8 @@ func (d *ddcBucketContractCached) ClusterAddNode(clusterId bucket.ClusterId, nod
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
-	err := d.ddcBucketContract.ClusterRemoveNode(clusterId, nodeKey)
+func (d *ddcBucketContractCached) ClusterRemoveNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey) error {
+	err := d.ddcBucketContract.ClusterRemoveNode(ctx, keyPair, clusterId, nodeKey)
 	if err != nil {
 		return err
 	}
@@ -441,7 +441,7 @@ func (d *ddcBucketContractCached) ClusterRemoveNode(clusterId bucket.ClusterId, 
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterResetNode(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
+func (d *ddcBucketContractCached) ClusterResetNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, vNodes [][]bucket.Token) error {
 	clusterStatus, err := d.ClusterGet(clusterId)
 	if err != nil {
 		return bucket.ErrClusterDoesNotExist
@@ -451,7 +451,7 @@ func (d *ddcBucketContractCached) ClusterResetNode(clusterId bucket.ClusterId, n
 		return bucket.ErrNodeDoesNotExist
 	}
 
-	responseError := d.ddcBucketContract.ClusterResetNode(clusterId, nodeKey, vNodes)
+	responseError := d.ddcBucketContract.ClusterResetNode(ctx, keyPair, clusterId, nodeKey, vNodes)
 
 	if responseError != nil {
 		return responseError
@@ -462,7 +462,7 @@ func (d *ddcBucketContractCached) ClusterResetNode(clusterId bucket.ClusterId, n
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
+func (d *ddcBucketContractCached) ClusterReplaceNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, vNodes [][]bucket.Token, newNodeKey bucket.NodeKey) error {
 	if len(vNodes) == 0 {
 		return errors.New("No vNodes provided.")
 	}
@@ -476,7 +476,7 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId bucket.ClusterId,
 		return bucket.ErrNodeAlreadyExists
 	}
 
-	err := d.ddcBucketContract.ClusterReplaceNode(clusterId, vNodes, newNodeKey)
+	err := d.ddcBucketContract.ClusterReplaceNode(ctx, keyPair, clusterId, vNodes, newNodeKey)
 	if err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (d *ddcBucketContractCached) ClusterReplaceNode(clusterId bucket.ClusterId,
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (d *ddcBucketContractCached) ClusterAddCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 	clusterStatus, responseError := d.ClusterGet(clusterId)
 	if responseError != nil {
 		return bucket.ErrClusterDoesNotExist
@@ -497,7 +497,7 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId bucket.ClusterId, 
 		return bucket.ErrCdnNodeAlreadyExists
 	}
 
-	err := d.ddcBucketContract.ClusterAddCdnNode(clusterId, cdnNodeKey)
+	err := d.ddcBucketContract.ClusterAddCdnNode(ctx, keyPair, clusterId, cdnNodeKey)
 	if err != nil {
 		return err
 	}
@@ -508,7 +508,7 @@ func (d *ddcBucketContractCached) ClusterAddCdnNode(clusterId bucket.ClusterId, 
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
+func (d *ddcBucketContractCached) ClusterRemoveCdnNode(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey) error {
 
 	clusterStatus, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
@@ -519,7 +519,7 @@ func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId bucket.ClusterI
 		return bucket.ErrCdnNodeDoesNotExist
 	}
 
-	err := d.ddcBucketContract.ClusterRemoveCdnNode(clusterId, cdnNodeKey)
+	err := d.ddcBucketContract.ClusterRemoveCdnNode(ctx, keyPair, clusterId, cdnNodeKey)
 	if err != nil {
 		return err
 	}
@@ -529,7 +529,7 @@ func (d *ddcBucketContractCached) ClusterRemoveCdnNode(clusterId bucket.ClusterI
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetParams(clusterId bucket.ClusterId, params bucket.Params) error {
+func (d *ddcBucketContractCached) ClusterSetParams(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, params bucket.Params) error {
 	if params == "" {
 		return errors.New("Empty cluster parameters.")
 	}
@@ -539,7 +539,7 @@ func (d *ddcBucketContractCached) ClusterSetParams(clusterId bucket.ClusterId, p
 		return bucket.ErrClusterDoesNotExist
 	}
 
-	err := d.ddcBucketContract.ClusterSetParams(clusterId, params)
+	err := d.ddcBucketContract.ClusterSetParams(ctx, keyPair, clusterId, params)
 	if err != nil {
 		return err
 	}
@@ -550,13 +550,13 @@ func (d *ddcBucketContractCached) ClusterSetParams(clusterId bucket.ClusterId, p
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterRemove(clusterId bucket.ClusterId) error {
+func (d *ddcBucketContractCached) ClusterRemove(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId) error {
 	_, clusterError := d.ClusterGet(clusterId)
 	if clusterError != nil {
 		return bucket.ErrClusterDoesNotExist
 	}
 
-	err := d.ddcBucketContract.ClusterRemove(clusterId)
+	err := d.ddcBucketContract.ClusterRemove(ctx, keyPair, clusterId)
 	if err != nil {
 		return err
 	}
@@ -567,7 +567,7 @@ func (d *ddcBucketContractCached) ClusterRemove(clusterId bucket.ClusterId) erro
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
+func (d *ddcBucketContractCached) ClusterSetNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, nodeKey bucket.NodeKey, statusInCluster string) error {
 	if statusInCluster == "" {
 		return errors.New("Empty status in cluster.")
 	}
@@ -581,7 +581,7 @@ func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId bucket.ClusterI
 		return bucket.ErrNodeDoesNotExist
 	}
 
-	err := d.ddcBucketContract.ClusterSetNodeStatus(clusterId, nodeKey, statusInCluster)
+	err := d.ddcBucketContract.ClusterSetNodeStatus(ctx, keyPair, clusterId, nodeKey, statusInCluster)
 	if err != nil {
 		return err
 	}
@@ -592,7 +592,7 @@ func (d *ddcBucketContractCached) ClusterSetNodeStatus(clusterId bucket.ClusterI
 	return nil
 }
 
-func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
+func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(ctx context.Context, keyPair signature.KeyringPair, clusterId bucket.ClusterId, cdnNodeKey bucket.CdnNodeKey, statusInCluster string) error {
 	if statusInCluster == "" {
 		return errors.New("Empty status in cluster.")
 	}
@@ -606,7 +606,7 @@ func (d *ddcBucketContractCached) ClusterSetCdnNodeStatus(clusterId bucket.Clust
 		return bucket.ErrCdnNodeIsNotAddedToCluster
 	}
 
-	err = d.ddcBucketContract.ClusterSetCdnNodeStatus(clusterId, cdnNodeKey, statusInCluster)
+	err = d.ddcBucketContract.ClusterSetCdnNodeStatus(ctx, keyPair, clusterId, cdnNodeKey, statusInCluster)
 	if err != nil {
 		return err
 	}
