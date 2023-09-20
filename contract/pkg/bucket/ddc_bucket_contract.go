@@ -117,21 +117,21 @@ type (
 		GetAccounts() ([]AccountId, error)
 
 		BucketGet(bucketId BucketId) (*BucketInfo, error)
-		BucketCreate(bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (bucketId BucketId, err error)
-		BucketChangeOwner(bucketId BucketId, ownerId AccountId) error
-		BucketAllocIntoCluster(bucketId BucketId, resource Resource) error
-		BucketSettlePayment(bucketId BucketId) error
-		BucketChangeParams(bucketId BucketId, bucketParams BucketParams) error
+		BucketCreate(ctx context.Context, keyPair signature.KeyringPair, bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (blockHash types.Hash, err error)
+		BucketChangeOwner(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, ownerId AccountId) error
+		BucketAllocIntoCluster(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, resource Resource) error
+		BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) error
+		BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, bucketParams BucketParams) error
 		BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*BucketListInfo, error)
 		BucketListForAccount(ownerId AccountId) ([]Bucket, error)
-		BucketSetAvailability(bucketId BucketId, publicAvailability bool) error
-		BucketSetResourceCap(bucketId BucketId, newResourceCap Resource) error
+		BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, publicAvailability bool) error
+		BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(bucketId BucketId) ([]AccountId, error)
 		GetBucketReaders(bucketId BucketId) ([]AccountId, error)
-		BucketSetWriterPerm(bucketId BucketId, writer AccountId) error
-		BucketRevokeWriterPerm(bucketId BucketId, writer AccountId) error
-		BucketSetReaderPerm(bucketId BucketId, reader AccountId) error
-		BucketRevokeReaderPerm(bucketId BucketId, reader AccountId) error
+		BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
+		BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
+		BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, reader AccountId) error
+		BucketRevokeReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, reader AccountId) error
 
 		ClusterGet(clusterId ClusterId) (*ClusterInfo, error)
 		ClusterCreate(ctx context.Context, keyPair signature.KeyringPair, params Params, resourcePerVNode Resource) (blockHash types.Hash, err error)
@@ -914,28 +914,28 @@ func (d *ddcBucketContract) GetAccounts() ([]types.AccountID, error) {
 	return accounts, err
 }
 
-func (d *ddcBucketContract) BucketCreate(bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (bucketId BucketId, err error) {
-	err = d.callToRead(bucketId, d.bucketCreateMethodId, bucketParams, clusterId, ownerId)
-	return bucketId, err
+func (d *ddcBucketContract) BucketCreate(ctx context.Context, keyPair signature.KeyringPair, bucketParams BucketParams, clusterId ClusterId, ownerId types.OptionAccountID) (blockHash types.Hash, err error) {
+	blockHash, err = d.callToExec(ctx, keyPair, d.bucketCreateMethodId, bucketParams, clusterId, ownerId)
+	return blockHash, err
 }
 
-func (d *ddcBucketContract) BucketChangeOwner(bucketId BucketId, newOwnerId AccountId) error {
-	err := d.callToRead(newOwnerId, d.bucketChangeOwnerMethodId, bucketId, newOwnerId)
+func (d *ddcBucketContract) BucketChangeOwner(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, newOwnerId AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketChangeOwnerMethodId, bucketId, newOwnerId)
 	return err
 }
 
-func (d *ddcBucketContract) BucketAllocIntoCluster(bucketId types.U32, resource Resource) error {
-	err := d.callToRead(bucketId, d.bucketAllocIntoClusterMethodId, resource, bucketId)
+func (d *ddcBucketContract) BucketAllocIntoCluster(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, resource Resource) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketAllocIntoClusterMethodId, resource, bucketId)
 	return err
 }
 
-func (d *ddcBucketContract) BucketSettlePayment(bucketId types.U32) error {
-	err := d.callToRead(bucketId, d.bucketSettlePaymentMethodId, bucketId)
+func (d *ddcBucketContract) BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketSettlePaymentMethodId, bucketId)
 	return err
 }
 
-func (d *ddcBucketContract) BucketChangeParams(bucketId types.U32, bucketParams BucketParams) error {
-	err := d.callToRead(bucketId, d.bucketChangeParamsMethodId, bucketParams, bucketId)
+func (d *ddcBucketContract) BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, bucketParams BucketParams) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketChangeParamsMethodId, bucketParams, bucketId)
 	return err
 }
 
@@ -951,13 +951,13 @@ func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) ([]Bucket, e
 	return res, err
 }
 
-func (d *ddcBucketContract) BucketSetAvailability(bucketId types.U32, publicAvailability bool) error {
-	err := d.callToRead(bucketId, d.bucketSetAvailabilityMethodId, publicAvailability, bucketId)
+func (d *ddcBucketContract) BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, publicAvailability bool) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketSetAvailabilityMethodId, publicAvailability, bucketId)
 	return err
 }
 
-func (d *ddcBucketContract) BucketSetResourceCap(bucketId types.U32, newResourceCap Resource) error {
-	err := d.callToRead(bucketId, d.bucketSetResourceCapMethodId, newResourceCap, bucketId)
+func (d *ddcBucketContract) BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, newResourceCap Resource) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketSetResourceCapMethodId, newResourceCap, bucketId)
 	return err
 }
 
@@ -971,22 +971,22 @@ func (d *ddcBucketContract) GetBucketReaders(bucketId types.U32) (readers []type
 	return readers, err
 }
 
-func (d *ddcBucketContract) BucketSetWriterPerm(bucketId types.U32, writer AccountId) error {
-	err := d.callToRead(writer, d.bucketSetWriterPermMethodId, bucketId, writer)
+func (d *ddcBucketContract) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, writer AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketSetWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeWriterPerm(bucketId types.U32, writer AccountId) error {
-	err := d.callToRead(writer, d.bucketRevokeWriterPermMethodId, bucketId, writer)
+func (d *ddcBucketContract) BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, writer AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketRevokeWriterPermMethodId, bucketId, writer)
 	return err
 }
 
-func (d *ddcBucketContract) BucketSetReaderPerm(bucketId types.U32, reader AccountId) error {
-	err := d.callToRead(reader, d.bucketSetReaderPermMethodId, bucketId, reader)
+func (d *ddcBucketContract) BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, reader AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketSetReaderPermMethodId, bucketId, reader)
 	return err
 }
 
-func (d *ddcBucketContract) BucketRevokeReaderPerm(bucketId types.U32, reader AccountId) error {
-	err := d.callToRead(reader, d.bucketRevokeReaderPermMethodId, bucketId, reader)
+func (d *ddcBucketContract) BucketRevokeReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, reader AccountId) error {
+	_, err := d.callToExec(ctx, keyPair, d.bucketRevokeReaderPermMethodId, bucketId, reader)
 	return err
 }

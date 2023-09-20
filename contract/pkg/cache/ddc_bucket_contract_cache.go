@@ -830,24 +830,24 @@ func (d *ddcBucketContractCached) GetAccounts() ([]types.AccountID, error) {
 	return accounts, err
 }
 
-func (d *ddcBucketContractCached) BucketCreate(bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (bucketId bucket.BucketId, err error) {
-	return d.ddcBucketContract.BucketCreate(bucketParams, clusterId, ownerId)
+func (d *ddcBucketContractCached) BucketCreate(ctx context.Context, keyPair signature.KeyringPair, bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (blockHash types.Hash, err error) {
+	return d.ddcBucketContract.BucketCreate(ctx, keyPair, bucketParams, clusterId, ownerId)
 }
 
-func (d *ddcBucketContractCached) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
-	return d.ddcBucketContract.BucketChangeOwner(bucketId, ownerId)
+func (d *ddcBucketContractCached) BucketChangeOwner(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, ownerId bucket.AccountId) error {
+	return d.ddcBucketContract.BucketChangeOwner(ctx, keyPair, bucketId, ownerId)
 }
 
-func (d *ddcBucketContractCached) BucketAllocIntoCluster(bucketId bucket.BucketId, resource bucket.Resource) error {
-	return d.ddcBucketContract.BucketAllocIntoCluster(bucketId, resource)
+func (d *ddcBucketContractCached) BucketAllocIntoCluster(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, resource bucket.Resource) error {
+	return d.ddcBucketContract.BucketAllocIntoCluster(ctx, keyPair, bucketId, resource)
 }
 
-func (d *ddcBucketContractCached) BucketSettlePayment(bucketId bucket.BucketId) error {
-	return d.ddcBucketContract.BucketSettlePayment(bucketId)
+func (d *ddcBucketContractCached) BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) error {
+	return d.ddcBucketContract.BucketSettlePayment(ctx, keyPair, bucketId)
 }
 
-func (d *ddcBucketContractCached) BucketChangeParams(bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
-	return d.ddcBucketContract.BucketChangeParams(bucketId, bucketParams)
+func (d *ddcBucketContractCached) BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
+	return d.ddcBucketContract.BucketChangeParams(ctx, keyPair, bucketId, bucketParams)
 }
 
 func (d *ddcBucketContractCached) BucketList(offset types.U32, limit types.U32, filterOwnerId types.OptionAccountID) (*bucket.BucketListInfo, error) {
@@ -858,12 +858,12 @@ func (d *ddcBucketContractCached) BucketListForAccount(ownerId bucket.AccountId)
 	return d.ddcBucketContract.BucketListForAccount(ownerId)
 }
 
-func (d *ddcBucketContractCached) BucketSetAvailability(bucketId bucket.BucketId, publicAvailability bool) error {
-	return d.ddcBucketContract.BucketSetAvailability(bucketId, publicAvailability)
+func (d *ddcBucketContractCached) BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, publicAvailability bool) error {
+	return d.ddcBucketContract.BucketSetAvailability(ctx, keyPair, bucketId, publicAvailability)
 }
 
-func (d *ddcBucketContractCached) BucketSetResourceCap(bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
-	return d.ddcBucketContract.BucketSetResourceCap(bucketId, newResourceCap)
+func (d *ddcBucketContractCached) BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
+	return d.ddcBucketContract.BucketSetResourceCap(ctx, keyPair, bucketId, newResourceCap)
 }
 
 func (d *ddcBucketContractCached) GetBucketWriters(bucketId bucket.BucketId) ([]types.AccountID, error) {
@@ -874,18 +874,18 @@ func (d *ddcBucketContractCached) GetBucketReaders(bucketId bucket.BucketId) ([]
 	return d.ddcBucketContract.GetBucketReaders(bucketId)
 }
 
-func (d *ddcBucketContractCached) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
-	return d.ddcBucketContract.BucketSetWriterPerm(bucketId, writer)
+func (d *ddcBucketContractCached) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
+	return d.ddcBucketContract.BucketSetWriterPerm(ctx, keyPair, bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
-	return d.ddcBucketContract.BucketRevokeWriterPerm(bucketId, writer)
+func (d *ddcBucketContractCached) BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
+	return d.ddcBucketContract.BucketRevokeWriterPerm(ctx, keyPair, bucketId, writer)
 }
 
-func (d *ddcBucketContractCached) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
-	return d.ddcBucketContract.BucketSetReaderPerm(bucketId, reader)
+func (d *ddcBucketContractCached) BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
+	return d.ddcBucketContract.BucketSetReaderPerm(ctx, keyPair, bucketId, reader)
 }
 
-func (d *ddcBucketContractCached) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
-	return d.ddcBucketContract.BucketRevokeReaderPerm(bucketId, reader)
+func (d *ddcBucketContractCached) BucketRevokeReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
+	return d.ddcBucketContract.BucketRevokeReaderPerm(ctx, keyPair, bucketId, reader)
 }

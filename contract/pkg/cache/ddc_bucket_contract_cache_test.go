@@ -91,7 +91,7 @@ func (m *mockedDdcBucketContract) AdminTransferNodeOwnership(nodeKey bucket.Node
 	return nil
 }
 
-func (m *mockedDdcBucketContract) CdnNodeCreate(nodeKey bucket.NodeKey, params bucket.CDNNodeParams) error {
+func (m *mockedDdcBucketContract) CdnNodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.CDNNodeParams) error {
 	return nil
 }
 
@@ -179,7 +179,7 @@ func (m *mockedDdcBucketContract) HasPermission(account bucket.AccountId, permis
 	return true, args.Error(1)
 }
 
-func (m *mockedDdcBucketContract) NodeSetParams(nodeKey bucket.NodeKey, params bucket.Params) error {
+func (m *mockedDdcBucketContract) NodeSetParams(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params) error {
 	args := m.Called(nodeKey, params)
 	return args.Error(1)
 }
@@ -217,27 +217,27 @@ func (m *mockedDdcBucketContract) GetAccounts() ([]types.AccountID, error) {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketCreate(bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (bucketId bucket.BucketId, err error) {
+func (m *mockedDdcBucketContract) BucketCreate(ctx context.Context, keyPair signature.KeyringPair, bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (blockHash types.Hash, err error) {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
+func (m *mockedDdcBucketContract) BucketChangeOwner(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, ownerId bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketAllocIntoCluster(bucketId bucket.BucketId, resource bucket.Resource) error {
+func (m *mockedDdcBucketContract) BucketAllocIntoCluster(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, resource bucket.Resource) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetResourceCap(bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
+func (m *mockedDdcBucketContract) BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSettlePayment(bucketId bucket.BucketId) error {
+func (m *mockedDdcBucketContract) BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketChangeParams(bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
+func (m *mockedDdcBucketContract) BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
 	panic("implement me")
 }
 
@@ -249,7 +249,7 @@ func (m *mockedDdcBucketContract) BucketListForAccount(ownerId bucket.AccountId)
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetAvailability(bucketId bucket.BucketId, publicAvailability bool) error {
+func (m *mockedDdcBucketContract) BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, publicAvailability bool) error {
 	panic("implement me")
 }
 
@@ -261,19 +261,19 @@ func (m *mockedDdcBucketContract) GetBucketReaders(bucketId bucket.BucketId) ([]
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (m *mockedDdcBucketContract) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (m *mockedDdcBucketContract) BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (m *mockedDdcBucketContract) BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (m *mockedDdcBucketContract) BucketRevokeReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
 	panic("implement me")
 }
 

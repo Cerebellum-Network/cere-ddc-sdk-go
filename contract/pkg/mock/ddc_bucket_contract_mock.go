@@ -426,27 +426,27 @@ func (d *ddcBucketContractMock) GetAccounts() ([]bucket.AccountId, error) {
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketCreate(bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (bucketId bucket.BucketId, err error) {
+func (d *ddcBucketContractMock) BucketCreate(ctx context.Context, keyPair signature.KeyringPair, bucketParams bucket.BucketParams, clusterId bucket.ClusterId, ownerId types.OptionAccountID) (blockHash types.Hash, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketChangeOwner(bucketId bucket.BucketId, ownerId bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketChangeOwner(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, ownerId bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketAllocIntoCluster(bucketId bucket.BucketId, resource bucket.Resource) error {
+func (d *ddcBucketContractMock) BucketAllocIntoCluster(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, resource bucket.Resource) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSettlePayment(bucketId bucket.BucketId) error {
+func (d *ddcBucketContractMock) BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketChangeParams(bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
+func (d *ddcBucketContractMock) BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, bucketParams bucket.BucketParams) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -461,12 +461,12 @@ func (d *ddcBucketContractMock) BucketListForAccount(ownerId bucket.AccountId) (
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetAvailability(bucketId bucket.BucketId, publicAvailability bool) error {
+func (d *ddcBucketContractMock) BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, publicAvailability bool) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetResourceCap(bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
+func (d *ddcBucketContractMock) BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, newResourceCap bucket.Resource) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -481,22 +481,22 @@ func (d *ddcBucketContractMock) GetBucketReaders(bucketId bucket.BucketId) ([]bu
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeWriterPerm(bucketId bucket.BucketId, writer bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketSetReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketRevokeReaderPerm(bucketId bucket.BucketId, reader bucket.AccountId) error {
+func (d *ddcBucketContractMock) BucketRevokeReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, reader bucket.AccountId) error {
 	//TODO implement me
 	panic("implement me")
 }
