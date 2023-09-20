@@ -194,22 +194,22 @@ func (m *mockedDdcBucketContract) AccountDeposit() error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) AccountBond(bondAmount bucket.Balance) error {
+func (m *mockedDdcBucketContract) AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) AccountUnbond(bondAmount bucket.Balance) error {
+func (m *mockedDdcBucketContract) AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
 	panic("implement me")
 }
 func (m *mockedDdcBucketContract) AccountGetUsdPerCere() (balance bucket.Balance, err error) {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) AccountSetUsdPerCere(usdPerCere bucket.Balance) error {
+func (m *mockedDdcBucketContract) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere bucket.Balance) error {
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) AccountWithdrawUnbonded() error {
+func (m *mockedDdcBucketContract) AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error {
 	panic("implement me")
 }
 

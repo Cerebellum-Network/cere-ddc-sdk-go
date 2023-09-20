@@ -805,24 +805,24 @@ func (d *ddcBucketContractCached) AccountDeposit() error {
 	return d.ddcBucketContract.AccountDeposit()
 }
 
-func (d *ddcBucketContractCached) AccountBond(bondAmount bucket.Balance) error {
-	return d.ddcBucketContract.AccountBond(bondAmount)
+func (d *ddcBucketContractCached) AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
+	return d.ddcBucketContract.AccountBond(ctx, keyPair, bondAmount)
 }
 
-func (d *ddcBucketContractCached) AccountUnbond(bondAmount bucket.Balance) error {
-	return d.ddcBucketContract.AccountUnbond(bondAmount)
+func (d *ddcBucketContractCached) AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
+	return d.ddcBucketContract.AccountUnbond(ctx, keyPair, bondAmount)
 }
 
 func (d *ddcBucketContractCached) AccountGetUsdPerCere() (balance bucket.Balance, err error) {
 	return d.ddcBucketContract.AccountGetUsdPerCere()
 }
 
-func (d *ddcBucketContractCached) AccountSetUsdPerCere(usdPerCere bucket.Balance) error {
-	return d.ddcBucketContract.AccountSetUsdPerCere(usdPerCere)
+func (d *ddcBucketContractCached) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere bucket.Balance) error {
+	return d.ddcBucketContract.AccountSetUsdPerCere(ctx, keyPair, usdPerCere)
 }
 
-func (d *ddcBucketContractCached) AccountWithdrawUnbonded() error {
-	return d.ddcBucketContract.AccountWithdrawUnbonded()
+func (d *ddcBucketContractCached) AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error {
+	return d.ddcBucketContract.AccountWithdrawUnbonded(ctx, keyPair)
 }
 
 func (d *ddcBucketContractCached) GetAccounts() ([]types.AccountID, error) {

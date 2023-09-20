@@ -109,11 +109,11 @@ type (
 		GetLastAccessTime() time.Time
 
 		AccountDeposit() error
-		AccountBond(bondAmount Balance) error
-		AccountUnbond(bondAmount Cash) error
+		AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error
+		AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Cash) error
 		AccountGetUsdPerCere() (balance Balance, err error)
-		AccountSetUsdPerCere(usdPerCere Balance) error
-		AccountWithdrawUnbonded() error
+		AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error
+		AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error
 		GetAccounts() ([]AccountId, error)
 
 		BucketGet(bucketId BucketId) (*BucketInfo, error)
@@ -877,13 +877,13 @@ func (d *ddcBucketContract) AccountDeposit() error {
 	return err
 }
 
-func (d *ddcBucketContract) AccountBond(bondAmount Balance) error {
-	err := d.callToRead(bondAmount, d.accountBondMethodId, bondAmount)
+func (d *ddcBucketContract) AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error {
+	_, err := d.callToExec(ctx, keyPair, d.accountBondMethodId, bondAmount)
 	return err
 }
 
-func (d *ddcBucketContract) AccountUnbond(bondAmount Balance) error {
-	err := d.callToRead(bondAmount, d.accountUnbondMethodId)
+func (d *ddcBucketContract) AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error {
+	_, err := d.callToExec(ctx, keyPair, d.accountUnbondMethodId, bondAmount)
 	return err
 }
 
@@ -893,13 +893,13 @@ func (d *ddcBucketContract) AccountGetUsdPerCere() (Balance, error) {
 	return balance, err
 }
 
-func (d *ddcBucketContract) AccountSetUsdPerCere(usdPerCere Balance) error {
-	err := d.callToRead(usdPerCere, d.accountSetUsdPerCereMethodId)
+func (d *ddcBucketContract) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error {
+	_, err := d.callToExec(ctx, keyPair, d.accountSetUsdPerCereMethodId, usdPerCere)
 	return err
 }
 
-func (d *ddcBucketContract) AccountWithdrawUnbonded() error {
-	err := d.callToRead(nil, d.accountWithdrawUnbondedMethodId, nil)
+func (d *ddcBucketContract) AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error {
+	_, err := d.callToExec(ctx, keyPair, d.accountWithdrawUnbondedMethodId)
 	return err
 }
 

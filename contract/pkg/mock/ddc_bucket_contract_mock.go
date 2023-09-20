@@ -396,12 +396,12 @@ func (d *ddcBucketContractMock) AccountDeposit() error {
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountBond(balance bucket.Balance) error {
+func (d *ddcBucketContractMock) AccountBond(ctx context.Context, keyPair signature.KeyringPair, balance bucket.Balance) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountUnbond(bondAmount bucket.Balance) error {
+func (d *ddcBucketContractMock) AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -411,12 +411,12 @@ func (d *ddcBucketContractMock) AccountGetUsdPerCere() (bucket.Balance, error) {
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountSetUsdPerCere(balance bucket.Balance) error {
+func (d *ddcBucketContractMock) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, balance bucket.Balance) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountWithdrawUnbonded() error {
+func (d *ddcBucketContractMock) AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error {
 	//TODO implement me
 	panic("implement me")
 }
