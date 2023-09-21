@@ -190,7 +190,7 @@ func (m *mockedDdcBucketContract) RevokeTrustedManagerPermission(ctx context.Con
 }
 
 // TODO: implement yhe underlying methods
-func (m *mockedDdcBucketContract) AccountDeposit() error {
+func (m *mockedDdcBucketContract) AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error {
 	panic("implement me")
 }
 

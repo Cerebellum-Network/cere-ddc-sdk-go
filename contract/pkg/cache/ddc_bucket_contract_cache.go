@@ -801,8 +801,8 @@ func (d *ddcBucketContractCached) AdminTransferCdnNodeOwnership(ctx context.Cont
 }
 
 // TODO implement caching for underlying methods
-func (d *ddcBucketContractCached) AccountDeposit() error {
-	return d.ddcBucketContract.AccountDeposit()
+func (d *ddcBucketContractCached) AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error {
+	return d.ddcBucketContract.AccountDeposit(ctx, keyPair)
 }
 
 func (d *ddcBucketContractCached) AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {

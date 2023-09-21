@@ -108,7 +108,7 @@ type (
 		GetContractAddress() string
 		GetLastAccessTime() time.Time
 
-		AccountDeposit() error
+		AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error
 		AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error
 		AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Cash) error
 		AccountGetUsdPerCere() (balance Balance, err error)
@@ -872,8 +872,9 @@ func (d *ddcBucketContract) AdminTransferCdnNodeOwnership(ctx context.Context, k
 	return err
 }
 
-func (d *ddcBucketContract) AccountDeposit() error {
-	err := d.callToRead(nil, d.accountDepositMethodId, nil)
+func (d *ddcBucketContract) AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error {
+
+	_, err := d.callToExec(ctx, keyPair, d.accountDepositMethodId)
 	return err
 }
 

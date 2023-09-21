@@ -391,7 +391,7 @@ func (d *ddcBucketContractMock) AdminTransferCdnNodeOwnership(ctx context.Contex
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountDeposit() error {
+func (d *ddcBucketContractMock) AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error {
 	//TODO implement me
 	panic("implement me")
 }
