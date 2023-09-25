@@ -119,6 +119,10 @@ type Bucket struct {
 	GasConsumptionCap  Resource
 }
 
+type AcountBucketsListInfo struct {
+	Buckets []Bucket
+}
+
 type Schedule struct {
 	Rate   Balance
 	Offset Balance
