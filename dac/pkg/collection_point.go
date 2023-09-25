@@ -72,7 +72,7 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 
 	if response, err := d.httpClient.Do(req); err != nil {
 		return err
-	} else if response.StatusCode != http.StatusOK {
+	} else if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("DAC collection point post: %d %s", response.StatusCode, string(body))
 	}
