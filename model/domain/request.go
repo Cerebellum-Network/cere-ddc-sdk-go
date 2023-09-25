@@ -12,7 +12,7 @@ type Request struct {
 	Scheme        string
 	MultiHashType uint64
 	SessionId     []byte
-	RequestId     []byte
+	RequestId     string
 }
 
 var _ Protobufable = (*Request)(nil)
