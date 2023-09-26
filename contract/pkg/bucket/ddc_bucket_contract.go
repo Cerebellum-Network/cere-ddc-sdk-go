@@ -123,10 +123,10 @@ type (
 		BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) error
 		BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, bucketParams BucketParams) error
 		BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*BucketListInfo, error)
-		BucketListForAccount(ownerId AccountId) (*AcountBucketsListInfo, error)
+		BucketListForAccount(ownerId AccountId) ([]Bucket, error)
 		BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, newResourceCap Resource) error
-		GetBucketWriters(bucketId BucketId) ([]AccountId, error)
+		GetBucketWriters(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) ([]AccountId, error)
 		GetBucketReaders(bucketId BucketId) ([]AccountId, error)
 		BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
 		BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
@@ -905,12 +905,8 @@ func (d *ddcBucketContract) AccountWithdrawUnbonded(ctx context.Context, keyPair
 }
 
 func (d *ddcBucketContract) GetAccounts() ([]types.AccountID, error) {
-	var accounts []types.AccountID
+	var accounts []AccountId
 	err := d.callToRead(&accounts, d.getAccountsMethodId)
-
-	if err != nil {
-		return nil, err
-	}
 
 	return accounts, err
 }
@@ -946,10 +942,10 @@ func (d *ddcBucketContract) BucketList(offset types.U32, limit types.U32, filter
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (*AcountBucketsListInfo, error) {
-	res := AcountBucketsListInfo{}
+func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) ([]Bucket, error) {
+	res := []Bucket{}
 	err := d.callToRead(&res, d.bucketListForAccountMethodId, ownerId)
-	return &res, err
+	return res, err
 }
 
 func (d *ddcBucketContract) BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, publicAvailability bool) error {
@@ -962,9 +958,10 @@ func (d *ddcBucketContract) BucketSetResourceCap(ctx context.Context, keyPair si
 	return err
 }
 
-func (d *ddcBucketContract) GetBucketWriters(bucketId types.U32) (writers []types.AccountID, err error) {
-	err = d.callToRead(writers, d.getBucketWritersMethodId, bucketId)
-	return writers, err
+func (d *ddcBucketContract) GetBucketWriters(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32) ([]AccountId, error) {
+	res := []AccountId{}
+	_, err := d.callToExec(ctx, keyPair, d.getBucketWritersMethodId, &res, bucketId)
+	return res, err
 }
 
 func (d *ddcBucketContract) GetBucketReaders(bucketId types.U32) (readers []types.AccountID, err error) {

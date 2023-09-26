@@ -456,7 +456,7 @@ func (d *ddcBucketContractMock) BucketList(offset types.U32, limit types.U32, fi
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) BucketListForAccount(ownerId bucket.AccountId) (*bucket.AcountBucketsListInfo, error) {
+func (d *ddcBucketContractMock) BucketListForAccount(ownerId bucket.AccountId) ([]bucket.Bucket, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -471,7 +471,7 @@ func (d *ddcBucketContractMock) BucketSetResourceCap(ctx context.Context, keyPai
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) GetBucketWriters(bucketId bucket.BucketId) ([]bucket.AccountId, error) {
+func (d *ddcBucketContractMock) GetBucketWriters(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) ([]bucket.AccountId, error) {
 	//TODO implement me
 	panic("implement me")
 }
