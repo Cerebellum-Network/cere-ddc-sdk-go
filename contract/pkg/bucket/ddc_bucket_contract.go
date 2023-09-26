@@ -127,7 +127,7 @@ type (
 		BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) ([]AccountId, error)
-		GetBucketReaders(bucketId BucketId) ([]AccountId, error)
+		GetBucketReaders(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) ([]AccountId, error)
 		BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
 		BucketRevokeWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, writer AccountId) error
 		BucketSetReaderPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, reader AccountId) error
@@ -964,9 +964,10 @@ func (d *ddcBucketContract) GetBucketWriters(ctx context.Context, keyPair signat
 	return res, err
 }
 
-func (d *ddcBucketContract) GetBucketReaders(bucketId types.U32) (readers []types.AccountID, err error) {
-	err = d.callToRead(readers, d.getBucketReadersMethodId, bucketId)
-	return readers, err
+func (d *ddcBucketContract) GetBucketReaders(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32) ([]AccountId, error) {
+	res := []AccountId{}
+	_, err := d.callToExec(ctx, keyPair, d.getBucketReadersMethodId, &res, bucketId)
+	return res, err
 }
 
 func (d *ddcBucketContract) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId types.U32, writer AccountId) error {

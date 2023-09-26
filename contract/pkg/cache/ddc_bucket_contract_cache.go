@@ -870,8 +870,8 @@ func (d *ddcBucketContractCached) GetBucketWriters(ctx context.Context, keyPair 
 	return d.ddcBucketContract.GetBucketWriters(ctx, keyPair, bucketId)
 }
 
-func (d *ddcBucketContractCached) GetBucketReaders(bucketId bucket.BucketId) ([]types.AccountID, error) {
-	return d.ddcBucketContract.GetBucketReaders(bucketId)
+func (d *ddcBucketContractCached) GetBucketReaders(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) ([]bucket.AccountId, error) {
+	return d.ddcBucketContract.GetBucketReaders(ctx, keyPair, bucketId)
 }
 
 func (d *ddcBucketContractCached) BucketSetWriterPerm(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId, writer bucket.AccountId) error {

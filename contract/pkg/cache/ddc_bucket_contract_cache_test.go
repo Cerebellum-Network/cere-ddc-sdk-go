@@ -257,7 +257,7 @@ func (m *mockedDdcBucketContract) GetBucketWriters(ctx context.Context, keyPair 
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) GetBucketReaders(bucketId bucket.BucketId) ([]types.AccountID, error) {
+func (m *mockedDdcBucketContract) GetBucketReaders(ctx context.Context, keyPair signature.KeyringPair, bucketId bucket.BucketId) ([]types.AccountID, error) {
 	panic("implement me")
 }
 
