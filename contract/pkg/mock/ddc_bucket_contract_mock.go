@@ -406,7 +406,7 @@ func (d *ddcBucketContractMock) AccountUnbond(ctx context.Context, keyPair signa
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) AccountGetUsdPerCere() bucket.Balance {
+func (d *ddcBucketContractMock) AccountGetUsdPerCere() (bucket.Balance, error) {
 	//TODO implement me
 	panic("implement me")
 }

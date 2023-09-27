@@ -201,7 +201,7 @@ func (m *mockedDdcBucketContract) AccountBond(ctx context.Context, keyPair signa
 func (m *mockedDdcBucketContract) AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount bucket.Balance) error {
 	panic("implement me")
 }
-func (m *mockedDdcBucketContract) AccountGetUsdPerCere() bucket.Balance {
+func (m *mockedDdcBucketContract) AccountGetUsdPerCere() (bucket.Balance, error) {
 	panic("implement me")
 }
 

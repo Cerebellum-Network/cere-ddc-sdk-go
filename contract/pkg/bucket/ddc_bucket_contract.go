@@ -111,7 +111,7 @@ type (
 		AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error
 		AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error
 		AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Cash) error
-		AccountGetUsdPerCere() Balance
+		AccountGetUsdPerCere() (Balance, error)
 		AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error
 		AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error
 		GetAccounts() ([]AccountId, error)
@@ -888,10 +888,10 @@ func (d *ddcBucketContract) AccountUnbond(ctx context.Context, keyPair signature
 	return err
 }
 
-func (d *ddcBucketContract) AccountGetUsdPerCere() Balance {
+func (d *ddcBucketContract) AccountGetUsdPerCere() (Balance, error) {
 	balance := Balance{}
-	_ = d.callToRead(&balance, d.accountGetUsdPerCereMethodId)
-	return balance
+	err := d.callToRead(&balance, d.accountGetUsdPerCereMethodId)
+	return balance, err
 }
 
 func (d *ddcBucketContract) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error {
