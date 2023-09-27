@@ -123,6 +123,10 @@ type Bucket struct {
 	GasConsumptionCap  Resource
 }
 
+type BucketListForAccountInfo struct {
+	Buckets []Bucket
+}
+
 type Flow struct {
 	From     AccountId
 	Schedule Schedule
