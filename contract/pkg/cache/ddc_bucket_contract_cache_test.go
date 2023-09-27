@@ -245,7 +245,7 @@ func (m *mockedDdcBucketContract) BucketList(offset types.U32, limit types.U32, 
 	panic("implement me")
 }
 
-func (m *mockedDdcBucketContract) BucketListForAccount(ownerId bucket.AccountId) (*[]bucket.Bucket, error) {
+func (m *mockedDdcBucketContract) BucketListForAccount(ownerId bucket.AccountId) ([]bucket.Bucket, error) {
 	panic("implement me")
 }
 
