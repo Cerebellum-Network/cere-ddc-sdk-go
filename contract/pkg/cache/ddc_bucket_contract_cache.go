@@ -813,7 +813,7 @@ func (d *ddcBucketContractCached) AccountUnbond(ctx context.Context, keyPair sig
 	return d.ddcBucketContract.AccountUnbond(ctx, keyPair, bondAmount)
 }
 
-func (d *ddcBucketContractCached) AccountGetUsdPerCere() (balance bucket.Balance, err error) {
+func (d *ddcBucketContractCached) AccountGetUsdPerCere() (*bucket.UsdPerCereInfo, error) {
 	return d.ddcBucketContract.AccountGetUsdPerCere()
 }
 

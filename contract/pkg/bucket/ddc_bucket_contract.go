@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"errors"
-	"math/big"
 	"reflect"
 	"time"
 
@@ -112,7 +111,7 @@ type (
 		AccountDeposit(ctx context.Context, keyPair signature.KeyringPair) error
 		AccountBond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Balance) error
 		AccountUnbond(ctx context.Context, keyPair signature.KeyringPair, bondAmount Cash) error
-		AccountGetUsdPerCere() (Balance, error)
+		AccountGetUsdPerCere() (*UsdPerCereInfo, error)
 		AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error
 		AccountWithdrawUnbonded(ctx context.Context, keyPair signature.KeyringPair) error
 		GetAccounts() ([]AccountId, error)
@@ -889,10 +888,10 @@ func (d *ddcBucketContract) AccountUnbond(ctx context.Context, keyPair signature
 	return err
 }
 
-func (d *ddcBucketContract) AccountGetUsdPerCere() (Balance, error) {
-	balance := types.NewU128(*big.NewInt(0))
-	err := d.callToRead(&balance, d.accountGetUsdPerCereMethodId, balance)
-	return balance, err
+func (d *ddcBucketContract) AccountGetUsdPerCere() (*UsdPerCereInfo, error) {
+	balance := UsdPerCereInfo{}
+	err := d.callToRead(&balance, d.accountGetUsdPerCereMethodId)
+	return &balance, err
 }
 
 func (d *ddcBucketContract) AccountSetUsdPerCere(ctx context.Context, keyPair signature.KeyringPair, usdPerCere Balance) error {
