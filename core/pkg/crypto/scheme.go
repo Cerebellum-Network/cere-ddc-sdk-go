@@ -16,6 +16,7 @@ type (
 		Name() string
 		PublicKey() []byte
 		Address() (string, error)
+		AddressForNetwork(network uint8) (string, error)
 		PublicKeyHex() string
 	}
 )
