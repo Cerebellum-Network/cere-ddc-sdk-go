@@ -123,7 +123,7 @@ type (
 		BucketSettlePayment(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) error
 		BucketChangeParams(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, bucketParams BucketParams) error
 		BucketList(offset types.U32, limit types.U32, ownerId types.OptionAccountID) (*BucketListInfo, error)
-		BucketListForAccount(ownerId AccountId) (BucketListForAccountInfo, error)
+		BucketListForAccount(ownerId AccountId) ([]Bucket, error)
 		BucketSetAvailability(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, publicAvailability bool) error
 		BucketSetResourceCap(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId, newResourceCap Resource) error
 		GetBucketWriters(ctx context.Context, keyPair signature.KeyringPair, bucketId BucketId) ([]AccountId, error)
@@ -942,8 +942,8 @@ func (d *ddcBucketContract) BucketList(offset types.U32, limit types.U32, filter
 	return &res, err
 }
 
-func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) (BucketListForAccountInfo, error) {
-	res := BucketListForAccountInfo{}
+func (d *ddcBucketContract) BucketListForAccount(ownerId AccountId) ([]Bucket, error) {
+	res := []Bucket{}
 	err := d.callToRead(&res, d.bucketListForAccountMethodId, ownerId)
 	return res, err
 }

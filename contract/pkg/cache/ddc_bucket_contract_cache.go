@@ -854,7 +854,7 @@ func (d *ddcBucketContractCached) BucketList(offset types.U32, limit types.U32, 
 	return d.ddcBucketContract.BucketList(offset, limit, filterOwnerId)
 }
 
-func (d *ddcBucketContractCached) BucketListForAccount(ownerId bucket.AccountId) (bucket.BucketListForAccountInfo, error) {
+func (d *ddcBucketContractCached) BucketListForAccount(ownerId bucket.AccountId) ([]bucket.Bucket, error) {
 	return d.ddcBucketContract.BucketListForAccount(ownerId)
 }
 
