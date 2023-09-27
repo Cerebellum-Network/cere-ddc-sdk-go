@@ -116,11 +116,13 @@ type Bucket struct {
 	ClusterId          ClusterId
 	ResourceReserved   Resource
 	PublicAvailability bool
+	Flow               Flow
 	GasConsumptionCap  Resource
 }
 
-type AcountBucketsListInfo struct {
-	Buckets []Bucket
+type Flow struct {
+	From     AccountId
+	Schedule Schedule
 }
 
 type Schedule struct {
