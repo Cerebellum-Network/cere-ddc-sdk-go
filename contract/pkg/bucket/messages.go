@@ -118,6 +118,7 @@ type Bucket struct {
 	PublicAvailability bool
 	Flow               Flow
 	GasConsumptionCap  Resource
+	BucketParams       BucketParams
 }
 
 type Flow struct {
