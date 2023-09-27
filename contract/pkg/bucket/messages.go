@@ -28,6 +28,10 @@ type (
 	Rent                = Balance
 )
 
+type UsdPerCereInfo struct {
+	Balance Balance
+}
+
 const (
 	ADDING = iota
 	ACTIVE
