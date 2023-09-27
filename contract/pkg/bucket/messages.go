@@ -116,7 +116,6 @@ type Bucket struct {
 	ClusterId          ClusterId
 	ResourceReserved   Resource
 	PublicAvailability bool
-	Flow               Flow
 	GasConsumptionCap  Resource
 	BucketParams       BucketParams
 }
