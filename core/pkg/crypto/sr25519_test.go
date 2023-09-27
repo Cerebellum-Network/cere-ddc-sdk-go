@@ -14,7 +14,7 @@ const (
 	pubKeyHexSr25519             = "0xc8393bc5fd86bccda163187c8c23cba9d63622a745ed59fedc51d51210d1884f"
 	signatureSr25519             = "ba4a02f174694ee29a6a38b4ad2c16ff59f590da38694b556299197d1b352f464db889d93d1e3d86b068522aabb3585f50c129e1565a48b653336014a5fe158f"
 	addressSr25519               = "5GbESExKAqUSer8YHHRpze6XDGjRaC2dpS7E44vMiXmEHoSe"
-	addressForCereNetworkSr25519 = "6fcU48XxYuicqfo2xjkAHFpUG4jYLkqvTbs4fdvaCW64EVhQ"
+	addressForCereNetworkSr25519 = "6U39Y9T9nKyAXYz79fz7XTHcy6SxEPat5ikoSGdyGnu5fd9V"
 )
 
 var (
@@ -76,7 +76,7 @@ func TestAddressSr25519(t *testing.T) {
 }
 
 func TestAddressForCereNetworkSr25519(t *testing.T) {
-	address, err := testSr25519Scheme.AddressForNetwork(56)
+	address, err := testSr25519Scheme.AddressForNetwork(54)
 	assert.NoError(t, err)
 	assert.Equal(t, address, addressForCereNetworkSr25519)
 }

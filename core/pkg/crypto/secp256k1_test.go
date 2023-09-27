@@ -67,7 +67,7 @@ func TestSecp256k1_Address(t *testing.T) {
 }
 
 func TestSecp256k1_AddressForCereNetwork(t *testing.T) {
-	address, err := testEd25519Scheme.AddressForNetwork(56)
+	address, err := testEd25519Scheme.AddressForNetwork(54)
 	assert.NoError(t, err)
 	assert.Equal(t, addressForCereNetwork, address)
 }

@@ -92,7 +92,7 @@ func TestAddressEd25519Scheme(t *testing.T) {
 }
 
 func TestAddressForCereNetworkEd25519Scheme(t *testing.T) {
-	addr, err := testEd25519Scheme.AddressForNetwork(56)
+	addr, err := testEd25519Scheme.AddressForNetwork(54)
 	assert.NoError(t, err)
 	assert.Equal(t, addressForCereNetwork, addr)
 }
