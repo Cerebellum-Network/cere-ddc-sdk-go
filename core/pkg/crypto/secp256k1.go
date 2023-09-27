@@ -18,6 +18,10 @@ func (s *secp256k1Scheme) Address() (string, error) {
 	return subkey.SS58Address(s.publicKey, 42)
 }
 
+func (s *secp256k1Scheme) AddressForNetwork(network uint8) (string, error) {
+	return subkey.SS58Address(s.publicKey, network)
+}
+
 func (s *secp256k1Scheme) PublicKeyHex() string {
 	return fmt.Sprintf("0x%s", hex.EncodeToString(s.publicKey))
 }
