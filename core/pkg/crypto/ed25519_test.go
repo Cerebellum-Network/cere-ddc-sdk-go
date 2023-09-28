@@ -91,6 +91,12 @@ func TestAddressEd25519Scheme(t *testing.T) {
 	assert.Equal(t, address, addr)
 }
 
+func TestAddressForCereNetworkEd25519Scheme(t *testing.T) {
+	addr, err := testEd25519Scheme.AddressForNetwork(54)
+	assert.NoError(t, err)
+	assert.Equal(t, addressForCereNetwork, addr)
+}
+
 func TestPublicKeyHexEd25519Scheme(t *testing.T) {
 	keyHex := testEd25519Scheme.PublicKeyHex()
 	assert.Equal(t, pubKeyHex, keyHex)

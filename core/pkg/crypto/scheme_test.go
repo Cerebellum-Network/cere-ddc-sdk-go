@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	content   = "Hello world!"
-	address   = "5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy"
-	pubKeyHex = "0x8f01969eb5244d853cc9c6ad73c46d8a1a091842c414cabd2377531f0832635f"
+	content               = "Hello world!"
+	address               = "5FJDBC3jJbWX48PyfpRCo7pKsFwSy4Mzj5t39PfXixD5jMgy"
+	addressForCereNetwork = "6Sk8H6YZv61EvqFYYCyVKw1Rd5eydFvEzNXcXbP9HDLw7E4W"
+	pubKeyHex             = "0x8f01969eb5244d853cc9c6ad73c46d8a1a091842c414cabd2377531f0832635f"
 )
 
 func TestCreateScheme(t *testing.T) {
