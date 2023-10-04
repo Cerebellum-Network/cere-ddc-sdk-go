@@ -25,7 +25,7 @@ type (
 	}
 
 	Fulfillment struct {
-		SessionId          []byte `json:"sessionId"`
+		SessionId          string `json:"sessionId"`
 		RequestId          string `json:"requestId"`
 		Cid                string `json:"cid"`
 		OpCode             uint8  `json:"opCode"`
