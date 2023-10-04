@@ -3,7 +3,6 @@ package dac
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/crypto"
@@ -81,7 +80,7 @@ func (d dacCollectionPoint) SaveFulfillment(fulfillment Fulfillment) error {
 }
 
 func SignFulfillment(fulfillment *Fulfillment, scheme crypto.Scheme) error {
-	signature, err := scheme.Sign([]byte(fulfillment.Cid + base64.StdEncoding.EncodeToString([]byte(fulfillment.SessionId)) + fulfillment.RequestId + strconv.FormatUint(fulfillment.FulfilledTimestamp, 10)))
+	signature, err := scheme.Sign([]byte(fulfillment.Cid + fulfillment.SessionId + fulfillment.RequestId + strconv.FormatUint(fulfillment.FulfilledTimestamp, 10)))
 	if err != nil {
 		return err
 	}
