@@ -12,6 +12,7 @@ type Request struct {
 	Scheme        string
 	MultiHashType uint64
 	SessionId     []byte
+	RequestId     string
 }
 
 var _ Protobufable = (*Request)(nil)
@@ -38,6 +39,7 @@ func (r *Request) ToProto() *pb.Request {
 		Scheme:        r.Scheme,
 		MultiHashType: r.MultiHashType,
 		SessionId:     r.SessionId,
+		RequestId:     r.RequestId,
 	}
 }
 
@@ -48,4 +50,5 @@ func (r *Request) ToDomain(pbRequest *pb.Request) {
 	r.Scheme = pbRequest.Scheme
 	r.MultiHashType = pbRequest.MultiHashType
 	r.SessionId = pbRequest.SessionId
+	r.RequestId = pbRequest.RequestId
 }
