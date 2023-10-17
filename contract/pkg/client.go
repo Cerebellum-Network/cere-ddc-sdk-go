@@ -13,12 +13,14 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/contract/pkg/chainevents"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	CERE = 10_000_000_000
+	MGAS = 1_000_000
 )
 
 type (
@@ -41,8 +43,8 @@ type (
 		ContractAddress     types.AccountID
 		ContractAddressSS58 string
 		From                signature.KeyringPair
-		Value               float64
-		GasLimit            float64
+		Value               uint64
+		GasLimit            uint64
 		Method              []byte
 		Args                []interface{}
 	}
@@ -51,8 +53,8 @@ type (
 		Code     []byte
 		Salt     []byte
 		From     signature.KeyringPair
-		Value    float64
-		GasLimit float64
+		Value    uint64
+		GasLimit uint64
 		Method   []byte
 		Args     []interface{}
 	}
@@ -166,8 +168,8 @@ func (b *blockchainClient) listenContractEvents() error {
 						continue
 					}
 
-					events := types.EventRecords{}
-					err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+					events := chainevents.EventRecords{}
+					err = chainevents.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 					if err != nil {
 						log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
 						continue
@@ -231,6 +233,7 @@ func (b *blockchainClient) CallToReadEncoded(contractAddressSS58 string, fromAdd
 }
 
 func (b *blockchainClient) callToRead(contractAddressSS58 string, fromAddress string, data []byte) (Response, error) {
+
 	params := Request{
 		Origin:    fromAddress,
 		Dest:      contractAddressSS58,
@@ -255,21 +258,13 @@ func (b *blockchainClient) CallToExec(ctx context.Context, contractCall Contract
 		return types.Hash{}, err
 	}
 
-	valueRaw := types.NewUCompactFromUInt(uint64(contractCall.Value * CERE))
-	var gasLimitRaw types.UCompact
-	if contractCall.GasLimit > 0 {
-		gasLimitRaw = types.NewUCompactFromUInt(uint64(contractCall.GasLimit * CERE))
-	} else {
-		resp, err := b.callToRead(contractCall.ContractAddressSS58, contractCall.From.Address, data)
-		if err != nil {
-			return types.Hash{}, err
-		}
-		gasLimitRaw = types.NewUCompactFromUInt(uint64(resp.GasConsumed))
-	}
+	dest := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
+	value := types.NewUCompactFromUInt(contractCall.Value)
+	gasLimit := types.NewUCompactFromUInt(contractCall.GasLimit)
+	storageDepositLimit := types.NewOptionBoolEmpty()
 
-	multiAddress := types.MultiAddress{IsID: true, AsID: contractCall.ContractAddress}
 	extrinsic, err := withRetryOnClosedNetwork(b, func() (types.Extrinsic, error) {
-		return b.createExtrinsic("Contracts.call", contractCall.From, multiAddress, valueRaw, gasLimitRaw, types.NewOptionBoolEmpty(), data)
+		return b.createExtrinsic("Contracts.call", contractCall.From, dest, value, gasLimit, storageDepositLimit, data)
 	})
 	if err != nil {
 		return types.Hash{}, err
@@ -341,8 +336,8 @@ func (b *blockchainClient) grabContractInstantiated(hash types.Hash, deployer *t
 
 	for _, st := range storage {
 		for _, chng := range st.Changes {
-			events := types.EventRecords{}
-			err = types.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
+			events := chainevents.EventRecords{}
+			err = chainevents.EventRecordsRaw(chng.StorageData).DecodeEventRecords(meta, &events)
 			if err != nil {
 				log.WithError(err).Warnf("Error parsing event %x", chng.StorageData[:])
 				continue
@@ -422,7 +417,7 @@ func (b *blockchainClient) submitAndWaitExtrinsic(ctx context.Context, extrinsic
 	for {
 		select {
 		case status := <-sub.Chan():
-			if status.IsInBlock {
+			if status.IsInBlock || status.IsFinalized {
 				return status.AsInBlock, nil
 			}
 		case err := <-sub.Err():

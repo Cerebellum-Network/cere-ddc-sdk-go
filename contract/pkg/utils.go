@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/decred/base58"
 	"golang.org/x/crypto/blake2b"
-	"strings"
 )
 
 const addressLength = 32 + 1 + 2

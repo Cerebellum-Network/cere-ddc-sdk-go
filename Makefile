@@ -1,5 +1,6 @@
 packages = ./model/... ./core/... ./contract/... ./contentadrstorage/...
 
+.PHONY: test
 test:
 	go test ${packages}
 

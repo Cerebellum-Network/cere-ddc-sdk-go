@@ -57,6 +57,10 @@ func (e *ed25519Scheme) Address() (string, error) {
 	return subkey.SS58Address(e.publicKey, 42)
 }
 
+func (e *ed25519Scheme) AddressForNetwork(network uint8) (string, error) {
+	return subkey.SS58Address(e.publicKey, network)
+}
+
 func (e *ed25519Scheme) PublicKeyHex() string {
 	return fmt.Sprintf("0x%s", hex.EncodeToString(e.publicKey))
 }

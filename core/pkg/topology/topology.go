@@ -1,18 +1,19 @@
 package topology
 
 import (
-	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/utils"
 	"sort"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/core/pkg/utils"
 )
 
 type (
 	Ring interface {
-		Tokens(nodeId uint32) []uint64
+		Tokens(nodeKey string) []uint64
 		Neighbours(token uint64) (VNode, VNode)
 		Replicas(token uint64) []VNode
 
-		Partitions(nodeId uint32) []Partition
-		ExcessPartitions(nodeId uint32) []Partition
+		Partitions(nodeKey string) []Partition
+		ExcessPartitions(nodeKey string) []Partition
 
 		RemoveVNode(token uint64) bool
 
@@ -26,17 +27,26 @@ type (
 	}
 )
 
-func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
+type (
+	NodeVNodes struct {
+		NodeKey string
+		VNodes  []uint64
+	}
+
+	NodesVNodes = []NodeVNodes
+)
+
+func NewTopology(nodes NodesVNodes, replicaFactor uint) Ring {
 	if replicaFactor == 0 {
 		replicaFactor = 1
 	}
 
 	topologyVNodes := make([]VNode, 0)
-	for i, nodeId := range nodeIds {
-		for _, token := range vNodes[i] {
+	for _, node := range nodes {
+		for _, token := range node.VNodes {
 			topologyVNode := VNode{
-				nodeId: nodeId,
-				token:  token,
+				nodeKey: node.NodeKey,
+				token:   token,
 			}
 
 			topologyVNodes = append(topologyVNodes, topologyVNode)
@@ -53,10 +63,10 @@ func NewTopology(nodeIds []uint32, vNodes [][]uint64, replicaFactor uint) Ring {
 	}
 }
 
-func (r *ring) Tokens(nodeId uint32) []uint64 {
+func (r *ring) Tokens(nodeKey string) []uint64 {
 	result := make([]uint64, 0)
 
-	r.vNodeDo(nodeId, func(i int, vNode VNode) {
+	r.vNodeDo(nodeKey, func(i int, vNode VNode) {
 		result = append(result, vNode.token)
 	})
 
@@ -90,9 +100,9 @@ func (r *ring) Neighbours(token uint64) (prev VNode, next VNode) {
 	return
 }
 
-func (r *ring) Partitions(nodeId uint32) []Partition {
+func (r *ring) Partitions(nodeKey string) []Partition {
 	result := make([]Partition, 0)
-	r.vNodeDo(nodeId, func(i int, vNode VNode) {
+	r.vNodeDo(nodeKey, func(i int, vNode VNode) {
 		for j := uint(1); j < r.replicationFactor; j++ {
 			i = r.prevIndex(i)
 		}
@@ -108,8 +118,8 @@ func (r *ring) Partitions(nodeId uint32) []Partition {
 	return result
 }
 
-func (r *ring) ExcessPartitions(nodeId uint32) []Partition {
-	partitions := r.Partitions(nodeId)
+func (r *ring) ExcessPartitions(nodeKey string) []Partition {
+	partitions := r.Partitions(nodeKey)
 
 	result := make([]Partition, 0)
 	for i := 0; i < len(partitions); i++ {
@@ -155,9 +165,9 @@ func (r *ring) nextIndex(i int) int {
 	return nextIndex(i, len(r.vNodes))
 }
 
-func (r *ring) vNodeDo(nodeId uint32, do func(int, VNode)) {
+func (r *ring) vNodeDo(nodeKey string, do func(int, VNode)) {
 	for i, vNode := range r.vNodes {
-		if nodeId == vNode.nodeId {
+		if nodeKey == vNode.nodeKey {
 			do(i, vNode)
 		}
 	}

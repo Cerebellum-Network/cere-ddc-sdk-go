@@ -66,6 +66,12 @@ func TestSecp256k1_Address(t *testing.T) {
 	assert.Equal(t, expAddress, address)
 }
 
+func TestSecp256k1_AddressForCereNetwork(t *testing.T) {
+	address, err := testEd25519Scheme.AddressForNetwork(54)
+	assert.NoError(t, err)
+	assert.Equal(t, addressForCereNetwork, address)
+}
+
 func TestSecp256k1_PublicKeyHex(t *testing.T) {
 	publicKeyHex := testEd25519Scheme.PublicKeyHex()
 	assert.Equal(t, publicKeyHex, pubKeyHex)
