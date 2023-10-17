@@ -316,7 +316,7 @@ func (d *ddcBucketContractMock) ClusterList(offset types.U32, limit types.U32, f
 	panic("implement me")
 }
 
-func (d *ddcBucketContractMock) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (key bucket.NodeKey, err error) {
+func (d *ddcBucketContractMock) NodeCreate(ctx context.Context, keyPair signature.KeyringPair, nodeKey bucket.NodeKey, params bucket.Params, capacity bucket.Resource, rent bucket.Rent) (blockHash types.Hash, err error) {
 	//TODO implement me
 	panic("implement me")
 }
