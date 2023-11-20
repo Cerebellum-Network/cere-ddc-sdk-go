@@ -9,12 +9,19 @@ import (
 type BlockchainAPI struct {
 	*gsrpc.SubstrateAPI
 
-	DDCClusters *pallets.DDCClustersAPI
+	DDCClusters  *pallets.DDCClustersAPI
+	DDCCustomers *pallets.DDCCustomersAPI
 }
 
-func NewBlockchainAPI(substrateAPI *gsrpc.SubstrateAPI) *BlockchainAPI {
+func NewBlockchainAPI(substrateAPI *gsrpc.SubstrateAPI) (*BlockchainAPI, error) {
+	meta, err := substrateAPI.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return nil, err
+	}
+
 	return &BlockchainAPI{
 		SubstrateAPI: substrateAPI,
 		DDCClusters:  pallets.NewDDCClustersAPI(substrateAPI),
-	}
+		DDCCustomers: pallets.NewDDCCustomersAPI(substrateAPI, meta),
+	}, nil
 }

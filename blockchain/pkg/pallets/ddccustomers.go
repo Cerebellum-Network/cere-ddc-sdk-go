@@ -47,7 +47,7 @@ func NewDDCCustomersAPI(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) 
 	}
 }
 
-func (api *DDCCustomersAPI) GetBucket(bucketID ddcprimitives.BucketID) (types.Option[Bucket], error) {
+func (api *DDCCustomersAPI) GetBuckets(bucketID ddcprimitives.BucketID) (types.Option[Bucket], error) {
 	maybeBucket := types.NewEmptyOption[Bucket]()
 
 	bytes, err := codec.Encode(bucketID)
