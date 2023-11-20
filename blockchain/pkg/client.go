@@ -13,7 +13,11 @@ type BlockchainApi struct {
 	DdcCustomers *pallets.DdcCustomersApi
 }
 
-func NewBlockchainApi(substrateApi *gsrpc.SubstrateAPI) (*BlockchainApi, error) {
+func NewBlockchainApi(url string) (*BlockchainApi, error) {
+	substrateApi, err := gsrpc.NewSubstrateAPI(url)
+	if err != nil {
+		return nil, err
+	}
 	meta, err := substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
 		return nil, err
