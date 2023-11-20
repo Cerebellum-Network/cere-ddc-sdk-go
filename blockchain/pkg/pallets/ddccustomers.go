@@ -16,13 +16,13 @@ type AccountsLedger struct {
 }
 
 type Bucket struct {
-	BucketID  ddcprimitives.BucketID
-	OwnerID   types.AccountID
-	ClusterID ddcprimitives.ClusterID
+	BucketId  ddcprimitives.BucketId
+	OwnerId   types.AccountID
+	ClusterId ddcprimitives.ClusterId
 }
 
 type BucketDetails struct {
-	BucketID ddcprimitives.BucketID
+	BucketId ddcprimitives.BucketId
 	Amount   types.U128
 }
 
@@ -31,26 +31,26 @@ type UnlockChunk struct {
 	Block types.BlockNumber
 }
 
-type Buckets map[ddcprimitives.BucketID]types.Option[Bucket]
+type Buckets map[ddcprimitives.BucketId]types.Option[Bucket]
 
 type Ledger map[types.AccountID]types.Option[AccountsLedger]
 
-type DDCCustomersAPI struct {
-	substrateAPI *gsrpc.SubstrateAPI
+type DdcCustomersApi struct {
+	substrateApi *gsrpc.SubstrateAPI
 	meta         *types.Metadata
 }
 
-func NewDDCCustomersAPI(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) *DDCCustomersAPI {
-	return &DDCCustomersAPI{
+func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) *DdcCustomersApi {
+	return &DdcCustomersApi{
 		substrateAPI,
 		meta,
 	}
 }
 
-func (api *DDCCustomersAPI) GetBuckets(bucketID ddcprimitives.BucketID) (types.Option[Bucket], error) {
+func (api *DdcCustomersApi) GetBuckets(bucketId ddcprimitives.BucketId) (types.Option[Bucket], error) {
 	maybeBucket := types.NewEmptyOption[Bucket]()
 
-	bytes, err := codec.Encode(bucketID)
+	bytes, err := codec.Encode(bucketId)
 	if err != nil {
 		return maybeBucket, err
 	}
@@ -61,7 +61,7 @@ func (api *DDCCustomersAPI) GetBuckets(bucketID ddcprimitives.BucketID) (types.O
 	}
 
 	var bucket Bucket
-	ok, err := api.substrateAPI.RPC.State.GetStorageLatest(key, &bucket)
+	ok, err := api.substrateApi.RPC.State.GetStorageLatest(key, &bucket)
 	if !ok || err != nil {
 		return maybeBucket, err
 	}
@@ -71,14 +71,14 @@ func (api *DDCCustomersAPI) GetBuckets(bucketID ddcprimitives.BucketID) (types.O
 	return maybeBucket, nil
 }
 
-func (api *DDCCustomersAPI) GetBucketsCount() (types.U64, error) {
+func (api *DdcCustomersApi) GetBucketsCount() (types.U64, error) {
 	key, err := types.CreateStorageKey(api.meta, "DdcCustomers", "BucketsCount")
 	if err != nil {
 		return 0, err
 	}
 
 	var bucketsCount types.U64
-	ok, err := api.substrateAPI.RPC.State.GetStorageLatest(key, &bucketsCount)
+	ok, err := api.substrateApi.RPC.State.GetStorageLatest(key, &bucketsCount)
 	if err != nil {
 		return 0, err
 	}
@@ -89,7 +89,7 @@ func (api *DDCCustomersAPI) GetBucketsCount() (types.U64, error) {
 	return bucketsCount, nil
 }
 
-func (api *DDCCustomersAPI) GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error) {
+func (api *DdcCustomersApi) GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error) {
 	maybeLedger := types.NewEmptyOption[AccountsLedger]()
 
 	bytes, err := codec.Encode(owner)
@@ -103,7 +103,7 @@ func (api *DDCCustomersAPI) GetLedger(owner types.AccountID) (types.Option[Accou
 	}
 
 	var accountsLedger AccountsLedger
-	ok, err := api.substrateAPI.RPC.State.GetStorageLatest(key, &accountsLedger)
+	ok, err := api.substrateApi.RPC.State.GetStorageLatest(key, &accountsLedger)
 	if !ok || err != nil {
 		return maybeLedger, err
 	}

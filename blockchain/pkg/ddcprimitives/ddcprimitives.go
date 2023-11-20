@@ -16,18 +16,18 @@ import (
 
 const (
 	NodeTypeStorage = 1
-	NodeTypeCDN     = 2
+	NodeTypeCdn     = 2
 )
 
-type ClusterID = types.H160
-type BucketID = types.U64
+type ClusterId = types.H160
+type BucketId = types.U64
 type StorageNodePubKey = types.AccountID
-type CDNNodePubKey = types.AccountID
+type CdnNodePubKey = types.AccountID
 
 type NodePubKey struct {
-	AsCDNPubKey     CDNNodePubKey
+	AsCdnPubKey     CdnNodePubKey
 	AsStoragePubKey StorageNodePubKey
-	IsCDNPubKey     bool
+	IsCdnPubKey     bool
 	IsStoragePubKey bool
 }
 
@@ -42,8 +42,8 @@ func (m *NodePubKey) Decode(decoder scale.Decoder) error {
 		m.IsStoragePubKey = true
 		err = decoder.Decode(&m.AsStoragePubKey)
 	} else if b == 1 {
-		m.IsCDNPubKey = true
-		err = decoder.Decode(&m.AsCDNPubKey)
+		m.IsCdnPubKey = true
+		err = decoder.Decode(&m.AsCdnPubKey)
 	}
 
 	if err != nil {
@@ -58,9 +58,9 @@ func (m NodePubKey) Encode(encoder scale.Encoder) error {
 	if m.IsStoragePubKey {
 		err1 = encoder.PushByte(0)
 		err2 = encoder.Encode(m.AsStoragePubKey)
-	} else if m.IsCDNPubKey {
+	} else if m.IsCdnPubKey {
 		err1 = encoder.PushByte(1)
-		err2 = encoder.Encode(m.AsCDNPubKey)
+		err2 = encoder.Encode(m.AsCdnPubKey)
 	}
 
 	if err1 != nil {

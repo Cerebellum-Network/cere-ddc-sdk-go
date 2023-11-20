@@ -11,38 +11,38 @@ import (
 )
 
 type Cluster struct {
-	ClusterID ddcprimitives.ClusterID
-	ManagerID types.AccountID
-	ReserveID types.AccountID
+	ClusterId ddcprimitives.ClusterId
+	ManagerId types.AccountID
+	ReserveId types.AccountID
 	Props     ClusterProps
 }
 
-type ClustersNodes map[ddcprimitives.ClusterID][]ddcprimitives.NodePubKey
+type ClustersNodes map[ddcprimitives.ClusterId][]ddcprimitives.NodePubKey
 
 type ClusterProps struct {
 	NodeProviderAuthContract types.AccountID
 }
 
-type DDCClustersAPI struct {
-	substrateAPI *gsrpc.SubstrateAPI
+type DdcClustersApi struct {
+	substrateApi *gsrpc.SubstrateAPI
 
 	clustersNodesKey []byte
 }
 
-func NewDDCClustersAPI(substrateAPI *gsrpc.SubstrateAPI) *DDCClustersAPI {
+func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) *DdcClustersApi {
 	clustersNodesKey := append(
 		xxhash.New128([]byte("DdcClusters")).Sum(nil),
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
 	)
 
-	return &DDCClustersAPI{
-		substrateAPI:     substrateAPI,
+	return &DdcClustersApi{
+		substrateApi:     substrateApi,
 		clustersNodesKey: clustersNodesKey,
 	}
 }
 
-func (api *DDCClustersAPI) GetClustersNodes(clusterID ddcprimitives.ClusterID) ([]ddcprimitives.NodePubKey, error) {
-	clusterIDbytes, err := codec.Encode(clusterID)
+func (api *DdcClustersApi) GetClustersNodes(clusterId ddcprimitives.ClusterId) ([]ddcprimitives.NodePubKey, error) {
+	clusterIdBytes, err := codec.Encode(clusterId)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (api *DDCClustersAPI) GetClustersNodes(clusterID ddcprimitives.ClusterID) (
 	if err != nil {
 		return nil, err
 	}
-	if _, err := hasher.Write(clusterIDbytes); err != nil {
+	if _, err := hasher.Write(clusterIdBytes); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +60,7 @@ func (api *DDCClustersAPI) GetClustersNodes(clusterID ddcprimitives.ClusterID) (
 	)
 
 	queryKey := types.NewStorageKey(moduleMethodPrefix1Key)
-	keys, err := api.substrateAPI.RPC.State.GetKeysLatest(queryKey)
+	keys, err := api.substrateApi.RPC.State.GetKeysLatest(queryKey)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (api *DDCClustersAPI) GetClustersNodes(clusterID ddcprimitives.ClusterID) (
 		// Decode SCALE-encoded NodePubKey from the secondary key:
 		// 	- 16 bytes - Blake2_128 hash,
 		// 	- 1 byte - enum variant,
-		// 	- 32 - node public key length (as long as CDNPubKey and StoragePubKey are of the same AccountID32 type).
+		// 	- 32 - node public key length (as long as CdnPubKey and StoragePubKey are of the same AccountId32 type).
 		if err := codec.Decode(key[len(moduleMethodPrefix1Key)+16:len(moduleMethodPrefix1Key)+16+1+32], &nodePubKey); err != nil {
 			return nil, err
 		}
