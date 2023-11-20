@@ -6,14 +6,14 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pkg/pallets"
 )
 
-type BlockchainApi struct {
+type Client struct {
 	*gsrpc.SubstrateAPI
 
 	DdcClusters  *pallets.DdcClustersApi
 	DdcCustomers *pallets.DdcCustomersApi
 }
 
-func NewBlockchainApi(url string) (*BlockchainApi, error) {
+func NewClient(url string) (*Client, error) {
 	substrateApi, err := gsrpc.NewSubstrateAPI(url)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func NewBlockchainApi(url string) (*BlockchainApi, error) {
 		return nil, err
 	}
 
-	return &BlockchainApi{
+	return &Client{
 		SubstrateAPI: substrateApi,
 		DdcClusters:  pallets.NewDdcClustersApi(substrateApi),
 		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
