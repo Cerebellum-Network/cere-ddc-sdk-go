@@ -3,7 +3,6 @@ package crypto
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -51,14 +50,4 @@ func Verify(schemeName SchemeName, publicKey []byte, content []byte, signature [
 	default:
 		return false, ErrSchemeNotExist
 	}
-}
-
-// Validate that the signed data does not conflict with the blockchain extrinsics.
-func validateSafeMessage(data []byte) error {
-	// Encoded extrinsics start with the pallet index; reserve up to 48 pallets.
-	// Make ASCII "0" the smallest first valid byte.
-	if len(data) > 0 && data[0] < 48 {
-		return fmt.Errorf("data unsafe to sign")
-	}
-	return nil
 }

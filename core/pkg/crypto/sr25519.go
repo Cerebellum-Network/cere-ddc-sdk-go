@@ -3,6 +3,7 @@ package crypto
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ChainSafe/go-schnorrkel"
 	log "github.com/sirupsen/logrus"
 	"github.com/vedhavyas/go-subkey"
@@ -40,9 +41,6 @@ func (s *sr25519Scheme) PublicKey() []byte {
 }
 
 func (s *sr25519Scheme) Sign(data []byte) ([]byte, error) {
-	if err := validateSafeMessage(data); err != nil {
-		return nil, err
-	}
 	signature, err := s.keyPair.Sign(data)
 	if err != nil {
 		return nil, err

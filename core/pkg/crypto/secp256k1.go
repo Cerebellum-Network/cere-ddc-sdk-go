@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/vedhavyas/go-subkey"
 )
@@ -48,9 +49,6 @@ func (s *secp256k1Scheme) Name() string {
 }
 
 func (s *secp256k1Scheme) Sign(data []byte) ([]byte, error) {
-	if err := validateSafeMessage(data); err != nil {
-		return nil, err
-	}
 	return crypto.Sign(crypto.Keccak256Hash(data).Bytes(), s.privateKey)
 }
 

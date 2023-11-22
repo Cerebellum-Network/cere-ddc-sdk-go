@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/vedhavyas/go-subkey"
 	ed25519Subkey "github.com/vedhavyas/go-subkey/ed25519"
@@ -38,9 +39,6 @@ func (e *ed25519Scheme) Name() string {
 }
 
 func (e *ed25519Scheme) Sign(data []byte) ([]byte, error) {
-	if err := validateSafeMessage(data); err != nil {
-		return nil, err
-	}
 	signature, err := e.keyPair.Sign(data)
 	if err != nil {
 		return nil, err
