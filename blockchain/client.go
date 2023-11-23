@@ -3,7 +3,7 @@ package pkg
 import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 
-	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pkg/pallets"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
 type Client struct {

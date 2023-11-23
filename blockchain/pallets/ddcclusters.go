@@ -7,7 +7,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/xxhash"
 
-	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pkg/ddcprimitives"
+	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/ddcprimitives"
 )
 
 type Cluster struct {
