@@ -2,7 +2,7 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/blockchain
 
 go 1.18
 
-require github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
+require github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.8
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/rs/cors v1.8.2 // indirect
-	github.com/vedhavyas/go-subkey v1.0.4 // indirect
+	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
