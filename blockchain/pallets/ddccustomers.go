@@ -4,8 +4,6 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-
-	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/ddcprimitives"
 )
 
 type AccountsLedger struct {
@@ -16,13 +14,13 @@ type AccountsLedger struct {
 }
 
 type Bucket struct {
-	BucketId  ddcprimitives.BucketId
+	BucketId  BucketId
 	OwnerId   types.AccountID
-	ClusterId ddcprimitives.ClusterId
+	ClusterId ClusterId
 }
 
 type BucketDetails struct {
-	BucketId ddcprimitives.BucketId
+	BucketId BucketId
 	Amount   types.U128
 }
 
@@ -31,7 +29,7 @@ type UnlockChunk struct {
 	Block types.BlockNumber
 }
 
-type Buckets map[ddcprimitives.BucketId]types.Option[Bucket]
+type Buckets map[BucketId]types.Option[Bucket]
 
 type Ledger map[types.AccountID]types.Option[AccountsLedger]
 
@@ -47,7 +45,7 @@ func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) 
 	}
 }
 
-func (api *DdcCustomersApi) GetBuckets(bucketId ddcprimitives.BucketId) (types.Option[Bucket], error) {
+func (api *DdcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket], error) {
 	maybeBucket := types.NewEmptyOption[Bucket]()
 
 	bytes, err := codec.Encode(bucketId)

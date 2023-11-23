@@ -6,18 +6,16 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/xxhash"
-
-	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/ddcprimitives"
 )
 
 type Cluster struct {
-	ClusterId ddcprimitives.ClusterId
+	ClusterId ClusterId
 	ManagerId types.AccountID
 	ReserveId types.AccountID
 	Props     ClusterProps
 }
 
-type ClustersNodes map[ddcprimitives.ClusterId][]ddcprimitives.NodePubKey
+type ClustersNodes map[ClusterId][]NodePubKey
 
 type ClusterProps struct {
 	NodeProviderAuthContract types.AccountID
@@ -41,7 +39,7 @@ func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) *DdcClustersApi {
 	}
 }
 
-func (api *DdcClustersApi) GetClustersNodes(clusterId ddcprimitives.ClusterId) ([]ddcprimitives.NodePubKey, error) {
+func (api *DdcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error) {
 	clusterIdBytes, err := codec.Encode(clusterId)
 	if err != nil {
 		return nil, err
@@ -65,9 +63,9 @@ func (api *DdcClustersApi) GetClustersNodes(clusterId ddcprimitives.ClusterId) (
 		return nil, err
 	}
 
-	nodesKeys := make([]ddcprimitives.NodePubKey, len(keys))
+	nodesKeys := make([]NodePubKey, len(keys))
 	for i, key := range keys {
-		var nodePubKey ddcprimitives.NodePubKey
+		var nodePubKey NodePubKey
 
 		// Decode SCALE-encoded NodePubKey from the secondary key:
 		// 	- 16 bytes - Blake2_128 hash,

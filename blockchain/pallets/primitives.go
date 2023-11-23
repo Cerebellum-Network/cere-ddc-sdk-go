@@ -7,7 +7,7 @@ Based on [ddc-primitives@0.1.0].
 
 [ddc-primitives@0.1.0]: https://github.com/Cerebellum-Network/blockchain-node/blob/4631f58/primitives/src/lib.rs#L20.
 */
-package ddcprimitives
+package pallets
 
 import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
