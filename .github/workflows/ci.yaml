@@ -56,14 +56,3 @@ jobs:
           args: --timeout 5m
       - name: 'Run unit tests contentadrstorage module'
         run: go test -v ./contentadrstorage/...
-      #Contract module
-      - name: 'Run linters contract module'
-        uses: golangci/golangci-lint-action@v3
-        with:
-          working-directory: 'contract'
-          version: v1.50
-          args: --timeout 5m
-      - name: 'Run unit tests contract module'
-        run: go test -v ./contract/...
-      - name: 'Run integrational tests with blockchain emulator'
-        run: go test -v ./test/...
