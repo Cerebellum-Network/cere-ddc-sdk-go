@@ -1,4 +1,4 @@
-package pkg
+package blockchain
 
 import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
