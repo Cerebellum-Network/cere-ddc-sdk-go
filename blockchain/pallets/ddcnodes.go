@@ -19,8 +19,11 @@ type CdnNode struct {
 	Props      CdnNodeProps
 }
 
+// TODO: `Host` is not `[MaxHostLen]types.U8` because the original `BoundedVec<_, MaxHostLen>`
+// decoding returns an unexpected error "error: expected more bytes, but could not decode any
+// more".
 type CdnNodeProps struct {
-	Host     [MaxHostLen]types.U8
+	Host     []types.U8
 	HttpPort types.U16
 	GrpcPort types.U16
 	P2pPort  types.U16
@@ -33,8 +36,11 @@ type StorageNode struct {
 	Props      StorageNodeProps
 }
 
+// TODO: `Host` is not `[MaxHostLen]types.U8` because the original `BoundedVec<_, MaxHostLen>`
+// decoding returns an unexpected error "error: expected more bytes, but could not decode any
+// more".
 type StorageNodeProps struct {
-	Host     [MaxHostLen]types.U8
+	Host     []types.U8
 	HttpPort types.U16
 	GrpcPort types.U16
 	P2pPort  types.U16
