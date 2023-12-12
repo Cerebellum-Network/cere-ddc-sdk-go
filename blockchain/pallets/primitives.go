@@ -20,6 +20,7 @@ const (
 )
 
 type ClusterId = types.H160
+type DdcEra = types.U32
 type BucketId = types.U64
 type StorageNodePubKey = types.AccountID
 type CdnNodePubKey = types.AccountID
