@@ -17,17 +17,19 @@ const (
 	NodeTypeCdn     = 2
 )
 
-type ClusterId = types.H160
-type DdcEra = types.U32
-type BucketId = types.U64
-type StorageNodePubKey = types.AccountID
-type CdnNodePubKey = types.AccountID
+type (
+	BucketId          = types.U64
+	CdnNodePubKey     = types.AccountID
+	ClusterId         = types.H160
+	DdcEra            = types.U32
+	StorageNodePubKey = types.AccountID
+)
 
 type NodePubKey struct {
-	AsCdnPubKey     CdnNodePubKey
+	IsStoragePubKey bool
 	AsStoragePubKey StorageNodePubKey
 	IsCdnPubKey     bool
-	IsStoragePubKey bool
+	AsCdnPubKey     CdnNodePubKey
 }
 
 func (m *NodePubKey) Decode(decoder scale.Decoder) error {
