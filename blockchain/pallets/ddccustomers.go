@@ -33,19 +33,25 @@ type Buckets map[BucketId]types.Option[Bucket]
 
 type Ledger map[types.AccountID]types.Option[AccountsLedger]
 
-type DdcCustomersApi struct {
+type DdcCustomersApi interface {
+	GetBuckets(bucketId BucketId) (types.Option[Bucket], error)
+	GetBucketsCount() (types.U64, error)
+	GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error)
+}
+
+type ddcCustomersApi struct {
 	substrateApi *gsrpc.SubstrateAPI
 	meta         *types.Metadata
 }
 
-func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) *DdcCustomersApi {
-	return &DdcCustomersApi{
+func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcCustomersApi {
+	return &ddcCustomersApi{
 		substrateAPI,
 		meta,
 	}
 }
 
-func (api *DdcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket], error) {
+func (api *ddcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket], error) {
 	maybeBucket := types.NewEmptyOption[Bucket]()
 
 	bytes, err := codec.Encode(bucketId)
@@ -69,7 +75,7 @@ func (api *DdcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket],
 	return maybeBucket, nil
 }
 
-func (api *DdcCustomersApi) GetBucketsCount() (types.U64, error) {
+func (api *ddcCustomersApi) GetBucketsCount() (types.U64, error) {
 	key, err := types.CreateStorageKey(api.meta, "DdcCustomers", "BucketsCount")
 	if err != nil {
 		return 0, err
@@ -87,7 +93,7 @@ func (api *DdcCustomersApi) GetBucketsCount() (types.U64, error) {
 	return bucketsCount, nil
 }
 
-func (api *DdcCustomersApi) GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error) {
+func (api *ddcCustomersApi) GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error) {
 	maybeLedger := types.NewEmptyOption[AccountsLedger]()
 
 	bytes, err := codec.Encode(owner)

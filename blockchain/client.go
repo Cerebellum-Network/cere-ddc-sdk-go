@@ -7,17 +7,17 @@ import (
 )
 
 type Client interface {
-	DdcClusters() *pallets.DdcClustersApi
-	DdcCustomers() *pallets.DdcCustomersApi
-	DdcNodes() *pallets.DdcNodesApi
+	DdcClusters() pallets.DdcClustersApi
+	DdcCustomers() pallets.DdcCustomersApi
+	DdcNodes() pallets.DdcNodesApi
 }
 
 type client struct {
 	*gsrpc.SubstrateAPI
 
-	ddcClusters  *pallets.DdcClustersApi
-	ddcCustomers *pallets.DdcCustomersApi
-	ddcNodes     *pallets.DdcNodesApi
+	ddcClusters  pallets.DdcClustersApi
+	ddcCustomers pallets.DdcCustomersApi
+	ddcNodes     pallets.DdcNodesApi
 }
 
 func NewClient(url string) (Client, error) {
@@ -38,14 +38,14 @@ func NewClient(url string) (Client, error) {
 	}, nil
 }
 
-func (c *client) DdcClusters() *pallets.DdcClustersApi {
+func (c *client) DdcClusters() pallets.DdcClustersApi {
 	return c.ddcClusters
 }
 
-func (c *client) DdcCustomers() *pallets.DdcCustomersApi {
+func (c *client) DdcCustomers() pallets.DdcCustomersApi {
 	return c.ddcCustomers
 }
 
-func (c *client) DdcNodes() *pallets.DdcNodesApi {
+func (c *client) DdcNodes() pallets.DdcNodesApi {
 	return c.ddcNodes
 }
