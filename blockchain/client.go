@@ -6,21 +6,15 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
-type Client interface {
-	DdcClusters() pallets.DdcClustersApi
-	DdcCustomers() pallets.DdcCustomersApi
-	DdcNodes() pallets.DdcNodesApi
-}
-
-type client struct {
+type Client struct {
 	*gsrpc.SubstrateAPI
 
-	ddcClusters  pallets.DdcClustersApi
-	ddcCustomers pallets.DdcCustomersApi
-	ddcNodes     pallets.DdcNodesApi
+	DdcClusters  pallets.DdcClustersApi
+	DdcCustomers pallets.DdcCustomersApi
+	DdcNodes     pallets.DdcNodesApi
 }
 
-func NewClient(url string) (Client, error) {
+func NewClient(url string) (*Client, error) {
 	substrateApi, err := gsrpc.NewSubstrateAPI(url)
 	if err != nil {
 		return nil, err
@@ -30,22 +24,10 @@ func NewClient(url string) (Client, error) {
 		return nil, err
 	}
 
-	return &client{
+	return &Client{
 		SubstrateAPI: substrateApi,
-		ddcClusters:  pallets.NewDdcClustersApi(substrateApi),
-		ddcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
-		ddcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
+		DdcClusters:  pallets.NewDdcClustersApi(substrateApi),
+		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
+		DdcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
 	}, nil
-}
-
-func (c *client) DdcClusters() pallets.DdcClustersApi {
-	return c.ddcClusters
-}
-
-func (c *client) DdcCustomers() pallets.DdcCustomersApi {
-	return c.ddcCustomers
-}
-
-func (c *client) DdcNodes() pallets.DdcNodesApi {
-	return c.ddcNodes
 }
