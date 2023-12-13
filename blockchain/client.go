@@ -9,9 +9,9 @@ import (
 type Client struct {
 	*gsrpc.SubstrateAPI
 
-	DdcClusters  *pallets.DdcClustersApi
-	DdcCustomers *pallets.DdcCustomersApi
-	DdcNodes     *pallets.DdcNodesApi
+	DdcClusters  pallets.DdcClustersApi
+	DdcCustomers pallets.DdcCustomersApi
+	DdcNodes     pallets.DdcNodesApi
 }
 
 func NewClient(url string) (*Client, error) {

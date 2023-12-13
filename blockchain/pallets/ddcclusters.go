@@ -21,25 +21,29 @@ type ClusterProps struct {
 	NodeProviderAuthContract types.AccountID
 }
 
-type DdcClustersApi struct {
+type DdcClustersApi interface {
+	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
+}
+
+type ddcClustersApi struct {
 	substrateApi *gsrpc.SubstrateAPI
 
 	clustersNodesKey []byte
 }
 
-func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) *DdcClustersApi {
+func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
 	clustersNodesKey := append(
 		xxhash.New128([]byte("DdcClusters")).Sum(nil),
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
 	)
 
-	return &DdcClustersApi{
+	return &ddcClustersApi{
 		substrateApi:     substrateApi,
 		clustersNodesKey: clustersNodesKey,
 	}
 }
 
-func (api *DdcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error) {
+func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error) {
 	clusterIdBytes, err := codec.Encode(clusterId)
 	if err != nil {
 		return nil, err

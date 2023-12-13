@@ -46,19 +46,24 @@ type StorageNodeProps struct {
 	P2pPort  types.U16
 }
 
-type DdcNodesApi struct {
+type DdcNodesApi interface {
+	GetStorageNodes(pubkey StorageNodePubKey) (types.Option[StorageNode], error)
+	GetCdnNodes(pubkey CdnNodePubKey) (types.Option[CdnNode], error)
+}
+
+type ddcNodesApi struct {
 	substrateApi *gsrpc.SubstrateAPI
 	meta         *types.Metadata
 }
 
-func NewDdcNodesApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) *DdcNodesApi {
-	return &DdcNodesApi{
+func NewDdcNodesApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcNodesApi {
+	return &ddcNodesApi{
 		substrateAPI,
 		meta,
 	}
 }
 
-func (api *DdcNodesApi) GetStorageNodes(pubkey StorageNodePubKey) (types.Option[StorageNode], error) {
+func (api *ddcNodesApi) GetStorageNodes(pubkey StorageNodePubKey) (types.Option[StorageNode], error) {
 	maybeNode := types.NewEmptyOption[StorageNode]()
 
 	bytes, err := codec.Encode(pubkey)
@@ -82,7 +87,7 @@ func (api *DdcNodesApi) GetStorageNodes(pubkey StorageNodePubKey) (types.Option[
 	return maybeNode, nil
 }
 
-func (api *DdcNodesApi) GetCdnNodes(pubkey CdnNodePubKey) (types.Option[CdnNode], error) {
+func (api *ddcNodesApi) GetCdnNodes(pubkey CdnNodePubKey) (types.Option[CdnNode], error) {
 	maybeNode := types.NewEmptyOption[CdnNode]()
 
 	bytes, err := codec.Encode(pubkey)
