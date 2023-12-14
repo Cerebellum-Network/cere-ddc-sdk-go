@@ -1,12 +1,10 @@
-/*
-Primitive types definition of the Cere Network blockchain.
-
-Find more about SCALE encoding/decoding for enums here: https://github.com/centrifuge/go-substrate-rpc-client/blob/0a28e8b/types/example_enum_test.go#L27.
-
-Based on [ddc-primitives@0.1.0].
-
-[ddc-primitives@0.1.0]: https://github.com/Cerebellum-Network/blockchain-node/blob/4631f58/primitives/src/lib.rs#L20.
-*/
+// Primitive types definition of the Cere Network blockchain.
+//
+// Find more about SCALE encoding/decoding for enums here: https://github.com/centrifuge/go-substrate-rpc-client/blob/0a28e8b/types/example_enum_test.go#L27.
+//
+// Based on [ddc-primitives@0.1.0].
+//
+// [ddc-primitives@0.1.0]: https://github.com/Cerebellum-Network/blockchain-node/tree/896f5d3/primitives.
 package pallets
 
 import (
@@ -19,16 +17,19 @@ const (
 	NodeTypeCdn     = 2
 )
 
-type ClusterId = types.H160
-type BucketId = types.U64
-type StorageNodePubKey = types.AccountID
-type CdnNodePubKey = types.AccountID
+type (
+	BucketId          = types.U64
+	CdnNodePubKey     = types.AccountID
+	ClusterId         = types.H160
+	DdcEra            = types.U32
+	StorageNodePubKey = types.AccountID
+)
 
 type NodePubKey struct {
-	AsCdnPubKey     CdnNodePubKey
+	IsStoragePubKey bool
 	AsStoragePubKey StorageNodePubKey
 	IsCdnPubKey     bool
-	IsStoragePubKey bool
+	AsCdnPubKey     CdnNodePubKey
 }
 
 func (m *NodePubKey) Decode(decoder scale.Decoder) error {

@@ -12,6 +12,7 @@ type Client struct {
 	DdcClusters  pallets.DdcClustersApi
 	DdcCustomers pallets.DdcCustomersApi
 	DdcNodes     pallets.DdcNodesApi
+	DdcPayouts   pallets.DdcPayoutsApi
 }
 
 func NewClient(url string) (*Client, error) {
@@ -29,5 +30,6 @@ func NewClient(url string) (*Client, error) {
 		DdcClusters:  pallets.NewDdcClustersApi(substrateApi),
 		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
 		DdcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
+		DdcPayouts:   pallets.NewDdcPayoutsApi(substrateApi, meta),
 	}, nil
 }
