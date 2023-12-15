@@ -52,6 +52,7 @@ type (
 
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
+	SubscribeNewClusterNodeAdded() *NewEventSubscription[ClusterNodeAdded]
 }
 
 type ddcClustersApi struct {
@@ -147,6 +148,28 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	}
 
 	return nodesKeys, nil
+}
+
+func (api *ddcClustersApi) SubscribeNewClusterNodeAdded() *NewEventSubscription[ClusterNodeAdded] {
+	subId := AddSubscriber(api, "DdcClusters.ClusterNodeAdded")
+
+	sub := &NewEventSubscription[ClusterNodeAdded]{
+		ch: make(chan ClusterNodeAdded),
+	}
+
+	go func() {
+		for {
+			select {
+			case <-sub.done:
+				api.subs["DdcClusters.ClusterNodeAdded"][subId].done <- struct{}{}
+				return
+			case <-api.subs["DdcClusters.ClusterNodeAdded"][subId].ch:
+				sub.ch <- ClusterNodeAdded{} // TODO: parse incoming event
+			}
+		}
+	}()
+
+	return sub
 }
 
 func (api *ddcClustersApi) Subs() map[string]map[int]subscriber {
