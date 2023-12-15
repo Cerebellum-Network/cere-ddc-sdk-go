@@ -27,3 +27,8 @@ type subscriber struct {
 	ch   chan *parser.Event
 	done chan struct{}
 }
+
+type Publisher interface {
+	Subs() map[string]map[int]subscriber
+	Mu() *sync.Mutex
+}
