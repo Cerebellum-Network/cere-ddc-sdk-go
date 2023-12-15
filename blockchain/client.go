@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/state"
 
@@ -11,6 +12,7 @@ import (
 type Client struct {
 	*gsrpc.SubstrateAPI
 	eventRetriever retriever.EventRetriever
+	subs           map[string]chan []*parser.Event
 
 	DdcClusters  pallets.DdcClustersApi
 	DdcCustomers pallets.DdcCustomersApi
@@ -32,9 +34,12 @@ func NewClient(url string) (*Client, error) {
 		substrateApi.RPC.State,
 	)
 
+	subs := make(map[string]chan []*parser.Event)
+
 	return &Client{
 		SubstrateAPI:   substrateApi,
 		eventRetriever: eventRetriever,
+		subs:           subs,
 		DdcClusters:    pallets.NewDdcClustersApi(substrateApi),
 		DdcCustomers:   pallets.NewDdcCustomersApi(substrateApi, meta),
 		DdcNodes:       pallets.NewDdcNodesApi(substrateApi, meta),
