@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"sync"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
@@ -45,4 +47,47 @@ func NewClient(url string) (*Client, error) {
 		DdcNodes:       pallets.NewDdcNodesApi(substrateApi, meta),
 		DdcPayouts:     pallets.NewDdcPayoutsApi(substrateApi, meta),
 	}, nil
+}
+
+func (c *Client) StartEventsListening() (func(), <-chan error, error) {
+	sub, err := c.RPC.Chain.SubscribeNewHeads()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	done := make(chan struct{})
+	errCh := make(chan error)
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case header := <-sub.Chan():
+				blockHash, err := c.RPC.Chain.GetBlockHash(uint64(header.Number))
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				events, err := c.eventRetriever.GetEvents(blockHash)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				for _, ch := range c.subs {
+					ch <- events
+				}
+			}
+		}
+	}()
+
+	once := sync.Once{}
+
+	return func() {
+		once.Do(func() {
+			done <- struct{}{}
+		})
+	}, nil, nil
 }
