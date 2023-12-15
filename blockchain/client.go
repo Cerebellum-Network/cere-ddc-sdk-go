@@ -37,15 +37,20 @@ func NewClient(url string) (*Client, error) {
 	)
 
 	subs := make(map[string]chan []*parser.Event)
+	subs["DdcClusters"] = make(chan []*parser.Event)
 
 	return &Client{
 		SubstrateAPI:   substrateApi,
 		eventRetriever: eventRetriever,
 		subs:           subs,
-		DdcClusters:    pallets.NewDdcClustersApi(substrateApi),
-		DdcCustomers:   pallets.NewDdcCustomersApi(substrateApi, meta),
-		DdcNodes:       pallets.NewDdcNodesApi(substrateApi, meta),
-		DdcPayouts:     pallets.NewDdcPayoutsApi(substrateApi, meta),
+		DdcClusters: pallets.NewDdcClustersApi(
+			substrateApi,
+			eventRetriever,
+			subs["DdcClusters"],
+		),
+		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
+		DdcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
+		DdcPayouts:   pallets.NewDdcPayoutsApi(substrateApi, meta),
 	}, nil
 }
 

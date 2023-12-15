@@ -1,8 +1,12 @@
 package pallets
 
 import (
+	"sync"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/hash"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/xxhash"
@@ -59,7 +63,11 @@ type ddcClustersApi struct {
 	mu   sync.Mutex
 }
 
-func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
+func NewDdcClustersApi(
+	substrateApi *gsrpc.SubstrateAPI,
+	eventRetriever retriever.EventRetriever,
+	blockEventsCh <-chan []*parser.Event,
+) DdcClustersApi {
 	clustersNodesKey := append(
 		xxhash.New128([]byte("DdcClusters")).Sum(nil),
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
@@ -73,6 +81,30 @@ func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
 		subs:             subs,
 		mu:               sync.Mutex{},
 	}
+
+	go func() {
+		for blockEvents := range blockEventsCh {
+			for _, event := range blockEvents {
+				api.mu.Lock()
+				subs, ok := api.subs[event.Name]
+				if ok {
+					for subId, sub := range subs {
+						select {
+						case <-sub.done:
+							close(sub.ch)
+							delete(api.subs[event.Name], subId)
+						case sub.ch <- event:
+						default:
+							panic("buffer exhausted")
+						}
+					}
+				}
+				api.mu.Unlock()
+			}
+		}
+	}()
+
+	return api
 }
 
 func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error) {
