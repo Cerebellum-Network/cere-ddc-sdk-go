@@ -21,6 +21,31 @@ type ClusterProps struct {
 	NodeProviderAuthContract types.AccountID
 }
 
+// Events
+type (
+	ClusterCreated struct {
+		ClusterId ClusterId
+	}
+
+	ClusterNodeAdded struct {
+		ClusterId  ClusterId
+		NodePubKey NodePubKey
+	}
+
+	ClusterNodeRemoved struct {
+		ClusterId  ClusterId
+		NodePubKey NodePubKey
+	}
+
+	ClusterParamsSet struct {
+		ClusterId ClusterId
+	}
+
+	ClusterGovParamsSet struct {
+		ClusterId ClusterId
+	}
+)
+
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
 }
