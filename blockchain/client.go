@@ -2,12 +2,15 @@ package blockchain
 
 import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/state"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
 type Client struct {
 	*gsrpc.SubstrateAPI
+	eventRetriever retriever.EventRetriever
 
 	DdcClusters  pallets.DdcClustersApi
 	DdcCustomers pallets.DdcCustomersApi
@@ -24,12 +27,17 @@ func NewClient(url string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	eventRetriever, _ := retriever.NewDefaultEventRetriever(
+		state.NewEventProvider(substrateApi.RPC.State),
+		substrateApi.RPC.State,
+	)
 
 	return &Client{
-		SubstrateAPI: substrateApi,
-		DdcClusters:  pallets.NewDdcClustersApi(substrateApi),
-		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
-		DdcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
-		DdcPayouts:   pallets.NewDdcPayoutsApi(substrateApi, meta),
+		SubstrateAPI:   substrateApi,
+		eventRetriever: eventRetriever,
+		DdcClusters:    pallets.NewDdcClustersApi(substrateApi),
+		DdcCustomers:   pallets.NewDdcCustomersApi(substrateApi, meta),
+		DdcNodes:       pallets.NewDdcNodesApi(substrateApi, meta),
+		DdcPayouts:     pallets.NewDdcPayoutsApi(substrateApi, meta),
 	}, nil
 }
