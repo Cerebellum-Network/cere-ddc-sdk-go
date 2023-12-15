@@ -1,6 +1,10 @@
 package pallets
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
+)
 
 type NewEventSubscription[T any] struct {
 	ch   chan T
@@ -17,4 +21,9 @@ func (s *NewEventSubscription[T]) Unsubscribe() {
 
 func (s *NewEventSubscription[T]) Chan() <-chan T {
 	return s.ch
+}
+
+type subscriber struct {
+	ch   chan *parser.Event
+	done chan struct{}
 }
