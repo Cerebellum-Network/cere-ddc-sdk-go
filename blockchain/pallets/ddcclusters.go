@@ -54,6 +54,9 @@ type ddcClustersApi struct {
 	substrateApi *gsrpc.SubstrateAPI
 
 	clustersNodesKey []byte
+
+	subs map[string]map[int]subscriber
+	mu   sync.Mutex
 }
 
 func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
@@ -62,9 +65,13 @@ func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
 	)
 
-	return &ddcClustersApi{
+	subs := make(map[string]map[int]subscriber)
+
+	api := &ddcClustersApi{
 		substrateApi:     substrateApi,
 		clustersNodesKey: clustersNodesKey,
+		subs:             subs,
+		mu:               sync.Mutex{},
 	}
 }
 
@@ -108,4 +115,12 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	}
 
 	return nodesKeys, nil
+}
+
+func (api *ddcClustersApi) Subs() map[string]map[int]subscriber {
+	return api.subs
+}
+
+func (api *ddcClustersApi) Mu() *sync.Mutex {
+	return &api.mu
 }
