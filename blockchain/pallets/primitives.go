@@ -8,6 +8,8 @@
 package pallets
 
 import (
+	"errors"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
@@ -52,6 +54,58 @@ func (m NodePubKey) Encode(encoder scale.Encoder) error {
 	if m.IsStoragePubKey {
 		err1 = encoder.PushByte(0)
 		err2 = encoder.Encode(m.AsStoragePubKey)
+	}
+
+	if err1 != nil {
+		return err1
+	}
+	if err2 != nil {
+		return err2
+	}
+
+	return nil
+}
+
+type StorageNodeMode struct {
+	IsFull    bool
+	IsStorage bool
+	IsCache   bool
+}
+
+func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
+	b, err := decoder.ReadOneByte()
+
+	if err != nil {
+		return err
+	}
+
+	if b == 1 {
+		m.IsFull = true
+	} else if b == 2 {
+		m.IsStorage = true
+	} else if b == 3 {
+		m.IsCache = true
+	} else {
+		return errors.New("unknown variant")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
+	var err1, err2 error
+	if m.IsFull {
+		err1 = encoder.PushByte(1)
+	} else if m.IsStorage {
+		err1 = encoder.PushByte(2)
+	} else if m.IsCache {
+		err1 = encoder.PushByte(3)
+	} else {
+		return errors.New("unknown variant")
 	}
 
 	if err1 != nil {

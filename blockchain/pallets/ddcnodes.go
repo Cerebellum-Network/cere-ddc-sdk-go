@@ -26,6 +26,7 @@ type StorageNodeProps struct {
 	HttpPort types.U16
 	GrpcPort types.U16
 	P2pPort  types.U16
+	Mode     StorageNodeMode
 }
 
 type DdcNodesApi interface {
