@@ -19,11 +19,6 @@ type Bucket struct {
 	ClusterId ClusterId
 }
 
-type BucketDetails struct {
-	BucketId BucketId
-	Amount   types.U128
-}
-
 type UnlockChunk struct {
 	Value types.U128
 	Block types.BlockNumber
