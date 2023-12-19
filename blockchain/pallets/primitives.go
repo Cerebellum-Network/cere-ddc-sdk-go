@@ -4,7 +4,7 @@
 //
 // Based on [ddc-primitives@0.1.0].
 //
-// [ddc-primitives@0.1.0]: https://github.com/Cerebellum-Network/blockchain-node/tree/896f5d3/primitives.
+// [ddc-primitives@0.1.0]: https://github.com/Cerebellum-Network/blockchain-node/tree/d970a49/primitives.
 package pallets
 
 import (
