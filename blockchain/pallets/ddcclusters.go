@@ -74,7 +74,7 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 		// Decode SCALE-encoded NodePubKey from the secondary key:
 		// 	- 16 bytes - Blake2_128 hash,
 		// 	- 1 byte - enum variant,
-		// 	- 32 - node public key length (as long as CdnPubKey and StoragePubKey are of the same AccountId32 type).
+		// 	- 32 - node public key length (as long StoragePubKey is AccountId32 type).
 		if err := codec.Decode(key[len(moduleMethodPrefix1Key)+16:len(moduleMethodPrefix1Key)+16+1+32], &nodePubKey); err != nil {
 			return nil, err
 		}
