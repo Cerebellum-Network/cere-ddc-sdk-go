@@ -17,6 +17,7 @@ type Bucket struct {
 	BucketId  BucketId
 	OwnerId   types.AccountID
 	ClusterId ClusterId
+	IsPublic  types.Bool
 }
 
 type UnlockChunk struct {
