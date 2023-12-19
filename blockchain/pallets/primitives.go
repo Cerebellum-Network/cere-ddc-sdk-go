@@ -14,6 +14,10 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
+var (
+	ErrUnknownVariant = errors.New("unknown variant")
+)
+
 const (
 	NodeTypeStorage = 1
 )
@@ -40,6 +44,8 @@ func (m *NodePubKey) Decode(decoder scale.Decoder) error {
 	if b == 0 {
 		m.IsStoragePubKey = true
 		err = decoder.Decode(&m.AsStoragePubKey)
+	} else {
+		return ErrUnknownVariant
 	}
 
 	if err != nil {
@@ -54,6 +60,8 @@ func (m NodePubKey) Encode(encoder scale.Encoder) error {
 	if m.IsStoragePubKey {
 		err1 = encoder.PushByte(0)
 		err2 = encoder.Encode(m.AsStoragePubKey)
+	} else {
+		return ErrUnknownVariant
 	}
 
 	if err1 != nil {
@@ -86,7 +94,7 @@ func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
 	} else if b == 3 {
 		m.IsCache = true
 	} else {
-		return errors.New("unknown variant")
+		return ErrUnknownVariant
 	}
 
 	if err != nil {
@@ -105,7 +113,7 @@ func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
 	} else if m.IsCache {
 		err1 = encoder.PushByte(3)
 	} else {
-		return errors.New("unknown variant")
+		return ErrUnknownVariant
 	}
 
 	if err1 != nil {

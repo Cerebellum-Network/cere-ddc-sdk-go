@@ -1,7 +1,6 @@
 package pallets
 
 import (
-	"errors"
 	"reflect"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
@@ -58,7 +57,7 @@ func (m *State) Decode(decoder scale.Decoder) error {
 
 	v := reflect.ValueOf(m)
 	if i > v.NumField() {
-		return errors.New("invalid variant")
+		return ErrUnknownVariant
 	}
 
 	v.Field(i).SetBool(true)
@@ -77,7 +76,7 @@ func (m State) Encode(encoder scale.Encoder) error {
 			break
 		}
 		if i == v.NumField()-1 {
-			return errors.New("invalid variant")
+			return ErrUnknownVariant
 		}
 	}
 
