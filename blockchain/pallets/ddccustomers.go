@@ -8,8 +8,8 @@ import (
 
 type AccountsLedger struct {
 	Owner     types.AccountID
-	Total     types.U128
-	Active    types.U128
+	Total     types.UCompact
+	Active    types.UCompact
 	Unlocking []UnlockChunk
 }
 
@@ -24,10 +24,6 @@ type UnlockChunk struct {
 	Value types.U128
 	Block types.BlockNumber
 }
-
-type Buckets map[BucketId]types.Option[Bucket]
-
-type Ledger map[types.AccountID]types.Option[AccountsLedger]
 
 type DdcCustomersApi interface {
 	GetBuckets(bucketId BucketId) (types.Option[Bucket], error)
