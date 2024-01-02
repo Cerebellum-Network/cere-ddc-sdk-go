@@ -3,7 +3,6 @@ package pallets
 import (
 	"sync"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
@@ -36,7 +35,7 @@ func (s *NewEventSubscription[T]) Chan() <-chan T {
 	return s.ch
 }
 
-type subscriber struct {
-	ch   chan *parser.Event
+type subscriber[T any] struct {
+	ch   chan T
 	done chan struct{}
 }
