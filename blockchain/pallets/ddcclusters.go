@@ -1,12 +1,12 @@
 package pallets
 
 import (
+	"fmt"
+	"math"
 	"sync"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/hash"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/xxhash"
@@ -62,7 +62,15 @@ type (
 
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
-	SubscribeNewClusterNodeAdded() *NewEventSubscription[ClusterNodeAdded]
+	SubscribeNewClusterNodeAdded() (*NewEventSubscription[EventDdcClustersClusterNodeAdded], error)
+}
+
+type ddcClustersEventsSubs struct {
+	clusterCreated      map[int]subscriber[EventDdcClustersClusterCreated]
+	clusterNodeAdded    map[int]subscriber[EventDdcClustersClusterNodeAdded]
+	clusterNodeRemoved  map[int]subscriber[EventDdcClustersClusterNodeRemoved]
+	clusterParamsSet    map[int]subscriber[EventDdcClustersClusterParamsSet]
+	clusterGovParamsSet map[int]subscriber[EventDdcClustersClusterGovParamsSet]
 }
 
 type ddcClustersApi struct {
@@ -70,21 +78,26 @@ type ddcClustersApi struct {
 
 	clustersNodesKey []byte
 
-	subs map[string]map[int]subscriber
+	subs *ddcClustersEventsSubs
 	mu   sync.Mutex
 }
 
 func NewDdcClustersApi(
 	substrateApi *gsrpc.SubstrateAPI,
-	eventRetriever retriever.EventRetriever,
-	blockEventsCh <-chan []*parser.Event,
+	events <-chan *Events,
 ) DdcClustersApi {
 	clustersNodesKey := append(
 		xxhash.New128([]byte("DdcClusters")).Sum(nil),
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
 	)
 
-	subs := make(map[string]map[int]subscriber)
+	subs := &ddcClustersEventsSubs{
+		clusterCreated:      make(map[int]subscriber[EventDdcClustersClusterCreated]),
+		clusterNodeAdded:    make(map[int]subscriber[EventDdcClustersClusterNodeAdded]),
+		clusterNodeRemoved:  make(map[int]subscriber[EventDdcClustersClusterNodeRemoved]),
+		clusterParamsSet:    make(map[int]subscriber[EventDdcClustersClusterParamsSet]),
+		clusterGovParamsSet: make(map[int]subscriber[EventDdcClustersClusterGovParamsSet]),
+	}
 
 	api := &ddcClustersApi{
 		substrateApi:     substrateApi,
@@ -94,20 +107,26 @@ func NewDdcClustersApi(
 	}
 
 	go func() {
-		for blockEvents := range blockEventsCh {
-			for _, event := range blockEvents {
+		for blockEvents := range events {
+			for _, e := range blockEvents.DdcClusters_ClusterCreated {
 				api.mu.Lock()
-				subs, ok := api.subs[event.Name]
-				if ok {
-					for subId, sub := range subs {
-						select {
-						case <-sub.done:
-							close(sub.ch)
-							delete(api.subs[event.Name], subId)
-						case sub.ch <- event:
-						default:
-							panic("buffer exhausted")
-						}
+				for i, sub := range api.subs.clusterCreated {
+					select {
+					case <-sub.done:
+						delete(api.subs.clusterCreated, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcClusters_ClusterNodeAdded {
+				api.mu.Lock()
+				for i, sub := range api.subs.clusterNodeAdded {
+					select {
+					case <-sub.done:
+						delete(api.subs.clusterNodeAdded, i)
+					case sub.ch <- e:
 					}
 				}
 				api.mu.Unlock()
@@ -160,24 +179,39 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	return nodesKeys, nil
 }
 
-func (api *ddcClustersApi) SubscribeNewClusterNodeAdded() *NewEventSubscription[ClusterNodeAdded] {
-	subId := AddSubscriber(api, "DdcClusters.ClusterNodeAdded")
+func (api *ddcClustersApi) SubscribeNewClusterNodeAdded() (*NewEventSubscription[EventDdcClustersClusterNodeAdded], error) {
+	api.mu.Lock()
+	defer api.mu.Unlock()
 
-	sub := &NewEventSubscription[ClusterNodeAdded]{
-		ch: make(chan ClusterNodeAdded),
+	if api.subs.clusterNodeAdded == nil {
+		api.subs.clusterNodeAdded = make(map[int]subscriber[EventDdcClustersClusterNodeAdded])
 	}
 
-	go func() {
-		for {
-			select {
-			case <-sub.done:
-				api.subs["DdcClusters.ClusterNodeAdded"][subId].done <- struct{}{}
-				return
-			case <-api.subs["DdcClusters.ClusterNodeAdded"][subId].ch:
-				sub.ch <- ClusterNodeAdded{} // TODO: parse incoming event
-			}
+	var idx int
+	for i := 0; i <= math.MaxInt; i++ {
+		if _, ok := api.subs.clusterNodeAdded[i]; !ok {
+			idx = i
+			break
 		}
-	}()
+		if i == math.MaxInt {
+			return nil, fmt.Errorf("can't create %d+1 subscriber", len(api.subs.clusterNodeAdded))
+		}
+	}
 
-	return sub
+	sub := subscriber[EventDdcClustersClusterNodeAdded]{
+		ch:   make(chan EventDdcClustersClusterNodeAdded),
+		done: make(chan struct{}),
+	}
+
+	api.subs.clusterNodeAdded[idx] = sub
+
+	return &NewEventSubscription[EventDdcClustersClusterNodeAdded]{
+		ch:   sub.ch,
+		done: sub.done,
+		onDone: func() {
+			api.mu.Lock()
+			delete(api.subs.clusterNodeAdded, idx)
+			api.mu.Unlock()
+		},
+	}, nil
 }
