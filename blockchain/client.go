@@ -1,20 +1,19 @@
 package blockchain
 
 import (
+	"fmt"
 	"sync"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/state"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
 type Client struct {
 	*gsrpc.SubstrateAPI
-	eventRetriever retriever.EventRetriever
-	subs           map[string]chan []*parser.Event
+	subs map[string]chan *pallets.Events
 
 	DdcClusters  pallets.DdcClustersApi
 	DdcCustomers pallets.DdcCustomersApi
@@ -31,21 +30,15 @@ func NewClient(url string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	eventRetriever, _ := retriever.NewDefaultEventRetriever(
-		state.NewEventProvider(substrateApi.RPC.State),
-		substrateApi.RPC.State,
-	)
 
-	subs := make(map[string]chan []*parser.Event)
-	subs["DdcClusters"] = make(chan []*parser.Event)
+	subs := make(map[string]chan *pallets.Events)
+	subs["DdcClusters"] = make(chan *pallets.Events)
 
 	return &Client{
-		SubstrateAPI:   substrateApi,
-		eventRetriever: eventRetriever,
-		subs:           subs,
+		SubstrateAPI: substrateApi,
+		subs:         subs,
 		DdcClusters: pallets.NewDdcClustersApi(
 			substrateApi,
-			eventRetriever,
 			subs["DdcClusters"],
 		),
 		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta),
@@ -55,7 +48,15 @@ func NewClient(url string) (*Client, error) {
 }
 
 func (c *Client) StartEventsListening() (func(), <-chan error, error) {
-	sub, err := c.RPC.Chain.SubscribeNewHeads()
+	meta, err := c.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := types.CreateStorageKey(meta, "System", "Events", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	sub, err := c.RPC.State.SubscribeStorageRaw([]types.StorageKey{key})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,31 +69,33 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 			select {
 			case <-done:
 				return
-			case header := <-sub.Chan():
-				blockHash, err := c.RPC.Chain.GetBlockHash(uint64(header.Number))
-				if err != nil {
-					errCh <- err
-					return
-				}
+			case set := <-sub.Chan():
+				for _, change := range set.Changes {
+					if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
+						continue
+					}
 
-				events, err := c.eventRetriever.GetEvents(blockHash)
-				if err != nil {
-					errCh <- err
-					return
-				}
+					events := &pallets.Events{}
+					err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
+					if err != nil {
+						errCh <- fmt.Errorf("events listener: %w", err)
+					}
 
-				for _, ch := range c.subs {
-					ch <- events
+					for _, module := range c.subs {
+						module <- events
+					}
 				}
 			}
 		}
 	}()
 
 	once := sync.Once{}
-
-	return func() {
+	stop := func() {
 		once.Do(func() {
 			done <- struct{}{}
+			sub.Unsubscribe()
 		})
-	}, nil, nil
+	}
+
+	return stop, errCh, nil
 }
