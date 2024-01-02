@@ -27,26 +27,36 @@ type ClusterProps struct {
 
 // Events
 type (
-	ClusterCreated struct {
+	EventDdcClustersClusterCreated struct {
+		Phase     types.Phase
 		ClusterId ClusterId
+		Topics    []types.Hash
 	}
 
-	ClusterNodeAdded struct {
+	EventDdcClustersClusterNodeAdded struct {
+		Phase      types.Phase
 		ClusterId  ClusterId
 		NodePubKey NodePubKey
+		Topics     []types.Hash
 	}
 
-	ClusterNodeRemoved struct {
+	EventDdcClustersClusterNodeRemoved struct {
+		Phase      types.Phase
 		ClusterId  ClusterId
 		NodePubKey NodePubKey
+		Topics     []types.Hash
 	}
 
-	ClusterParamsSet struct {
+	EventDdcClustersClusterParamsSet struct {
+		Phase     types.Phase
 		ClusterId ClusterId
+		Topics    []types.Hash
 	}
 
-	ClusterGovParamsSet struct {
+	EventDdcClustersClusterGovParamsSet struct {
+		Phase     types.Phase
 		ClusterId ClusterId
+		Topics    []types.Hash
 	}
 )
 
