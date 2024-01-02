@@ -62,6 +62,7 @@ type (
 
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
+	SubscribeNewClusterCreated() (*NewEventSubscription[EventDdcClustersClusterCreated], error)
 	SubscribeNewClusterNodeAdded() (*NewEventSubscription[EventDdcClustersClusterNodeAdded], error)
 }
 
@@ -177,6 +178,43 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	}
 
 	return nodesKeys, nil
+}
+
+func (api *ddcClustersApi) SubscribeNewClusterCreated() (*NewEventSubscription[EventDdcClustersClusterCreated], error) {
+	api.mu.Lock()
+	defer api.mu.Unlock()
+
+	if api.subs.clusterCreated == nil {
+		api.subs.clusterCreated = make(map[int]subscriber[EventDdcClustersClusterCreated])
+	}
+
+	var idx int
+	for i := 0; i <= math.MaxInt; i++ {
+		if _, ok := api.subs.clusterCreated[i]; !ok {
+			idx = i
+			break
+		}
+		if i == math.MaxInt {
+			return nil, fmt.Errorf("can't create %d+1 subscriber", len(api.subs.clusterCreated))
+		}
+	}
+
+	sub := subscriber[EventDdcClustersClusterCreated]{
+		ch:   make(chan EventDdcClustersClusterCreated),
+		done: make(chan struct{}),
+	}
+
+	api.subs.clusterCreated[idx] = sub
+
+	return &NewEventSubscription[EventDdcClustersClusterCreated]{
+		ch:   sub.ch,
+		done: sub.done,
+		onDone: func() {
+			api.mu.Lock()
+			delete(api.subs.clusterCreated, idx)
+			api.mu.Unlock()
+		},
+	}, nil
 }
 
 func (api *ddcClustersApi) SubscribeNewClusterNodeAdded() (*NewEventSubscription[EventDdcClustersClusterNodeAdded], error) {
