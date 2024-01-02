@@ -181,11 +181,3 @@ func (api *ddcClustersApi) SubscribeNewClusterNodeAdded() *NewEventSubscription[
 
 	return sub
 }
-
-func (api *ddcClustersApi) Subs() map[string]map[int]subscriber {
-	return api.subs
-}
-
-func (api *ddcClustersApi) Mu() *sync.Mutex {
-	return &api.mu
-}
