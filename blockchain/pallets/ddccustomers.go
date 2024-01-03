@@ -1,6 +1,8 @@
 package pallets
 
 import (
+	"sync"
+
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
@@ -69,16 +71,117 @@ type DdcCustomersApi interface {
 	GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error)
 }
 
+type ddcCustomersEventsSubs struct {
+	deposited            map[int]subscriber[EventDdcCustomersDeposited]
+	initialDepositUnlock map[int]subscriber[EventDdcCustomersInitialDepositUnlock]
+	withdrawn            map[int]subscriber[EventDdcCustomersWithdrawn]
+	charged              map[int]subscriber[EventDdcCustomersCharged]
+	bucketCreated        map[int]subscriber[EventDdcCustomersBucketCreated]
+	bucketUpdated        map[int]subscriber[EventDdcCustomersBucketUpdated]
+}
+
 type ddcCustomersApi struct {
 	substrateApi *gsrpc.SubstrateAPI
 	meta         *types.Metadata
+
+	subs *ddcCustomersEventsSubs
+	mu   sync.Mutex
 }
 
-func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcCustomersApi {
-	return &ddcCustomersApi{
-		substrateAPI,
-		meta,
+func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata, events <-chan *Events) DdcCustomersApi {
+	subs := &ddcCustomersEventsSubs{
+		deposited:            make(map[int]subscriber[EventDdcCustomersDeposited]),
+		initialDepositUnlock: make(map[int]subscriber[EventDdcCustomersInitialDepositUnlock]),
+		withdrawn:            make(map[int]subscriber[EventDdcCustomersWithdrawn]),
+		charged:              make(map[int]subscriber[EventDdcCustomersCharged]),
+		bucketCreated:        make(map[int]subscriber[EventDdcCustomersBucketCreated]),
+		bucketUpdated:        make(map[int]subscriber[EventDdcCustomersBucketUpdated]),
 	}
+
+	api := &ddcCustomersApi{
+		substrateApi: substrateAPI,
+		meta:         meta,
+		subs:         subs,
+		mu:           sync.Mutex{},
+	}
+
+	go func() {
+		for blockEvents := range events {
+			for _, e := range blockEvents.DdcCustomers_Deposited {
+				api.mu.Lock()
+				for i, sub := range api.subs.deposited {
+					select {
+					case <-sub.done:
+						delete(api.subs.deposited, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcCustomers_InitialDepositUnlock {
+				api.mu.Lock()
+				for i, sub := range api.subs.initialDepositUnlock {
+					select {
+					case <-sub.done:
+						delete(api.subs.initialDepositUnlock, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcCustomers_Withdrawn {
+				api.mu.Lock()
+				for i, sub := range api.subs.withdrawn {
+					select {
+					case <-sub.done:
+						delete(api.subs.withdrawn, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcCustomers_Charged {
+				api.mu.Lock()
+				for i, sub := range api.subs.charged {
+					select {
+					case <-sub.done:
+						delete(api.subs.charged, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcCustomers_BucketCreated {
+				api.mu.Lock()
+				for i, sub := range api.subs.bucketCreated {
+					select {
+					case <-sub.done:
+						delete(api.subs.bucketCreated, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+
+			for _, e := range blockEvents.DdcCustomers_BucketUpdated {
+				api.mu.Lock()
+				for i, sub := range api.subs.bucketUpdated {
+					select {
+					case <-sub.done:
+						delete(api.subs.bucketUpdated, i)
+					case sub.ch <- e:
+					}
+				}
+				api.mu.Unlock()
+			}
+		}
+	}()
+
+	return api
 }
 
 func (api *ddcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket], error) {
