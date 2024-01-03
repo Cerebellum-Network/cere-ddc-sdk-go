@@ -14,6 +14,13 @@ type Events struct {
 	DdcClusters_ClusterNodeRemoved  []EventDdcClustersClusterNodeRemoved  //nolint:stylecheck,golint
 	DdcClusters_ClusterParamsSet    []EventDdcClustersClusterParamsSet    //nolint:stylecheck,golint
 	DdcClusters_ClusterGovParamsSet []EventDdcClustersClusterGovParamsSet //nolint:stylecheck,golint
+
+	DdcCustomers_Deposited            []EventDdcCustomersDeposited            //nolint:stylecheck,golint
+	DdcCustomers_InitialDepositUnlock []EventDdcCustomersInitialDepositUnlock //nolint:stylecheck,golint
+	DdcCustomers_Withdrawn            []EventDdcCustomersWithdrawn            //nolint:stylecheck,golint
+	DdcCustomers_Charged              []EventDdcCustomersCharged              //nolint:stylecheck,golint
+	DdcCustomers_BucketCreated        []EventDdcCustomersBucketCreated        //nolint:stylecheck,golint
+	DdcCustomers_BucketUpdated        []EventDdcCustomersBucketUpdated        //nolint:stylecheck,golint
 }
 
 type NewEventSubscription[T any] struct {
