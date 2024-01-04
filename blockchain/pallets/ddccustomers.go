@@ -89,7 +89,7 @@ type ddcCustomersApi struct {
 	mu   sync.Mutex
 }
 
-func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata, events <-chan *Events) DdcCustomersApi {
+func NewDdcCustomersApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata, events <-chan *Events) DdcCustomersApi {
 	subs := &ddcCustomersEventsSubs{
 		deposited:            make(map[int]subscriber[EventDdcCustomersDeposited]),
 		initialDepositUnlock: make(map[int]subscriber[EventDdcCustomersInitialDepositUnlock]),
@@ -100,7 +100,7 @@ func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata, 
 	}
 
 	api := &ddcCustomersApi{
-		substrateApi: substrateAPI,
+		substrateApi: substrateApi,
 		meta:         meta,
 		subs:         subs,
 		mu:           sync.Mutex{},

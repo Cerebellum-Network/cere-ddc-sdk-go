@@ -40,9 +40,9 @@ type ddcNodesApi struct {
 	meta         *types.Metadata
 }
 
-func NewDdcNodesApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcNodesApi {
+func NewDdcNodesApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcNodesApi {
 	return &ddcNodesApi{
-		substrateAPI,
+		substrateApi,
 		meta,
 	}
 }

@@ -241,7 +241,7 @@ type ddcPayoutsApi struct {
 	mu   sync.Mutex
 }
 
-func NewDdcPayoutsApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata, events <-chan *Events) DdcPayoutsApi {
+func NewDdcPayoutsApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata, events <-chan *Events) DdcPayoutsApi {
 	subs := &ddcPayoutsEventsSubs{
 		billingReportInitialized:    make(map[int]subscriber[EventDdcPayoutsBillingReportInitialized]),
 		chargingStarted:             make(map[int]subscriber[EventDdcPayoutsChargingStarted]),
@@ -260,7 +260,7 @@ func NewDdcPayoutsApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata, ev
 	}
 
 	api := &ddcPayoutsApi{
-		substrateApi: substrateAPI,
+		substrateApi: substrateApi,
 		meta:         meta,
 		subs:         subs,
 		mu:           sync.Mutex{},
