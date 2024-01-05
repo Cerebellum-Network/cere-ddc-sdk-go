@@ -90,6 +90,124 @@ func (m State) Encode(encoder scale.Encoder) error {
 	return nil
 }
 
+// Events
+type (
+	EventDdcPayoutsBillingReportInitialized struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsChargingStarted struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsCharged struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		Era        DdcEra
+		BatchIndex BatchIndex
+		CustomerId types.AccountID
+		Amount     types.U128
+		Topics     []types.Hash
+	}
+
+	EventDdcPayoutsChargeFailed struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		Era        DdcEra
+		BatchIndex BatchIndex
+		CustomerId types.AccountID
+		Amount     types.U128
+		Topics     []types.Hash
+	}
+
+	EventDdcPayoutsIndebted struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		Era        DdcEra
+		BatchIndex BatchIndex
+		CustomerId types.AccountID
+		Amount     types.U128
+		Topics     []types.Hash
+	}
+
+	EventDdcPayoutsChargingFinished struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsTreasuryFeesCollected struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsClusterReserveFeesCollected struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Amount    types.U128
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsValidatorFeesCollected struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Amount    types.U128
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsRewardingStarted struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayouts struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsRewarded struct {
+		Phase          types.Phase
+		ClusterId      ClusterId
+		Era            DdcEra
+		NodeProviderId types.AccountID
+		Amount         types.U128
+		Topics         []types.Hash
+	}
+
+	EventDdcPayoutsRewardingFinished struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsBillingReportFinalized struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Era       DdcEra
+		Topics    []types.Hash
+	}
+
+	EventDdcPayoutsAuthorisedCaller struct {
+		Phase            types.Phase
+		AuthorisedCaller types.AccountID
+		Topics           []types.Hash
+	}
+)
+
 type DdcPayoutsApi interface {
 	GetActiveBillingReports(cluster ClusterId, era DdcEra) (types.Option[BillingReport], error)
 	GetAuthorisedCaller() (types.Option[types.AccountID], error)
@@ -101,9 +219,9 @@ type ddcPayoutsApi struct {
 	meta         *types.Metadata
 }
 
-func NewDdcPayoutsApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcPayoutsApi {
+func NewDdcPayoutsApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcPayoutsApi {
 	return &ddcPayoutsApi{
-		substrateAPI,
+		substrateApi,
 		meta,
 	}
 }

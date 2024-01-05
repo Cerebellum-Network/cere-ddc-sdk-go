@@ -25,6 +25,44 @@ type UnlockChunk struct {
 	Block types.BlockNumber
 }
 
+// Events
+type (
+	EventDdcCustomersDeposited struct {
+		Phase  types.Phase
+		Owner  types.AccountID
+		Amount types.U128
+		Topics []types.Hash
+	}
+	EventDdcCustomersInitialDepositUnlock struct {
+		Phase  types.Phase
+		Owner  types.AccountID
+		Amount types.U128
+		Topics []types.Hash
+	}
+	EventDdcCustomersWithdrawn struct {
+		Phase  types.Phase
+		Owner  types.AccountID
+		Amount types.U128
+		Topics []types.Hash
+	}
+	EventDdcCustomersCharged struct {
+		Phase  types.Phase
+		Owner  types.AccountID
+		Amount types.U128
+		Topics []types.Hash
+	}
+	EventDdcCustomersBucketCreated struct {
+		Phase    types.Phase
+		BucketId BucketId
+		Topics   []types.Hash
+	}
+	EventDdcCustomersBucketUpdated struct {
+		Phase    types.Phase
+		BucketId BucketId
+		Topics   []types.Hash
+	}
+)
+
 type DdcCustomersApi interface {
 	GetBuckets(bucketId BucketId) (types.Option[Bucket], error)
 	GetBucketsCount() (types.U64, error)
@@ -36,9 +74,9 @@ type ddcCustomersApi struct {
 	meta         *types.Metadata
 }
 
-func NewDdcCustomersApi(substrateAPI *gsrpc.SubstrateAPI, meta *types.Metadata) DdcCustomersApi {
+func NewDdcCustomersApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcCustomersApi {
 	return &ddcCustomersApi{
-		substrateAPI,
+		substrateApi,
 		meta,
 	}
 }

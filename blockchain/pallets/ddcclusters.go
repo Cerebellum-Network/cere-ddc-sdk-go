@@ -21,6 +21,41 @@ type ClusterProps struct {
 	NodeProviderAuthContract types.AccountID
 }
 
+// Events
+type (
+	EventDdcClustersClusterCreated struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Topics    []types.Hash
+	}
+
+	EventDdcClustersClusterNodeAdded struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		NodePubKey NodePubKey
+		Topics     []types.Hash
+	}
+
+	EventDdcClustersClusterNodeRemoved struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		NodePubKey NodePubKey
+		Topics     []types.Hash
+	}
+
+	EventDdcClustersClusterParamsSet struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Topics    []types.Hash
+	}
+
+	EventDdcClustersClusterGovParamsSet struct {
+		Phase     types.Phase
+		ClusterId ClusterId
+		Topics    []types.Hash
+	}
+)
+
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
 }
