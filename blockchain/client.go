@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
@@ -11,9 +12,13 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
+type EventsListener func(*pallets.Events)
+
 type Client struct {
 	*gsrpc.SubstrateAPI
-	subs map[string]chan *pallets.Events
+	subs            map[string]chan *pallets.Events
+	eventsListeners map[int]EventsListener
+	mu              sync.Mutex
 
 	DdcClusters  pallets.DdcClustersApi
 	DdcCustomers pallets.DdcCustomersApi
@@ -37,8 +42,9 @@ func NewClient(url string) (*Client, error) {
 	subs["DdcPayouts"] = make(chan *pallets.Events)
 
 	return &Client{
-		SubstrateAPI: substrateApi,
-		subs:         subs,
+		SubstrateAPI:    substrateApi,
+		subs:            subs,
+		eventsListeners: make(map[int]EventsListener),
 		DdcClusters: pallets.NewDdcClustersApi(
 			substrateApi,
 			subs["DdcClusters"],
@@ -80,11 +86,11 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 					events := &pallets.Events{}
 					err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
 					if err != nil {
-						errCh <- fmt.Errorf("events listener: %w", err)
+						errCh <- fmt.Errorf("events decoder: %w", err)
 					}
 
-					for _, module := range c.subs {
-						module <- events
+					for _, callback := range c.eventsListeners {
+						go callback(events)
 					}
 				}
 			}
@@ -100,4 +106,32 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 	}
 
 	return stop, errCh, nil
+}
+
+func (c *Client) RegisterEventsListener(callback EventsListener) (func(), error) {
+	var idx int
+	for i := 0; i <= math.MaxInt; i++ {
+		if _, ok := c.eventsListeners[i]; !ok {
+			idx = i
+			break
+		}
+		if i == math.MaxInt {
+			return nil, fmt.Errorf("too many events listeners")
+		}
+	}
+
+	c.mu.Lock()
+	c.eventsListeners[idx] = callback
+	c.mu.Unlock()
+
+	once := sync.Once{}
+	stop := func() {
+		once.Do(func() {
+			c.mu.Lock()
+			delete(c.eventsListeners, idx)
+			c.mu.Unlock()
+		})
+	}
+
+	return stop, nil
 }
