@@ -1,8 +1,6 @@
 package pallets
 
 import (
-	"sync"
-
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
@@ -36,28 +34,4 @@ type Events struct {
 	DdcPayouts_RewardingFinished           []EventDdcPayoutsRewardingFinished           //nolint:stylecheck,golint
 	DdcPayouts_BillingReportFinalized      []EventDdcPayoutsBillingReportFinalized      //nolint:stylecheck,golint
 	DdcPayouts_AuthorisedCaller            []EventDdcPayoutsAuthorisedCaller            //nolint:stylecheck,golint
-}
-
-type NewEventSubscription[T any] struct {
-	ch     chan T
-	done   chan struct{}
-	onDone func()
-	o      sync.Once
-}
-
-func (s *NewEventSubscription[T]) Unsubscribe() {
-	s.o.Do(func() {
-		s.done <- struct{}{}
-		close(s.ch)
-		s.onDone()
-	})
-}
-
-func (s *NewEventSubscription[T]) Chan() <-chan T {
-	return s.ch
-}
-
-type subscriber[T any] struct {
-	ch   chan T
-	done chan struct{}
 }

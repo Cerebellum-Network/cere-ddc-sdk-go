@@ -16,7 +16,6 @@ type EventsListener func(*pallets.Events)
 
 type Client struct {
 	*gsrpc.SubstrateAPI
-	subs            map[string]chan *pallets.Events
 	eventsListeners map[int]EventsListener
 	mu              sync.Mutex
 
@@ -36,22 +35,13 @@ func NewClient(url string) (*Client, error) {
 		return nil, err
 	}
 
-	subs := make(map[string]chan *pallets.Events)
-	subs["DdcClusters"] = make(chan *pallets.Events)
-	subs["DdcCustomers"] = make(chan *pallets.Events)
-	subs["DdcPayouts"] = make(chan *pallets.Events)
-
 	return &Client{
 		SubstrateAPI:    substrateApi,
-		subs:            subs,
 		eventsListeners: make(map[int]EventsListener),
-		DdcClusters: pallets.NewDdcClustersApi(
-			substrateApi,
-			subs["DdcClusters"],
-		),
-		DdcCustomers: pallets.NewDdcCustomersApi(substrateApi, meta, subs["DdcCustomers"]),
-		DdcNodes:     pallets.NewDdcNodesApi(substrateApi, meta),
-		DdcPayouts:   pallets.NewDdcPayoutsApi(substrateApi, meta, subs["DdcPayouts"]),
+		DdcClusters:     pallets.NewDdcClustersApi(substrateApi),
+		DdcCustomers:    pallets.NewDdcCustomersApi(substrateApi, meta),
+		DdcNodes:        pallets.NewDdcNodesApi(substrateApi, meta),
+		DdcPayouts:      pallets.NewDdcPayoutsApi(substrateApi, meta),
 	}, nil
 }
 
