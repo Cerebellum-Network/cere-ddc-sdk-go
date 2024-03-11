@@ -62,6 +62,11 @@ type (
 		BucketId BucketId
 		Topics   []types.Hash
 	}
+	EventDdcCustomersBucketRemoved struct {
+		Phase    types.Phase
+		BucketId BucketId
+		Topics   []types.Hash
+	}
 )
 
 type DdcCustomersApi interface {
