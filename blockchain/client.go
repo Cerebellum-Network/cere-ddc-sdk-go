@@ -13,7 +13,7 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
-type EventsListener func(*pallets.Events)
+type EventsListener func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash)
 
 type Client struct {
 	*gsrpc.SubstrateAPI
@@ -88,8 +88,14 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 						c.errsListening <- fmt.Errorf("events decoder: %w", err)
 					}
 
+					header, err := c.RPC.Chain.GetHeader(set.Block)
+					if err != nil {
+						c.errsListening <- fmt.Errorf("get header: %w", err)
+						continue
+					}
+
 					for _, callback := range c.eventsListeners {
-						go callback(events)
+						go callback(events, header.Number, set.Block)
 					}
 				}
 			}
