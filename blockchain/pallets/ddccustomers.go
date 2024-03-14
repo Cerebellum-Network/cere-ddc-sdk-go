@@ -18,6 +18,7 @@ type Bucket struct {
 	OwnerId   types.AccountID
 	ClusterId ClusterId
 	IsPublic  types.Bool
+	IsRemoved types.Bool
 }
 
 type UnlockChunk struct {
@@ -57,6 +58,11 @@ type (
 		Topics   []types.Hash
 	}
 	EventDdcCustomersBucketUpdated struct {
+		Phase    types.Phase
+		BucketId BucketId
+		Topics   []types.Hash
+	}
+	EventDdcCustomersBucketRemoved struct {
 		Phase    types.Phase
 		BucketId BucketId
 		Topics   []types.Hash

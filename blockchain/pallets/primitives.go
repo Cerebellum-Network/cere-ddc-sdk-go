@@ -97,30 +97,23 @@ func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
 		return ErrUnknownVariant
 	}
 
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
-	var err1, err2 error
+	var err error
 	if m.IsFull {
-		err1 = encoder.PushByte(1)
+		err = encoder.PushByte(1)
 	} else if m.IsStorage {
-		err1 = encoder.PushByte(2)
+		err = encoder.PushByte(2)
 	} else if m.IsCache {
-		err1 = encoder.PushByte(3)
+		err = encoder.PushByte(3)
 	} else {
 		return ErrUnknownVariant
 	}
 
-	if err1 != nil {
-		return err1
-	}
-	if err2 != nil {
-		return err2
+	if err != nil {
+		return err
 	}
 
 	return nil

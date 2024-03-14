@@ -19,6 +19,7 @@ type Events struct {
 	DdcCustomers_Charged              []EventDdcCustomersCharged              //nolint:stylecheck,golint
 	DdcCustomers_BucketCreated        []EventDdcCustomersBucketCreated        //nolint:stylecheck,golint
 	DdcCustomers_BucketUpdated        []EventDdcCustomersBucketUpdated        //nolint:stylecheck,golint
+	DdcCustomers_BucketRemoved        []EventDdcCustomersBucketRemoved        //nolint:stylecheck,golint
 
 	DdcPayouts_BillingReportInitialized    []EventDdcPayoutsBillingReportInitialized    //nolint:stylecheck,golint
 	DdcPayouts_ChargingStarted             []EventDdcPayoutsChargingStarted             //nolint:stylecheck,golint
