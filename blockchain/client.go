@@ -116,10 +116,6 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 		}
 	}
 
-	c.mu.Lock()
-	c.eventsListeners[idx] = callback
-	c.mu.Unlock()
-
 	stopped := false
 
 	go func() {
@@ -189,6 +185,12 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 				callback(events, header.Number, set.Block)
 			}
 		}
+
+		c.mu.Lock()
+		if !stopped {
+			c.eventsListeners[idx] = callback
+		}
+		c.mu.Unlock()
 	}()
 
 	once := sync.Once{}
