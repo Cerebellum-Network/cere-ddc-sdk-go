@@ -120,6 +120,8 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	c.eventsListeners[idx] = callback
 	c.mu.Unlock()
 
+	stopped := false
+
 	go func() {
 		latestHeader, err := c.RPC.Chain.GetHeaderLatest()
 		if err != nil {
@@ -162,6 +164,10 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 		}
 
 		for _, set := range changesSets {
+			if stopped {
+				return
+			}
+
 			c.processSystemEventsStorageChanges(
 				set.Changes,
 				meta,
@@ -175,6 +181,7 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	stop := func() {
 		once.Do(func() {
 			c.mu.Lock()
+			stopped = true
 			delete(c.eventsListeners, idx)
 			c.mu.Unlock()
 		})
