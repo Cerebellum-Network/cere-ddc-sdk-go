@@ -186,7 +186,7 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 					return
 				}
 
-				go callback(events, header.Number, set.Block)
+				callback(events, header.Number, set.Block)
 			}
 		}
 	}()
