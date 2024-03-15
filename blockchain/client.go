@@ -99,7 +99,7 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 	return c.stopListening, c.errsListening, nil
 }
 
-func (c *Client) RegisterEventsListener(callback EventsListener) (func(), error) {
+func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (func(), error) {
 	var idx int
 	for i := 0; i <= math.MaxInt; i++ {
 		if _, ok := c.eventsListeners[i]; !ok {
@@ -114,6 +114,57 @@ func (c *Client) RegisterEventsListener(callback EventsListener) (func(), error)
 	c.mu.Lock()
 	c.eventsListeners[idx] = callback
 	c.mu.Unlock()
+
+	go func() {
+		latestHeader, err := c.RPC.Chain.GetHeaderLatest()
+		if err != nil {
+			c.errsListening <- fmt.Errorf("get latest header: %w", err)
+			return
+		}
+
+		if begin >= latestHeader.Number {
+			return
+		}
+
+		meta, err := c.RPC.State.GetMetadataLatest() // TODO: update each runtime upgrade
+		if err != nil {
+			c.errsListening <- fmt.Errorf("get metadata: %w", err)
+			return
+		}
+
+		key, err := types.CreateStorageKey(meta, "System", "Events")
+		if err != nil {
+			c.errsListening <- fmt.Errorf("create storage key: %w", err)
+			return
+		}
+
+		beginHash, err := c.RPC.Chain.GetBlockHash(uint64(begin))
+		if err != nil {
+			c.errsListening <- fmt.Errorf("get block hash: %w", err)
+			return
+		}
+
+		latestHash, err := c.RPC.Chain.GetBlockHashLatest()
+		if err != nil {
+			c.errsListening <- fmt.Errorf("get latest block hash: %w", err)
+			return
+		}
+
+		changesSets, err := c.RPC.State.QueryStorage([]types.StorageKey{key}, beginHash, latestHash)
+		if err != nil {
+			c.errsListening <- fmt.Errorf("storage changes query: %w", err)
+			return
+		}
+
+		for _, set := range changesSets {
+			c.processSystemEventsStorageChanges(
+				set.Changes,
+				meta,
+				key,
+				set.Block,
+			)
+		}
+	}()
 
 	once := sync.Once{}
 	stop := func() {
