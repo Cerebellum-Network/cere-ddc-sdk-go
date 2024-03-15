@@ -99,6 +99,11 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 	return c.stopListening, c.errsListening, nil
 }
 
+// RegisterEventsListener subscribes given callback to blockchain events. There is a begin parameter which
+// can be used to get events from blocks older than the latest block. If begin is greater than the latest
+// block number, the listener will start from the latest block. Subscription on new events starts
+// immediately and does not wait until the older blocks events are processed. Rare cases of events
+// duplication are possible.
 func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (func(), error) {
 	var idx int
 	for i := 0; i <= math.MaxInt; i++ {
