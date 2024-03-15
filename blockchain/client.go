@@ -202,8 +202,10 @@ func (c *Client) processSystemEventsStorageChanges(
 			continue
 		}
 
+		c.mu.Lock()
 		for _, callback := range c.eventsListeners {
 			go callback(events, header.Number, blockHash)
 		}
+		c.mu.Unlock()
 	}
 }
