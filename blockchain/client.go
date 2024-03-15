@@ -77,28 +77,12 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 			case <-done:
 				return
 			case set := <-sub.Chan():
-				header, err := c.RPC.Chain.GetHeader(set.Block)
-				if err != nil {
-					c.errsListening <- fmt.Errorf("get header: %w", err)
-					continue
-				}
-
-				for _, change := range set.Changes {
-					if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
-						continue
-					}
-
-					events := &pallets.Events{}
-					err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
-					if err != nil {
-						c.errsListening <- fmt.Errorf("events decoder: %w", err)
-						continue
-					}
-
-					for _, callback := range c.eventsListeners {
-						go callback(events, header.Number, set.Block)
-					}
-				}
+				c.processSystemEventsStorageChanges(
+					set.Changes,
+					meta,
+					key,
+					set.Block,
+				)
 			}
 		}
 	}()
@@ -141,4 +125,34 @@ func (c *Client) RegisterEventsListener(callback EventsListener) (func(), error)
 	}
 
 	return stop, nil
+}
+
+func (c *Client) processSystemEventsStorageChanges(
+	changes []types.KeyValueOption,
+	meta *types.Metadata,
+	storageKey types.StorageKey,
+	blockHash types.Hash,
+) {
+	header, err := c.RPC.Chain.GetHeader(blockHash)
+	if err != nil {
+		c.errsListening <- fmt.Errorf("get header: %w", err)
+		return
+	}
+
+	for _, change := range changes {
+		if !codec.Eq(change.StorageKey, storageKey) || !change.HasStorageData {
+			continue
+		}
+
+		events := &pallets.Events{}
+		err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
+		if err != nil {
+			c.errsListening <- fmt.Errorf("events decoder: %w", err)
+			continue
+		}
+
+		for _, callback := range c.eventsListeners {
+			go callback(events, header.Number, blockHash)
+		}
+	}
 }
