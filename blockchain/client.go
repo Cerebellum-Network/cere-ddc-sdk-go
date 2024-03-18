@@ -143,7 +143,8 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			return
 		}
 
-		meta, err := c.RPC.State.GetMetadataLatest() // TODO: update each runtime upgrade
+		// TODO: get for begin block and update each runtime upgrade
+		meta, err := c.RPC.State.GetMetadataLatest()
 		if err != nil {
 			c.errsListening <- fmt.Errorf("get metadata: %w", err)
 			return
