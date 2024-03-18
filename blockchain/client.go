@@ -114,21 +114,10 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 		}
 	}
 
-	// Start events collection from the latest block to process them after completion with old blocks.
-	var pendingEvents []*blockEvents
-	var pendingEventsMu sync.Mutex
-	var pendingEventsDone bool
-
+	// Collect events starting from the latest block to process them after completion with old blocks.
+	pendingEvents := &pendingEvents{}
 	callbackWrapper := func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
-		pendingEventsMu.Lock()
-		defer pendingEventsMu.Unlock()
-
-		if !pendingEventsDone {
-			pendingEvents = append(pendingEvents, &blockEvents{
-				Events: events,
-				Hash:   blockHash,
-				Number: blockNumber,
-			})
+		if pendingEvents.TryPush(events, blockHash, blockNumber) {
 			return
 		}
 
@@ -209,19 +198,7 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			}
 		}
 
-		for {
-			pendingEventsMu.Lock()
-			if len(pendingEvents) == 0 {
-				pendingEventsDone = true
-				pendingEventsMu.Unlock()
-				break
-			}
-
-			callback(pendingEvents[0].Events, pendingEvents[0].Number, pendingEvents[0].Hash)
-
-			pendingEvents = pendingEvents[1:]
-			pendingEventsMu.Unlock()
-		}
+		pendingEvents.Do(callback)
 	}()
 
 	once := sync.Once{}
@@ -273,4 +250,42 @@ type blockEvents struct {
 	Events *pallets.Events
 	Hash   types.Hash
 	Number types.BlockNumber
+}
+
+type pendingEvents struct {
+	list []*blockEvents
+	mu   sync.Mutex
+	done bool
+}
+
+func (pe *pendingEvents) TryPush(events *pallets.Events, hash types.Hash, number types.BlockNumber) bool {
+	pe.mu.Lock()
+	if !pe.done {
+		pe.list = append(pe.list, &blockEvents{
+			Events: events,
+			Hash:   hash,
+			Number: number,
+		})
+		pe.mu.Unlock()
+		return true
+	}
+	pe.mu.Unlock()
+	return false
+}
+
+func (pe *pendingEvents) Do(callback EventsListener) {
+	for {
+		pe.mu.Lock()
+
+		if len(pe.list) == 0 {
+			pe.done = true
+			pe.mu.Unlock()
+			break
+		}
+
+		callback(pe.list[0].Events, pe.list[0].Number, pe.list[0].Hash)
+
+		pe.list = pe.list[1:]
+		pe.mu.Unlock()
+	}
 }
