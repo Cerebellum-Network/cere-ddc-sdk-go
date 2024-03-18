@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sync"
@@ -21,7 +22,7 @@ type Client struct {
 	eventsListeners map[int]EventsListener
 	mu              sync.Mutex
 	isListening     uint32
-	stopListening   func()
+	cancelListening func()
 	errsListening   chan error
 
 	DdcClusters  pallets.DdcClustersApi
@@ -50,9 +51,9 @@ func NewClient(url string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) StartEventsListening() (func(), <-chan error, error) {
+func (c *Client) StartEventsListening() (context.CancelFunc, <-chan error, error) {
 	if !atomic.CompareAndSwapUint32(&c.isListening, 0, 1) {
-		return c.stopListening, c.errsListening, nil
+		return c.cancelListening, c.errsListening, nil
 	}
 
 	meta, err := c.RPC.State.GetMetadataLatest()
@@ -88,7 +89,7 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 	}()
 
 	once := sync.Once{}
-	c.stopListening = func() {
+	c.cancelListening = func() {
 		once.Do(func() {
 			done <- struct{}{}
 			sub.Unsubscribe()
@@ -96,13 +97,13 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 		})
 	}
 
-	return c.stopListening, c.errsListening, nil
+	return c.cancelListening, c.errsListening, nil
 }
 
 // RegisterEventsListener subscribes given callback to blockchain events. There is a begin parameter which
 // can be used to get events from blocks older than the latest block. If begin is greater than the latest
 // block number, the listener will start from the latest block.
-func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (func(), error) {
+func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (context.CancelFunc, error) {
 	var idx int
 	for i := 0; i <= math.MaxInt; i++ {
 		if _, ok := c.eventsListeners[i]; !ok {
@@ -134,7 +135,7 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	c.eventsListeners[idx] = callbackWrapper
 	c.mu.Unlock()
 
-	stopped := false
+	cancelled := false
 
 	go func() {
 		<-subscriptionStarted
@@ -193,7 +194,7 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 					continue
 				}
 
-				if stopped {
+				if cancelled {
 					return
 				}
 
@@ -205,16 +206,16 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	}()
 
 	once := sync.Once{}
-	stop := func() {
+	cancel := func() {
 		once.Do(func() {
 			c.mu.Lock()
-			stopped = true
+			cancelled = true
 			delete(c.eventsListeners, idx)
 			c.mu.Unlock()
 		})
 	}
 
-	return stop, nil
+	return cancel, nil
 }
 
 func (c *Client) processSystemEventsStorageChanges(
