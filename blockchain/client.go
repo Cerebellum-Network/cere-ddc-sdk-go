@@ -116,7 +116,13 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 
 	// Collect events starting from the latest block to process them after completion with old blocks.
 	pendingEvents := &pendingEvents{}
+	subscriptionStartBlock := uint32(0)
+	subscriptionStarted := make(chan struct{})
 	callbackWrapper := func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
+		if atomic.CompareAndSwapUint32(&subscriptionStartBlock, 0, uint32(blockNumber)) {
+			close(subscriptionStarted)
+		}
+
 		if pendingEvents.TryPush(events, blockHash, blockNumber) {
 			return
 		}
@@ -131,13 +137,9 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	stopped := false
 
 	go func() {
-		latestHeader, err := c.RPC.Chain.GetHeaderLatest()
-		if err != nil {
-			c.errsListening <- fmt.Errorf("get latest header: %w", err)
-			return
-		}
+		<-subscriptionStarted
 
-		if begin >= latestHeader.Number {
+		if begin >= types.BlockNumber(subscriptionStartBlock) {
 			return
 		}
 
@@ -159,13 +161,13 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			return
 		}
 
-		latestHash, err := c.RPC.Chain.GetBlockHashLatest()
+		endHash, err := c.RPC.Chain.GetBlockHash(uint64(subscriptionStartBlock - 1))
 		if err != nil {
-			c.errsListening <- fmt.Errorf("get latest block hash: %w", err)
+			c.errsListening <- fmt.Errorf("get block hash: %w", err)
 			return
 		}
 
-		changesSets, err := c.RPC.State.QueryStorage([]types.StorageKey{key}, beginHash, latestHash)
+		changesSets, err := c.RPC.State.QueryStorage([]types.StorageKey{key}, beginHash, endHash)
 		if err != nil {
 			c.errsListening <- fmt.Errorf("storage changes query: %w", err)
 			return
