@@ -101,9 +101,7 @@ func (c *Client) StartEventsListening() (func(), <-chan error, error) {
 
 // RegisterEventsListener subscribes given callback to blockchain events. There is a begin parameter which
 // can be used to get events from blocks older than the latest block. If begin is greater than the latest
-// block number, the listener will start from the latest block. Subscription on new events starts
-// immediately and does not wait until the older blocks events are processed. Rare cases of events
-// duplication are possible.
+// block number, the listener will start from the latest block.
 func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (func(), error) {
 	var idx int
 	for i := 0; i <= math.MaxInt; i++ {
@@ -115,6 +113,31 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			return nil, fmt.Errorf("too many events listeners")
 		}
 	}
+
+	// Start events collection from the latest block to process them after completion with old blocks.
+	var pendingEvents []*blockEvents
+	var pendingEventsMu sync.Mutex
+	var pendingEventsDone bool
+
+	callbackWrapper := func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
+		pendingEventsMu.Lock()
+		defer pendingEventsMu.Unlock()
+
+		if !pendingEventsDone {
+			pendingEvents = append(pendingEvents, &blockEvents{
+				Events: events,
+				Hash:   blockHash,
+				Number: blockNumber,
+			})
+			return
+		}
+
+		callback(events, blockNumber, blockHash)
+	}
+
+	c.mu.Lock()
+	c.eventsListeners[idx] = callbackWrapper
+	c.mu.Unlock()
 
 	stopped := false
 
@@ -186,11 +209,19 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			}
 		}
 
-		c.mu.Lock()
-		if !stopped {
-			c.eventsListeners[idx] = callback
+		for {
+			pendingEventsMu.Lock()
+			if len(pendingEvents) == 0 {
+				pendingEventsDone = true
+				pendingEventsMu.Unlock()
+				break
+			}
+
+			callback(pendingEvents[0].Events, pendingEvents[0].Number, pendingEvents[0].Hash)
+
+			pendingEvents = pendingEvents[1:]
+			pendingEventsMu.Unlock()
 		}
-		c.mu.Unlock()
 	}()
 
 	once := sync.Once{}
@@ -236,4 +267,10 @@ func (c *Client) processSystemEventsStorageChanges(
 		}
 		c.mu.Unlock()
 	}
+}
+
+type blockEvents struct {
+	Events *pallets.Events
+	Hash   types.Hash
+	Number types.BlockNumber
 }
