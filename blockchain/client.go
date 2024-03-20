@@ -157,48 +157,44 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 			return
 		}
 
-		beginHash, err := c.RPC.Chain.GetBlockHash(uint64(begin))
-		if err != nil {
-			c.errsListening <- fmt.Errorf("get block hash: %w", err)
-			return
-		}
-
-		endHash, err := c.RPC.Chain.GetBlockHash(uint64(subscriptionStartBlock - 1))
-		if err != nil {
-			c.errsListening <- fmt.Errorf("get block hash: %w", err)
-			return
-		}
-
-		changesSets, err := c.RPC.State.QueryStorage([]types.StorageKey{key}, beginHash, endHash)
-		if err != nil {
-			c.errsListening <- fmt.Errorf("storage changes query: %w", err)
-			return
-		}
-
-		for _, set := range changesSets {
-			header, err := c.RPC.Chain.GetHeader(set.Block)
+		for currentBlock := uint32(begin); currentBlock < subscriptionStartBlock; currentBlock++ {
+			bHash, err := c.RPC.Chain.GetBlockHash(uint64(currentBlock))
 			if err != nil {
-				c.errsListening <- fmt.Errorf("get header: %w", err)
+				c.errsListening <- fmt.Errorf("get block hash: %w", err)
 				return
 			}
 
-			for _, change := range set.Changes {
-				if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
-					continue
-				}
+			blockChangesSets, err := c.RPC.State.QueryStorageAt([]types.StorageKey{key}, bHash)
+			if err != nil {
+				c.errsListening <- fmt.Errorf("query storage: %w", err)
+				return
+			}
 
-				events := &pallets.Events{}
-				err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
+			for _, set := range blockChangesSets {
+				header, err := c.RPC.Chain.GetHeader(set.Block)
 				if err != nil {
-					c.errsListening <- fmt.Errorf("events decoder: %w", err)
-					continue
-				}
-
-				if cancelled {
+					c.errsListening <- fmt.Errorf("get header: %w", err)
 					return
 				}
 
-				callback(events, header.Number, set.Block)
+				for _, change := range set.Changes {
+					if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
+						continue
+					}
+
+					events := &pallets.Events{}
+					err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
+					if err != nil {
+						c.errsListening <- fmt.Errorf("events decoder: %w", err)
+						continue
+					}
+
+					if cancelled {
+						return
+					}
+
+					callback(events, header.Number, set.Block)
+				}
 			}
 		}
 
