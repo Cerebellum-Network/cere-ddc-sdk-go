@@ -138,6 +138,8 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	cancelled := false
 
 	go func() {
+		defer pendingEvents.Do(callback)
+
 		<-subscriptionStarted
 
 		if begin >= types.BlockNumber(subscriptionStartBlock) {
@@ -197,8 +199,6 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 				}
 			}
 		}
-
-		pendingEvents.Do(callback)
 	}()
 
 	once := sync.Once{}
