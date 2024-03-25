@@ -104,17 +104,6 @@ func (c *Client) StartEventsListening() (context.CancelFunc, <-chan error, error
 // can be used to get events from blocks older than the latest block. If begin is greater than the latest
 // block number, the listener will start from the latest block.
 func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (context.CancelFunc, error) {
-	var idx int
-	for i := 0; i <= math.MaxInt; i++ {
-		if _, ok := c.eventsListeners[i]; !ok {
-			idx = i
-			break
-		}
-		if i == math.MaxInt {
-			return nil, fmt.Errorf("too many events listeners")
-		}
-	}
-
 	// Collect events starting from the latest block to process them after completion with old blocks.
 	pendingEvents := &pendingEvents{}
 	subscriptionStartBlock := uint32(0)
@@ -132,6 +121,17 @@ func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback Events
 	}
 
 	c.mu.Lock()
+	// Find the smallest available key for the new listener.
+	var idx int
+	for i := 0; i <= math.MaxInt; i++ {
+		if _, ok := c.eventsListeners[i]; !ok {
+			idx = i
+			break
+		}
+		if i == math.MaxInt {
+			return nil, fmt.Errorf("too many events listeners")
+		}
+	}
 	c.eventsListeners[idx] = callbackWrapper
 	c.mu.Unlock()
 
