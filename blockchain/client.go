@@ -85,7 +85,7 @@ func (c *Client) StartEventsListening() (context.CancelFunc, <-chan error, error
 					func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
 						c.mu.Lock()
 						for callback := range c.eventsListeners {
-							go (*callback)(events, blockNumber, blockHash)
+							(*callback)(events, blockNumber, blockHash)
 						}
 						c.mu.Unlock()
 					},
