@@ -50,7 +50,9 @@ func NewClient(url string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) StartEventsListening() (context.CancelFunc, <-chan error, error) {
+func (c *Client) StartEventsListening(
+	afterBlock func(blockNumber types.BlockNumber, blockHash types.Hash),
+) (context.CancelFunc, <-chan error, error) {
 	if !atomic.CompareAndSwapUint32(&c.isListening, 0, 1) {
 		return c.cancelListening, c.errsListening, nil
 	}
@@ -90,6 +92,16 @@ func (c *Client) StartEventsListening() (context.CancelFunc, <-chan error, error
 						c.mu.Unlock()
 					},
 				)
+
+				header, err := c.RPC.Chain.GetHeader(set.Block)
+				if err != nil {
+					c.errsListening <- fmt.Errorf("get header: %w", err)
+					return
+				}
+
+				if afterBlock != nil {
+					afterBlock(header.Number, set.Block)
+				}
 			}
 		}
 	}()
