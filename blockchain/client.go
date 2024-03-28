@@ -118,97 +118,20 @@ func (c *Client) StartEventsListening(
 	return c.cancelListening, c.errsListening, nil
 }
 
-// RegisterEventsListener subscribes given callback to blockchain events. There is a begin parameter which
-// can be used to get events from blocks older than the latest block. If begin is greater than the latest
-// block number, the listener will start from the latest block.
-func (c *Client) RegisterEventsListener(begin types.BlockNumber, callback EventsListener) (context.CancelFunc, error) {
-	// Collect events starting from the latest block to process them after completion with old blocks.
-	pendingEvents := &pendingEvents{}
-	subscriptionStartBlock := uint32(0)
-	subscriptionStarted := make(chan struct{})
-
-	callbackWrapper := EventsListener(func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
-		if atomic.CompareAndSwapUint32(&subscriptionStartBlock, 0, uint32(blockNumber)) {
-			close(subscriptionStarted)
-		}
-
-		if pendingEvents.TryPush(events, blockHash, blockNumber) {
-			return
-		}
-
-		callback(events, blockNumber, blockHash)
-	})
-
+// RegisterEventsListener subscribes given callback to blockchain events.
+func (c *Client) RegisterEventsListener(callback EventsListener) context.CancelFunc {
 	c.mu.Lock()
-	c.eventsListeners[&callbackWrapper] = struct{}{}
+	c.eventsListeners[&callback] = struct{}{}
 	c.mu.Unlock()
 
-	cancelled := false
-
-	go func() {
-		defer pendingEvents.Do(callback)
-
-		<-subscriptionStarted
-
-		if begin >= types.BlockNumber(subscriptionStartBlock) {
-			return
-		}
-
-		// TODO: get for begin block and update each runtime upgrade
-		meta, err := c.RPC.State.GetMetadataLatest()
-		if err != nil {
-			c.errsListening <- fmt.Errorf("get metadata: %w", err)
-			return
-		}
-
-		key, err := types.CreateStorageKey(meta, "System", "Events")
-		if err != nil {
-			c.errsListening <- fmt.Errorf("create storage key: %w", err)
-			return
-		}
-
-		for currentBlock := uint32(begin); currentBlock < subscriptionStartBlock; currentBlock++ {
-			bHash, err := c.RPC.Chain.GetBlockHash(uint64(currentBlock))
-			if err != nil {
-				c.errsListening <- fmt.Errorf("get block hash: %w", err)
-				return
-			}
-
-			blockChangesSets, err := c.RPC.State.QueryStorageAt([]types.StorageKey{key}, bHash)
-			if err != nil {
-				c.errsListening <- fmt.Errorf("query storage: %w", err)
-				return
-			}
-
-			for _, set := range blockChangesSets {
-				if cancelled {
-					return
-				}
-
-				c.onChanges(
-					meta,
-					key,
-					set.Changes,
-					set.Block,
-					func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
-						callback(events, blockNumber, blockHash)
-					},
-				)
-			}
-		}
-	}()
-
 	once := sync.Once{}
-	cancel := func() {
+	return func() {
 		once.Do(func() {
 			c.mu.Lock()
-			cancelled = true
-			delete(c.eventsListeners, &callbackWrapper)
+			delete(c.eventsListeners, &callback)
 			c.mu.Unlock()
 		})
 	}
-
-	return cancel, nil
 }
 
 func (c *Client) onChanges(
