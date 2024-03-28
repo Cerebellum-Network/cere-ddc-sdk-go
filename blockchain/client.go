@@ -51,11 +51,14 @@ func NewClient(url string) (*Client, error) {
 }
 
 func (c *Client) StartEventsListening(
+	begin types.BlockNumber,
 	afterBlock func(blockNumber types.BlockNumber, blockHash types.Hash),
 ) (context.CancelFunc, <-chan error, error) {
 	if !atomic.CompareAndSwapUint32(&c.isListening, 0, 1) {
 		return c.cancelListening, c.errsListening, nil
 	}
+
+	c.errsListening = make(chan error)
 
 	meta, err := c.RPC.State.GetMetadataLatest()
 	if err != nil {
@@ -70,47 +73,114 @@ func (c *Client) StartEventsListening(
 		return nil, nil, err
 	}
 
-	done := make(chan struct{})
-	c.errsListening = make(chan error)
+	liveChangesC := sub.Chan()
+	histChangesC := make(chan types.StorageChangeSet)
 
-	go func() {
-		for {
-			select {
-			case <-done:
+	// Query historical changes.
+	var cancelled atomic.Value
+	cancelled.Store(false)
+	go func(begin types.BlockNumber, liveChanges <-chan types.StorageChangeSet, histChangesC chan types.StorageChangeSet) {
+		defer close(histChangesC)
+
+		set := <-liveChanges // first live changes set block is the last historical block
+
+		header, err := c.RPC.Chain.GetHeader(set.Block)
+		if err != nil {
+			c.errsListening <- fmt.Errorf("get header: %w", err)
+			return
+		}
+
+		for currentBlock := begin; currentBlock < header.Number; currentBlock++ {
+			blockHash, err := c.RPC.Chain.GetBlockHash(uint64(currentBlock))
+			if err != nil {
+				c.errsListening <- fmt.Errorf("get block hash: %w", err)
 				return
-			case set := <-sub.Chan():
-				c.onChanges(
-					meta,
-					key,
-					set.Changes,
-					set.Block,
-					func(events *pallets.Events, blockNumber types.BlockNumber, blockHash types.Hash) {
-						c.mu.Lock()
-						for callback := range c.eventsListeners {
-							(*callback)(events, blockNumber, blockHash)
-						}
-						c.mu.Unlock()
-					},
-				)
+			}
 
-				header, err := c.RPC.Chain.GetHeader(set.Block)
-				if err != nil {
-					c.errsListening <- fmt.Errorf("get header: %w", err)
-					return
+			blockChangesSets, err := c.RPC.State.QueryStorageAt([]types.StorageKey{key}, blockHash)
+			if err != nil {
+				c.errsListening <- fmt.Errorf("query storage: %w", err)
+				return
+			}
+
+			for _, set := range blockChangesSets {
+				histChangesC <- set
+			}
+
+			// Graceful stop must finish the block before exiting.
+			if cancelled.Load().(bool) {
+				return
+			}
+		}
+
+		histChangesC <- set
+	}(begin, liveChangesC, histChangesC)
+
+	// Sequence historical and live changes.
+	changesC := make(chan types.StorageChangeSet)
+	go func(histChangesC, liveChangesC <-chan types.StorageChangeSet, changesC chan types.StorageChangeSet) {
+		defer close(changesC)
+
+		for set := range histChangesC {
+			changesC <- set
+		}
+
+		for set := range liveChangesC {
+			changesC <- set
+		}
+	}(histChangesC, liveChangesC, changesC)
+
+	// Decode events from changes.
+	eventsC := make(chan blockEvents)
+	go func(changesC <-chan types.StorageChangeSet, eventsC chan blockEvents) {
+		defer close(eventsC)
+
+		for set := range changesC {
+			header, err := c.RPC.Chain.GetHeader(set.Block)
+			if err != nil {
+				c.errsListening <- fmt.Errorf("get header: %w", err)
+				return
+			}
+
+			for _, change := range set.Changes {
+				if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
+					continue
 				}
 
-				if afterBlock != nil {
-					afterBlock(header.Number, set.Block)
+				events := &pallets.Events{}
+				err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
+				if err != nil {
+					c.errsListening <- fmt.Errorf("events decoder: %w", err)
+					continue
+				}
+
+				eventsC <- blockEvents{
+					Events: events,
+					Number: header.Number,
+					Hash:   set.Block,
 				}
 			}
 		}
-	}()
+	}(changesC, eventsC)
+
+	// Invoke listeners.
+	go func(eventsC <-chan blockEvents) {
+		for blockEvents := range eventsC {
+			for callback := range c.eventsListeners {
+				(*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
+			}
+
+			if afterBlock != nil {
+				afterBlock(blockEvents.Number, blockEvents.Hash)
+			}
+		}
+	}(eventsC)
 
 	once := sync.Once{}
 	c.cancelListening = func() {
 		once.Do(func() {
-			done <- struct{}{}
 			sub.Unsubscribe()
+			cancelled.Store(true)
 			c.isListening = 0
 		})
 	}
@@ -131,35 +201,6 @@ func (c *Client) RegisterEventsListener(callback EventsListener) context.CancelF
 			delete(c.eventsListeners, &callback)
 			c.mu.Unlock()
 		})
-	}
-}
-
-func (c *Client) onChanges(
-	meta *types.Metadata,
-	key types.StorageKey,
-	changes []types.KeyValueOption,
-	block types.Hash,
-	callback EventsListener,
-) {
-	header, err := c.RPC.Chain.GetHeader(block)
-	if err != nil {
-		c.errsListening <- fmt.Errorf("get header: %w", err)
-		return
-	}
-
-	for _, change := range changes {
-		if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
-			continue
-		}
-
-		events := &pallets.Events{}
-		err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
-		if err != nil {
-			c.errsListening <- fmt.Errorf("events decoder: %w", err)
-			continue
-		}
-
-		callback(events, header.Number, block)
 	}
 }
 
