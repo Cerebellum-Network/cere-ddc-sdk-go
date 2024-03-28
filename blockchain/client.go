@@ -130,7 +130,7 @@ func (c *Client) StartEventsListening(
 		}
 	}(histChangesC, liveChangesC, changesC)
 
-	// Decode events from changes.
+	// Decode events from changes skipping blocks before 'begin'.
 	eventsC := make(chan blockEvents)
 	go func(changesC <-chan types.StorageChangeSet, eventsC chan blockEvents) {
 		defer close(eventsC)
@@ -140,6 +140,10 @@ func (c *Client) StartEventsListening(
 			if err != nil {
 				c.errsListening <- fmt.Errorf("get header: %w", err)
 				return
+			}
+
+			if header.Number < begin {
+				continue
 			}
 
 			for _, change := range set.Changes {
