@@ -50,6 +50,11 @@ func NewClient(url string) (*Client, error) {
 	}, nil
 }
 
+// StartEventsListening subscribes for blockchain events and passes events starting from the
+// 'begin' block to registered events listeners. Listeners registered after this call will only
+// receive live events meaning all listeners which need historical events from 'begin' block
+// should be registered at the moment of calling this function. The 'afterBlock' callback is
+// invoked after all registered events listeners are already invoked.
 func (c *Client) StartEventsListening(
 	begin types.BlockNumber,
 	afterBlock func(blockNumber types.BlockNumber, blockHash types.Hash),
