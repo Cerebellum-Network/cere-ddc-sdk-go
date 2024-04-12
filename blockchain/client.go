@@ -80,11 +80,14 @@ func (c *Client) StartEventsListening(
 
 	liveChangesC := sub.Chan()
 	histChangesC := make(chan types.StorageChangeSet)
+	var wg sync.WaitGroup
 
 	// Query historical changes.
 	var cancelled atomic.Value
 	cancelled.Store(false)
+	wg.Add(1)
 	go func(begin types.BlockNumber, liveChanges <-chan types.StorageChangeSet, histChangesC chan types.StorageChangeSet) {
+		defer wg.Done()
 		defer close(histChangesC)
 
 		set := <-liveChanges // first live changes set block is the last historical block
@@ -123,7 +126,9 @@ func (c *Client) StartEventsListening(
 
 	// Sequence historical and live changes.
 	changesC := make(chan types.StorageChangeSet)
+	wg.Add(1)
 	go func(histChangesC, liveChangesC <-chan types.StorageChangeSet, changesC chan types.StorageChangeSet) {
+		defer wg.Done()
 		defer close(changesC)
 
 		for set := range histChangesC {
@@ -137,7 +142,9 @@ func (c *Client) StartEventsListening(
 
 	// Decode events from changes skipping blocks before 'begin'.
 	eventsC := make(chan blockEvents)
+	wg.Add(1)
 	go func(changesC <-chan types.StorageChangeSet, eventsC chan blockEvents) {
+		defer wg.Done()
 		defer close(eventsC)
 
 		for set := range changesC {
@@ -190,6 +197,8 @@ func (c *Client) StartEventsListening(
 		once.Do(func() {
 			sub.Unsubscribe()
 			cancelled.Store(true)
+			wg.Wait()
+			close(c.errsListening)
 			c.isListening = 0
 		})
 	}
