@@ -1,11 +1,18 @@
 package pallets
 
 import (
+	chainbridge "github.com/Cerebellum-Network/chainbridge-substrate-events"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
 type Events struct {
 	types.EventRecords
+	chainbridge.Events
+
+	Contracts_Called                               []EventContractsCalled                               //nolint:stylecheck,golint
+	Contracts_DelegateCalled                       []EventContractsDelegateCalled                       //nolint:stylecheck,golint
+	Contracts_StorageDepositTransferredAndHeld     []EventContractsStorageDepositTransferredAndHeld     //nolint:stylecheck,golint
+	Contracts_StorageDepositTransferredAndReleased []EventContractsStorageDepositTransferredAndReleased //nolint:stylecheck,golint
 
 	DdcClusters_ClusterCreated      []EventDdcClustersClusterCreated      //nolint:stylecheck,golint
 	DdcClusters_ClusterNodeAdded    []EventDdcClustersClusterNodeAdded    //nolint:stylecheck,golint
@@ -21,6 +28,10 @@ type Events struct {
 	DdcCustomers_BucketUpdated        []EventDdcCustomersBucketUpdated        //nolint:stylecheck,golint
 	DdcCustomers_BucketRemoved        []EventDdcCustomersBucketRemoved        //nolint:stylecheck,golint
 
+	DdcNodes_NodeCreated       []EventDdcNodesNodeCreated       //nolint:stylecheck,golint
+	DdcNodes_NodeDeleted       []EventDdcNodesNodeDeleted       //nolint:stylecheck,golint
+	DdcNodes_NodeParamsChanged []EventDdcNodesNodeParamsChanged //nolint:stylecheck,golint
+
 	DdcPayouts_BillingReportInitialized    []EventDdcPayoutsBillingReportInitialized    //nolint:stylecheck,golint
 	DdcPayouts_ChargingStarted             []EventDdcPayoutsChargingStarted             //nolint:stylecheck,golint
 	DdcPayouts_Charged                     []EventDdcPayoutsCharged                     //nolint:stylecheck,golint
@@ -35,4 +46,13 @@ type Events struct {
 	DdcPayouts_RewardingFinished           []EventDdcPayoutsRewardingFinished           //nolint:stylecheck,golint
 	DdcPayouts_BillingReportFinalized      []EventDdcPayoutsBillingReportFinalized      //nolint:stylecheck,golint
 	DdcPayouts_AuthorisedCaller            []EventDdcPayoutsAuthorisedCaller            //nolint:stylecheck,golint
+
+	DdcStaking_Bonded    []EventDdcStakingBonded    //nolint:stylecheck,golint
+	DdcStaking_Chilled   []EventDdcStakingChilled   //nolint:stylecheck,golint
+	DdcStaking_ChillSoon []EventDdcStakingChillSoon //nolint:stylecheck,golint
+	DdcStaking_Unbonded  []EventDdcStakingUnbonded  //nolint:stylecheck,golint
+	DdcStaking_Withdrawn []EventDdcStakingWithdrawn //nolint:stylecheck,golint
+	DdcStaking_Activated []EventDdcStakingActivated //nolint:stylecheck,golint
+	DdcStaking_LeaveSoon []EventDdcStakingLeaveSoon //nolint:stylecheck,golint
+	DdcStaking_Left      []EventDdcStakingLeft      //nolint:stylecheck,golint
 }

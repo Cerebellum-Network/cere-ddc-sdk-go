@@ -31,6 +31,27 @@ type StorageNodeProps struct {
 	Mode     StorageNodeMode
 }
 
+// Events
+type (
+	EventDdcNodesNodeCreated struct {
+		Phase      types.Phase
+		NodePubKey NodePubKey
+		Topics     []types.Hash
+	}
+
+	EventDdcNodesNodeDeleted struct {
+		Phase      types.Phase
+		NodePubKey NodePubKey
+		Topics     []types.Hash
+	}
+
+	EventDdcNodesNodeParamsChanged struct {
+		Phase      types.Phase
+		NodePubKey NodePubKey
+		Topics     []types.Hash
+	}
+)
+
 type DdcNodesApi interface {
 	GetStorageNodes(pubkey StorageNodePubKey) (types.Option[StorageNode], error)
 }
