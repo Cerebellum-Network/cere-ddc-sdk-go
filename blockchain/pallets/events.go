@@ -39,4 +39,13 @@ type Events struct {
 	DdcPayouts_RewardingFinished           []EventDdcPayoutsRewardingFinished           //nolint:stylecheck,golint
 	DdcPayouts_BillingReportFinalized      []EventDdcPayoutsBillingReportFinalized      //nolint:stylecheck,golint
 	DdcPayouts_AuthorisedCaller            []EventDdcPayoutsAuthorisedCaller            //nolint:stylecheck,golint
+
+	DdcStaking_Bonded    []EventDdcStakingBonded    //nolint:stylecheck,golint
+	DdcStaking_Chilled   []EventDdcStakingChilled   //nolint:stylecheck,golint
+	DdcStaking_ChillSoon []EventDdcStakingChillSoon //nolint:stylecheck,golint
+	DdcStaking_Unbonded  []EventDdcStakingUnbonded  //nolint:stylecheck,golint
+	DdcStaking_Withdrawn []EventDdcStakingWithdrawn //nolint:stylecheck,golint
+	DdcStaking_Activated []EventDdcStakingActivated //nolint:stylecheck,golint
+	DdcStaking_LeaveSoon []EventDdcStakingLeaveSoon //nolint:stylecheck,golint
+	DdcStaking_Left      []EventDdcStakingLeft      //nolint:stylecheck,golint
 }
