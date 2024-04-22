@@ -1,11 +1,13 @@
 package pallets
 
 import (
+	chainbridge "github.com/Cerebellum-Network/chainbridge-substrate-events"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
 type Events struct {
 	types.EventRecords
+	chainbridge.Events
 
 	DdcClusters_ClusterCreated      []EventDdcClustersClusterCreated      //nolint:stylecheck,golint
 	DdcClusters_ClusterNodeAdded    []EventDdcClustersClusterNodeAdded    //nolint:stylecheck,golint
