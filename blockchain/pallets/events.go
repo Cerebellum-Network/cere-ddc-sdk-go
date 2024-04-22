@@ -9,6 +9,11 @@ type Events struct {
 	types.EventRecords
 	chainbridge.Events
 
+	Contracts_Called                               []EventContractsCalled                               //nolint:stylecheck,golint
+	Contracts_DelegateCalled                       []EventContractsDelegateCalled                       //nolint:stylecheck,golint
+	Contracts_StorageDepositTransferredAndHeld     []EventContractsStorageDepositTransferredAndHeld     //nolint:stylecheck,golint
+	Contracts_StorageDepositTransferredAndReleased []EventContractsStorageDepositTransferredAndReleased //nolint:stylecheck,golint
+
 	DdcClusters_ClusterCreated      []EventDdcClustersClusterCreated      //nolint:stylecheck,golint
 	DdcClusters_ClusterNodeAdded    []EventDdcClustersClusterNodeAdded    //nolint:stylecheck,golint
 	DdcClusters_ClusterNodeRemoved  []EventDdcClustersClusterNodeRemoved  //nolint:stylecheck,golint
