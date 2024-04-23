@@ -166,7 +166,7 @@ func (c *Client) StartEventsListening(
 				events := &pallets.Events{}
 				err = types.EventRecordsRaw(change.StorageData).DecodeEventRecords(meta, events)
 				if err != nil {
-					c.errsListening <- fmt.Errorf("events decoder: %w", err)
+					// c.errsListening <- fmt.Errorf("events decoder: %w", err) // TODO
 					continue
 				}
 
