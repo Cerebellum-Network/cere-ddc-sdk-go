@@ -43,9 +43,12 @@ type Events struct {
 	DdcPayouts_ValidatorFeesCollected      []EventDdcPayoutsValidatorFeesCollected      //nolint:stylecheck,golint
 	DdcPayouts_RewardingStarted            []EventDdcPayoutsRewardingStarted            //nolint:stylecheck,golint
 	DdcPayouts_Rewarded                    []EventDdcPayoutsRewarded                    //nolint:stylecheck,golint
+	DdcPayouts_NotDistributedReward        []EventDdcPayoutsNotDistributedReward        //nolint:stylecheck,golint
+	DdcPayouts_NotDistributedOverallReward []EventDdcPayoutsNotDistributedOverallReward //nolint:stylecheck,golint
 	DdcPayouts_RewardingFinished           []EventDdcPayoutsRewardingFinished           //nolint:stylecheck,golint
 	DdcPayouts_BillingReportFinalized      []EventDdcPayoutsBillingReportFinalized      //nolint:stylecheck,golint
 	DdcPayouts_AuthorisedCaller            []EventDdcPayoutsAuthorisedCaller            //nolint:stylecheck,golint
+	DdcPayouts_ChargeError                 []EventDdcPayoutsChargeError                 //nolint:stylecheck,golint
 
 	DdcStaking_Bonded    []EventDdcStakingBonded    //nolint:stylecheck,golint
 	DdcStaking_Chilled   []EventDdcStakingChilled   //nolint:stylecheck,golint
