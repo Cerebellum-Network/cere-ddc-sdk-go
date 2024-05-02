@@ -95,6 +95,7 @@ type (
 	EventDdcPayoutsBillingReportInitialized struct {
 		Phase     types.Phase
 		ClusterId ClusterId
+		Era       DdcEra
 		Topics    []types.Hash
 	}
 
@@ -116,13 +117,14 @@ type (
 	}
 
 	EventDdcPayoutsChargeFailed struct {
-		Phase      types.Phase
-		ClusterId  ClusterId
-		Era        DdcEra
-		BatchIndex BatchIndex
-		CustomerId types.AccountID
-		Amount     types.U128
-		Topics     []types.Hash
+		Phase            types.Phase
+		ClusterId        ClusterId
+		Era              DdcEra
+		BatchIndex       BatchIndex
+		CustomerId       types.AccountID
+		Charged          types.U128
+		ExpectedToCharge types.U128
+		Topics           []types.Hash
 	}
 
 	EventDdcPayoutsIndebted struct {
@@ -172,19 +174,35 @@ type (
 		Topics    []types.Hash
 	}
 
-	EventDdcPayouts struct {
-		Phase     types.Phase
-		ClusterId ClusterId
-		Topics    []types.Hash
+	EventDdcPayoutsRewarded struct {
+		Phase            types.Phase
+		ClusterId        ClusterId
+		Era              DdcEra
+		BatchIndex       BatchIndex
+		NodeProviderId   types.AccountID
+		Rewarded         types.U128
+		ExpectedToReward types.U128
+		Topics           []types.Hash
 	}
 
-	EventDdcPayoutsRewarded struct {
-		Phase          types.Phase
-		ClusterId      ClusterId
-		Era            DdcEra
-		NodeProviderId types.AccountID
-		Amount         types.U128
-		Topics         []types.Hash
+	EventDdcPayoutsNotDistributedReward struct {
+		Phase             types.Phase
+		ClusterId         ClusterId
+		Era               DdcEra
+		BatchIndex        BatchIndex
+		NodeProviderId    types.AccountID
+		ExpectedReward    types.U128
+		DistributedReward types.U128
+		Topics            []types.Hash
+	}
+
+	EventDdcPayoutsNotDistributedOverallReward struct {
+		Phase                  types.Phase
+		ClusterId              ClusterId
+		Era                    DdcEra
+		ExpectedReward         types.U128
+		TotalDistributedReward types.U128
+		Topics                 []types.Hash
 	}
 
 	EventDdcPayoutsRewardingFinished struct {
@@ -205,6 +223,17 @@ type (
 		Phase            types.Phase
 		AuthorisedCaller types.AccountID
 		Topics           []types.Hash
+	}
+
+	EventDdcPayoutsChargeError struct {
+		Phase      types.Phase
+		ClusterId  ClusterId
+		Era        DdcEra
+		BatchIndex BatchIndex
+		CustomerId types.AccountID
+		Amount     types.U128
+		Error      types.DispatchError
+		Topics     []types.Hash
 	}
 )
 
