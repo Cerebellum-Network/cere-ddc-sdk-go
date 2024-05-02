@@ -172,12 +172,6 @@ type (
 		Topics    []types.Hash
 	}
 
-	EventDdcPayouts struct {
-		Phase     types.Phase
-		ClusterId ClusterId
-		Topics    []types.Hash
-	}
-
 	EventDdcPayoutsRewarded struct {
 		Phase          types.Phase
 		ClusterId      ClusterId
