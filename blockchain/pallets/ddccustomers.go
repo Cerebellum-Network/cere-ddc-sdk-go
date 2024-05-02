@@ -29,28 +29,29 @@ type UnlockChunk struct {
 // Events
 type (
 	EventDdcCustomersDeposited struct {
-		Phase  types.Phase
-		Owner  types.AccountID
-		Amount types.U128
-		Topics []types.Hash
+		Phase   types.Phase
+		OwnerId types.AccountID
+		Amount  types.U128
+		Topics  []types.Hash
 	}
 	EventDdcCustomersInitialDepositUnlock struct {
-		Phase  types.Phase
-		Owner  types.AccountID
-		Amount types.U128
-		Topics []types.Hash
+		Phase   types.Phase
+		OwnerId types.AccountID
+		Amount  types.U128
+		Topics  []types.Hash
 	}
 	EventDdcCustomersWithdrawn struct {
-		Phase  types.Phase
-		Owner  types.AccountID
-		Amount types.U128
-		Topics []types.Hash
+		Phase   types.Phase
+		OwnerId types.AccountID
+		Amount  types.U128
+		Topics  []types.Hash
 	}
 	EventDdcCustomersCharged struct {
-		Phase  types.Phase
-		Owner  types.AccountID
-		Amount types.U128
-		Topics []types.Hash
+		Phase            types.Phase
+		OwnerId          types.AccountID
+		Charged          types.U128
+		ExpectedToCharge types.U128
+		Topics           []types.Hash
 	}
 	EventDdcCustomersBucketCreated struct {
 		Phase    types.Phase
