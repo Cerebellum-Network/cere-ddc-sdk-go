@@ -158,6 +158,12 @@ func (c *Client) StartEventsListening(
 				continue
 			}
 
+			meta, err := c.RPC.State.GetMetadata(set.Block)
+			if err != nil {
+				c.errsListening <- fmt.Errorf("get metadata: %w", err)
+				return
+			}
+
 			for _, change := range set.Changes {
 				if !codec.Eq(change.StorageKey, key) || !change.HasStorageData {
 					continue
