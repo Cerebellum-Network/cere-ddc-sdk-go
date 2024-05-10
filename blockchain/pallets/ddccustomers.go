@@ -26,50 +26,6 @@ type UnlockChunk struct {
 	Block types.BlockNumber
 }
 
-// Events
-type (
-	EventDdcCustomersDeposited struct {
-		Phase   types.Phase
-		OwnerId types.AccountID
-		Amount  types.U128
-		Topics  []types.Hash
-	}
-	EventDdcCustomersInitialDepositUnlock struct {
-		Phase   types.Phase
-		OwnerId types.AccountID
-		Amount  types.U128
-		Topics  []types.Hash
-	}
-	EventDdcCustomersWithdrawn struct {
-		Phase   types.Phase
-		OwnerId types.AccountID
-		Amount  types.U128
-		Topics  []types.Hash
-	}
-	EventDdcCustomersCharged struct {
-		Phase            types.Phase
-		OwnerId          types.AccountID
-		Charged          types.U128
-		ExpectedToCharge types.U128
-		Topics           []types.Hash
-	}
-	EventDdcCustomersBucketCreated struct {
-		Phase    types.Phase
-		BucketId BucketId
-		Topics   []types.Hash
-	}
-	EventDdcCustomersBucketUpdated struct {
-		Phase    types.Phase
-		BucketId BucketId
-		Topics   []types.Hash
-	}
-	EventDdcCustomersBucketRemoved struct {
-		Phase    types.Phase
-		BucketId BucketId
-		Topics   []types.Hash
-	}
-)
-
 type DdcCustomersApi interface {
 	GetBuckets(bucketId BucketId) (types.Option[Bucket], error)
 	GetBucketsCount() (types.U64, error)
