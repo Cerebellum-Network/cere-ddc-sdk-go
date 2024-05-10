@@ -58,7 +58,7 @@ func NewClient(url string) (*Client, error) {
 // invoked after all registered events listeners are already invoked.
 func (c *Client) StartEventsListening(
 	begin types.BlockNumber,
-	afterBlock func(blockNumber types.BlockNumber, blockHash types.Hash),
+	after func(blockNumber types.BlockNumber, blockHash types.Hash),
 ) (context.CancelFunc, <-chan error, error) {
 	if !atomic.CompareAndSwapUint32(&c.isListening, 0, 1) {
 		return c.cancelListening, c.errsListening, nil
@@ -193,8 +193,8 @@ func (c *Client) StartEventsListening(
 				(*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
 			}
 
-			if afterBlock != nil {
-				afterBlock(blockEvents.Number, blockEvents.Hash)
+			if after != nil {
+				after(blockEvents.Number, blockEvents.Hash)
 			}
 		}
 	}(eventsC)
