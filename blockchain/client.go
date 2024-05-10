@@ -18,8 +18,9 @@ type EventsListener func(events *pallets.Events, blockNumber types.BlockNumber, 
 type Client struct {
 	*gsrpc.SubstrateAPI
 
-	eventsListeners map[*EventsListener]struct{}
 	mu              sync.Mutex
+	eventsListeners map[*EventsListener]struct{}
+
 	isListening     uint32
 	cancelListening func()
 	errsListening   chan error
