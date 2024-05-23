@@ -38,18 +38,14 @@ func NewClient(url string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta, err := substrateApi.RPC.State.GetMetadataLatest()
-	if err != nil {
-		return nil, err
-	}
 
 	return &Client{
 		SubstrateAPI:    substrateApi,
 		eventsListeners: make(map[*EventsListener]struct{}),
 		DdcClusters:     pallets.NewDdcClustersApi(substrateApi),
-		DdcCustomers:    pallets.NewDdcCustomersApi(substrateApi, meta),
-		DdcNodes:        pallets.NewDdcNodesApi(substrateApi, meta),
-		DdcPayouts:      pallets.NewDdcPayoutsApi(substrateApi, meta),
+		DdcCustomers:    pallets.NewDdcCustomersApi(substrateApi),
+		DdcNodes:        pallets.NewDdcNodesApi(substrateApi),
+		DdcPayouts:      pallets.NewDdcPayoutsApi(substrateApi),
 	}, nil
 }
 

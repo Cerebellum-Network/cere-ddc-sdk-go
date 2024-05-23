@@ -37,25 +37,26 @@ type DdcNodesApi interface {
 
 type ddcNodesApi struct {
 	substrateApi *gsrpc.SubstrateAPI
-	meta         *types.Metadata
 }
 
-func NewDdcNodesApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcNodesApi {
-	return &ddcNodesApi{
-		substrateApi,
-		meta,
-	}
+func NewDdcNodesApi(substrateApi *gsrpc.SubstrateAPI) DdcNodesApi {
+	return &ddcNodesApi{substrateApi}
 }
 
 func (api *ddcNodesApi) GetStorageNodes(pubkey StorageNodePubKey) (types.Option[StorageNode], error) {
 	maybeNode := types.NewEmptyOption[StorageNode]()
+
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeNode, err
+	}
 
 	bytes, err := codec.Encode(pubkey)
 	if err != nil {
 		return maybeNode, err
 	}
 
-	key, err := types.CreateStorageKey(api.meta, "DdcNodes", "StorageNodes", bytes)
+	key, err := types.CreateStorageKey(meta, "DdcNodes", "StorageNodes", bytes)
 	if err != nil {
 		return maybeNode, err
 	}

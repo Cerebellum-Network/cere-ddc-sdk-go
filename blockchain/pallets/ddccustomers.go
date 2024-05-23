@@ -34,25 +34,26 @@ type DdcCustomersApi interface {
 
 type ddcCustomersApi struct {
 	substrateApi *gsrpc.SubstrateAPI
-	meta         *types.Metadata
 }
 
-func NewDdcCustomersApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcCustomersApi {
-	return &ddcCustomersApi{
-		substrateApi,
-		meta,
-	}
+func NewDdcCustomersApi(substrateApi *gsrpc.SubstrateAPI) DdcCustomersApi {
+	return &ddcCustomersApi{substrateApi}
 }
 
 func (api *ddcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket], error) {
 	maybeBucket := types.NewEmptyOption[Bucket]()
+
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeBucket, err
+	}
 
 	bytes, err := codec.Encode(bucketId)
 	if err != nil {
 		return maybeBucket, err
 	}
 
-	key, err := types.CreateStorageKey(api.meta, "DdcCustomers", "Buckets", bytes)
+	key, err := types.CreateStorageKey(meta, "DdcCustomers", "Buckets", bytes)
 	if err != nil {
 		return maybeBucket, err
 	}
@@ -69,7 +70,12 @@ func (api *ddcCustomersApi) GetBuckets(bucketId BucketId) (types.Option[Bucket],
 }
 
 func (api *ddcCustomersApi) GetBucketsCount() (types.U64, error) {
-	key, err := types.CreateStorageKey(api.meta, "DdcCustomers", "BucketsCount")
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return 0, err
+	}
+
+	key, err := types.CreateStorageKey(meta, "DdcCustomers", "BucketsCount")
 	if err != nil {
 		return 0, err
 	}
@@ -89,12 +95,17 @@ func (api *ddcCustomersApi) GetBucketsCount() (types.U64, error) {
 func (api *ddcCustomersApi) GetLedger(owner types.AccountID) (types.Option[AccountsLedger], error) {
 	maybeLedger := types.NewEmptyOption[AccountsLedger]()
 
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeLedger, err
+	}
+
 	bytes, err := codec.Encode(owner)
 	if err != nil {
 		return maybeLedger, err
 	}
 
-	key, err := types.CreateStorageKey(api.meta, "DdcCustomers", "Ledger", bytes)
+	key, err := types.CreateStorageKey(meta, "DdcCustomers", "Ledger", bytes)
 	if err != nil {
 		return maybeLedger, err
 	}
