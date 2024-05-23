@@ -98,18 +98,19 @@ type DdcPayoutsApi interface {
 
 type ddcPayoutsApi struct {
 	substrateApi *gsrpc.SubstrateAPI
-	meta         *types.Metadata
 }
 
-func NewDdcPayoutsApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcPayoutsApi {
-	return &ddcPayoutsApi{
-		substrateApi,
-		meta,
-	}
+func NewDdcPayoutsApi(substrateApi *gsrpc.SubstrateAPI) DdcPayoutsApi {
+	return &ddcPayoutsApi{substrateApi}
 }
 
 func (api *ddcPayoutsApi) GetActiveBillingReports(cluster ClusterId, era DdcEra) (types.Option[BillingReport], error) {
 	maybeV := types.NewEmptyOption[BillingReport]()
+
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeV, err
+	}
 
 	bytesCluster, err := codec.Encode(cluster)
 	if err != nil {
@@ -121,7 +122,7 @@ func (api *ddcPayoutsApi) GetActiveBillingReports(cluster ClusterId, era DdcEra)
 		return maybeV, err
 	}
 
-	key, err := types.CreateStorageKey(api.meta, "DdcPayouts", "DebtorCustomers", bytesCluster, bytesEra)
+	key, err := types.CreateStorageKey(meta, "DdcPayouts", "DebtorCustomers", bytesCluster, bytesEra)
 	if err != nil {
 		return maybeV, err
 	}
@@ -140,7 +141,12 @@ func (api *ddcPayoutsApi) GetActiveBillingReports(cluster ClusterId, era DdcEra)
 func (api *ddcPayoutsApi) GetAuthorisedCaller() (types.Option[types.AccountID], error) {
 	maybeV := types.NewEmptyOption[types.AccountID]()
 
-	key, err := types.CreateStorageKey(api.meta, "DdcPayouts", "AuthorisedCaller")
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeV, err
+	}
+
+	key, err := types.CreateStorageKey(meta, "DdcPayouts", "AuthorisedCaller")
 	if err != nil {
 		return maybeV, err
 	}
@@ -159,6 +165,11 @@ func (api *ddcPayoutsApi) GetAuthorisedCaller() (types.Option[types.AccountID], 
 func (api *ddcPayoutsApi) GetDebtorCustomers(cluster ClusterId, account types.AccountID) (types.Option[types.U128], error) {
 	maybeV := types.NewEmptyOption[types.U128]()
 
+	meta, err := api.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		return maybeV, err
+	}
+
 	bytesCluster, err := codec.Encode(cluster)
 	if err != nil {
 		return maybeV, err
@@ -169,7 +180,7 @@ func (api *ddcPayoutsApi) GetDebtorCustomers(cluster ClusterId, account types.Ac
 		return maybeV, err
 	}
 
-	key, err := types.CreateStorageKey(api.meta, "DdcPayouts", "DebtorCustomers", bytesCluster, bytesAccount)
+	key, err := types.CreateStorageKey(meta, "DdcPayouts", "DebtorCustomers", bytesCluster, bytesAccount)
 	if err != nil {
 		return maybeV, err
 	}
