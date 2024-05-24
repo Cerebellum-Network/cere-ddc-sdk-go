@@ -26,15 +26,16 @@ type ClusterProps struct {
 
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
+	GetClusterInfo(clusterId ClusterId) (types.Option[Cluster], error)
 }
 
 type ddcClustersApi struct {
-	substrateApi *gsrpc.SubstrateAPI
-
+	substrateApi     *gsrpc.SubstrateAPI
+	meta             *types.Metadata
 	clustersNodesKey []byte
 }
 
-func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
+func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI, meta *types.Metadata) DdcClustersApi {
 	clustersNodesKey := append(
 		xxhash.New128([]byte("DdcClusters")).Sum(nil),
 		xxhash.New128([]byte("ClustersNodes")).Sum(nil)...,
@@ -43,6 +44,7 @@ func NewDdcClustersApi(substrateApi *gsrpc.SubstrateAPI) DdcClustersApi {
 	return &ddcClustersApi{
 		substrateApi:     substrateApi,
 		clustersNodesKey: clustersNodesKey,
+		meta:             meta,
 	}
 }
 
@@ -86,4 +88,28 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	}
 
 	return nodesKeys, nil
+}
+
+func (api *ddcClustersApi) GetClusterInfo(clusterId ClusterId) (types.Option[Cluster], error) {
+	mayBeCluster := types.NewEmptyOption[Cluster]()
+
+	bytes, err := codec.Encode(clusterId)
+	if err != nil {
+		return mayBeCluster, err
+	}
+
+	key, err := types.CreateStorageKey(api.meta, "DdcClusters", "Clusters", bytes)
+	if err != nil {
+		return mayBeCluster, err
+	}
+
+	var cluster Cluster
+	ok, err := api.substrateApi.RPC.State.GetStorageLatest(key, &cluster)
+	if !ok || err != nil {
+		return mayBeCluster, err
+	}
+
+	mayBeCluster.SetSome(cluster)
+
+	return mayBeCluster, nil
 }

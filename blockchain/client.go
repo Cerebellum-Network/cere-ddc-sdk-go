@@ -46,7 +46,7 @@ func NewClient(url string) (*Client, error) {
 	return &Client{
 		SubstrateAPI:    substrateApi,
 		eventsListeners: make(map[*EventsListener]struct{}),
-		DdcClusters:     pallets.NewDdcClustersApi(substrateApi),
+		DdcClusters:     pallets.NewDdcClustersApi(substrateApi, meta),
 		DdcCustomers:    pallets.NewDdcCustomersApi(substrateApi, meta),
 		DdcNodes:        pallets.NewDdcNodesApi(substrateApi, meta),
 		DdcPayouts:      pallets.NewDdcPayoutsApi(substrateApi, meta),
