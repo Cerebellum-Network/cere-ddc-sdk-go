@@ -26,7 +26,7 @@ type ClusterProps struct {
 
 type DdcClustersApi interface {
 	GetClustersNodes(clusterId ClusterId) ([]NodePubKey, error)
-	GetClusterInfo(clusterId ClusterId) (types.Option[Cluster], error)
+	GetClusters(clusterId ClusterId) (types.Option[Cluster], error)
 }
 
 type ddcClustersApi struct {
@@ -90,7 +90,7 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 	return nodesKeys, nil
 }
 
-func (api *ddcClustersApi) GetClusterInfo(clusterId ClusterId) (types.Option[Cluster], error) {
+func (api *ddcClustersApi) GetClusters(clusterId ClusterId) (types.Option[Cluster], error) {
 	maybeCluster := types.NewEmptyOption[Cluster]()
 
 	bytes, err := codec.Encode(clusterId)
