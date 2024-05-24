@@ -91,25 +91,25 @@ func (api *ddcClustersApi) GetClustersNodes(clusterId ClusterId) ([]NodePubKey, 
 }
 
 func (api *ddcClustersApi) GetClusterInfo(clusterId ClusterId) (types.Option[Cluster], error) {
-	mayBeCluster := types.NewEmptyOption[Cluster]()
+	maybeCluster := types.NewEmptyOption[Cluster]()
 
 	bytes, err := codec.Encode(clusterId)
 	if err != nil {
-		return mayBeCluster, err
+		return maybeCluster, err
 	}
 
 	key, err := types.CreateStorageKey(api.meta, "DdcClusters", "Clusters", bytes)
 	if err != nil {
-		return mayBeCluster, err
+		return maybeCluster, err
 	}
 
 	var cluster Cluster
 	ok, err := api.substrateApi.RPC.State.GetStorageLatest(key, &cluster)
 	if !ok || err != nil {
-		return mayBeCluster, err
+		return maybeCluster, err
 	}
 
-	mayBeCluster.SetSome(cluster)
+	maybeCluster.SetSome(cluster)
 
-	return mayBeCluster, nil
+	return maybeCluster, nil
 }
