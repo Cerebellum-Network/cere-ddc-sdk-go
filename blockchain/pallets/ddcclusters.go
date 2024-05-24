@@ -15,8 +15,6 @@ type Cluster struct {
 	Props     ClusterProps
 }
 
-type ClustersNodes map[ClusterId][]NodePubKey
-
 type ClusterProps struct {
 	NodeProviderAuthContract types.OptionAccountID
 	ErasureCodingRequired    types.U32
