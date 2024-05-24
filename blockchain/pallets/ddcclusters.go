@@ -13,6 +13,7 @@ type Cluster struct {
 	ManagerId types.AccountID
 	ReserveId types.AccountID
 	Props     ClusterProps
+	Status    ClusterStatus
 }
 
 type ClusterProps struct {
