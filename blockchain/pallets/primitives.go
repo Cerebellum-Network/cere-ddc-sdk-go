@@ -9,6 +9,7 @@ package pallets
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -114,6 +115,56 @@ func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+type ClusterStatus struct {
+	IsUnbonded  bool
+	IsBonded    bool
+	IsActivated bool
+	IsUnbonding bool
+}
+
+func (m *ClusterStatus) Decode(decoder scale.Decoder) error {
+	b, err := decoder.ReadOneByte()
+	if err != nil {
+		return err
+	}
+
+	i := int(b)
+
+	v := reflect.ValueOf(m)
+	if i > v.NumField() {
+		return ErrUnknownVariant
+	}
+
+	v.Field(i).SetBool(true)
+
+	return nil
+}
+
+func (m ClusterStatus) Encode(encoder scale.Encoder) error {
+	var err1, err2 error
+	v := reflect.ValueOf(m)
+
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Bool() {
+			err1 = encoder.PushByte(byte(i))
+			err2 = encoder.Encode(i + 1) // values are defined from 1
+			break
+		}
+		if i == v.NumField()-1 {
+			return ErrUnknownVariant
+		}
+	}
+
+	if err1 != nil {
+		return err1
+	}
+	if err2 != nil {
+		return err2
 	}
 
 	return nil
