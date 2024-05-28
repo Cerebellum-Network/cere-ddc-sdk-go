@@ -2,11 +2,16 @@ package blockchain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/exec"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/parser"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/retriever"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry/state"
@@ -14,6 +19,8 @@ import (
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
+
+var errCancelled = errors.New("cancelled")
 
 type EventsListener func(events []*parser.Event, blockNumber types.BlockNumber, blockHash types.Hash)
 
@@ -71,7 +78,14 @@ func (c *Client) StartEventsListening(
 		return nil, nil, fmt.Errorf("subscribe new heads: %w", err)
 	}
 
-	retriever, err := retriever.NewDefaultEventRetriever(state.NewEventProvider(c.RPC.State), c.RPC.State)
+	retriever, err := retriever.NewEventRetriever(
+		parser.NewEventParser(),
+		state.NewEventProvider(c.RPC.State),
+		c.RPC.State,
+		registry.NewFactory(),
+		exec.NewRetryableExecutor[*types.StorageDataRaw](exec.WithMaxRetryCount(0)),
+		exec.NewRetryableExecutor[[]*parser.Event](exec.WithMaxRetryCount(0)),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("event retriever: %w", err)
 	}
@@ -93,19 +107,26 @@ func (c *Client) StartEventsListening(
 		firstLiveHeader := <-live // the first live header is the last historical header
 
 		for block := beginBlock; block < firstLiveHeader.Number; {
-			if cancelled.Load().(bool) {
-				return
-			}
+			var header *types.Header
+			err := retryUntilCancelled(func() error {
+				blockHash, err := c.RPC.Chain.GetBlockHash(uint64(block))
+				if err != nil {
+					c.errsListening <- fmt.Errorf("get historical block hash: %w", err)
+					return err
+				}
 
-			blockHash, err := c.RPC.Chain.GetBlockHash(uint64(block))
-			if err != nil {
-				c.errsListening <- fmt.Errorf("get historical block hash: %w", err)
-				continue
-			}
+				header, err = c.RPC.Chain.GetHeader(blockHash)
+				if err != nil {
+					c.errsListening <- fmt.Errorf("get historical header: %w", err)
+					return err
+				}
 
-			header, err := c.RPC.Chain.GetHeader(blockHash)
+				return nil
+			}, &cancelled)
 			if err != nil {
-				c.errsListening <- fmt.Errorf("get historical header: %w", err)
+				if err == errCancelled {
+					return
+				}
 				continue
 			}
 
@@ -146,26 +167,25 @@ func (c *Client) StartEventsListening(
 			}
 
 			var hash types.Hash
-			var err error
 			var events []*parser.Event
-			for {
-				if cancelled.Load().(bool) {
-					return
-				}
-
+			err := retryUntilCancelled(func() error {
+				var err error
 				hash, err = c.RPC.Chain.GetBlockHash(uint64(header.Number))
 				if err != nil {
 					c.errsListening <- fmt.Errorf("get block hash: %w", err)
-					continue
+					return err
 				}
 
 				events, err = retriever.GetEvents(hash)
 				if err != nil {
 					c.errsListening <- fmt.Errorf("events retriever: %w", err)
-					continue
+					return err
 				}
 
-				break
+				return nil
+			}, &cancelled)
+			if err != nil {
+				continue
 			}
 
 			eventsC <- blockEvents{
@@ -223,4 +243,21 @@ type blockEvents struct {
 	Events []*parser.Event
 	Hash   types.Hash
 	Number types.BlockNumber
+}
+
+func retryUntilCancelled(f func() error, cancelled *atomic.Value) error {
+	expbackoff := backoff.NewExponentialBackOff()
+	expbackoff.MaxElapsedTime = 0 // never stop
+	expbackoff.InitialInterval = 10 * time.Second
+	expbackoff.Multiplier = 2
+	expbackoff.MaxInterval = 10 * time.Minute
+
+	ff := func() error {
+		if cancelled.Load().(bool) {
+			return backoff.Permanent(errCancelled)
+		}
+		return f()
+	}
+
+	return backoff.Retry(ff, expbackoff)
 }
