@@ -1,5 +1,5 @@
-github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240515122033-b0cdeef29bf9 h1:n+bvpp5mMjQ4U6qGYXyxirDfIyc+Qqc+I9zVWCzbD4k=
-github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240515122033-b0cdeef29bf9/go.mod h1:k61SBXqYmnZO4frAJyH3iuqjolYrYsq79r8EstmklDY=
+github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240528103741-c0b9d7116ed4 h1:JN3HK887OsgrpAuinStxbsVHpdiVFgAFdizDnRjE1qU=
+github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240528103741-c0b9d7116ed4/go.mod h1:k61SBXqYmnZO4frAJyH3iuqjolYrYsq79r8EstmklDY=
 github.com/ChainSafe/go-schnorrkel v1.1.0 h1:rZ6EU+CZFCjB4sHUE1jIu8VDoB/wRKZxoe1tkcO71Wk=
 github.com/ChainSafe/go-schnorrkel v1.1.0/go.mod h1:ABkENxiP+cvjFiByMIZ9LYbRoNNLeBLiakC1XeTFxfE=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
