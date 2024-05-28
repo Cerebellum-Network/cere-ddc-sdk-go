@@ -123,12 +123,12 @@ func (c *Client) StartEventsListening(
 		defer wg.Done()
 		defer close(headersC)
 
-		for set := range hist {
-			headersC <- set
+		for header := range hist {
+			headersC <- header
 		}
 
-		for set := range live {
-			headersC <- set
+		for header := range live {
+			headersC <- header
 		}
 	}(histHeadersC, liveHeadersC, headersC)
 
