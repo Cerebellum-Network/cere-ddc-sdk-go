@@ -92,25 +92,26 @@ func (c *Client) StartEventsListening(
 
 		firstLiveHeader := <-live // the first live header is the last historical header
 
-		for block := beginBlock; block < firstLiveHeader.Number; block++ {
+		for block := beginBlock; block < firstLiveHeader.Number; {
+			if cancelled.Load().(bool) {
+				return
+			}
+
 			blockHash, err := c.RPC.Chain.GetBlockHash(uint64(block))
 			if err != nil {
 				c.errsListening <- fmt.Errorf("get historical block hash: %w", err)
-				return
+				continue
 			}
 
 			header, err := c.RPC.Chain.GetHeader(blockHash)
 			if err != nil {
 				c.errsListening <- fmt.Errorf("get historical header: %w", err)
-				return
+				continue
 			}
 
 			hist <- *header
 
-			// Graceful stop finishes with the block before exiting.
-			if cancelled.Load().(bool) {
-				return
-			}
+			block++
 		}
 
 		hist <- firstLiveHeader
@@ -144,16 +145,27 @@ func (c *Client) StartEventsListening(
 				continue
 			}
 
-			hash, err := c.RPC.Chain.GetBlockHash(uint64(header.Number))
-			if err != nil {
-				c.errsListening <- fmt.Errorf("get block hash: %w", err)
-				return
-			}
+			var hash types.Hash
+			var err error
+			var events []*parser.Event
+			for {
+				if cancelled.Load().(bool) {
+					return
+				}
 
-			events, err := retriever.GetEvents(hash)
-			if err != nil {
-				c.errsListening <- fmt.Errorf("events retriever: %w", err)
-				continue
+				hash, err = c.RPC.Chain.GetBlockHash(uint64(header.Number))
+				if err != nil {
+					c.errsListening <- fmt.Errorf("get block hash: %w", err)
+					continue
+				}
+
+				events, err = retriever.GetEvents(hash)
+				if err != nil {
+					c.errsListening <- fmt.Errorf("events retriever: %w", err)
+					continue
+				}
+
+				break
 			}
 
 			eventsC <- blockEvents{
