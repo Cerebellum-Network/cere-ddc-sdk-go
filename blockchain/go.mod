@@ -2,7 +2,10 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/blockchain
 
 go 1.18
 
-require github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
+require (
+	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
+)
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.1.0 // indirect
