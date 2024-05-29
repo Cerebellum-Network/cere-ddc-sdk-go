@@ -197,7 +197,9 @@ func (c *Client) StartEventsListening(
 	}(headersC, eventsC)
 
 	// Invoke listeners.
+	wg.Add(1)
 	go func(eventsC <-chan blockEvents) {
+		defer wg.Done()
 		for blockEvents := range eventsC {
 			for callback := range c.eventsListeners {
 				(*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
