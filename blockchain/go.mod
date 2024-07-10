@@ -33,4 +33,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1 => github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240528103741-c0b9d7116ed4
+replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1 => github.com/Cerebellum-Network/cere-substrate-rpc-client-go/v4 v4.0.0-20240710072231-f2363a34c4d5
