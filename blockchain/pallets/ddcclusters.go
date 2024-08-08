@@ -9,11 +9,12 @@ import (
 )
 
 type Cluster struct {
-	ClusterId ClusterId
-	ManagerId types.AccountID
-	ReserveId types.AccountID
-	Props     ClusterProps
-	Status    ClusterStatus
+	ClusterId          ClusterId
+	ManagerId          types.AccountID
+	ReserveId          types.AccountID
+	Props              ClusterProps
+	Status             ClusterStatus
+	LastValidatedEraId DdcEra
 }
 
 type ClusterProps struct {

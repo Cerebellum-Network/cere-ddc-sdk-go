@@ -79,6 +79,7 @@ type StorageNodeMode struct {
 	IsFull    bool
 	IsStorage bool
 	IsCache   bool
+	IsDac     bool
 }
 
 func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
@@ -94,6 +95,8 @@ func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
 		m.IsStorage = true
 	} else if b == 3 {
 		m.IsCache = true
+	} else if b == 4 {
+		m.IsDac = true
 	} else {
 		return ErrUnknownVariant
 	}
@@ -109,6 +112,8 @@ func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
 		err = encoder.PushByte(2)
 	} else if m.IsCache {
 		err = encoder.PushByte(3)
+	} else if m.IsDac {
+		err = encoder.PushByte(4)
 	} else {
 		return ErrUnknownVariant
 	}
@@ -168,4 +173,11 @@ func (m ClusterStatus) Encode(encoder scale.Encoder) error {
 	}
 
 	return nil
+}
+
+type CustomerUsage struct {
+	TransferredBytes types.U64
+	StoredBytes      types.I64
+	NumberOfPuts     types.U64
+	NumberOfGets     types.U64
 }

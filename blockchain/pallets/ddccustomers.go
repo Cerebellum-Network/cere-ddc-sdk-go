@@ -14,11 +14,12 @@ type AccountsLedger struct {
 }
 
 type Bucket struct {
-	BucketId  BucketId
-	OwnerId   types.AccountID
-	ClusterId ClusterId
-	IsPublic  types.Bool
-	IsRemoved types.Bool
+	BucketId            BucketId
+	OwnerId             types.AccountID
+	ClusterId           ClusterId
+	IsPublic            types.Bool
+	IsRemoved           types.Bool
+	TotalCustomersUsage types.Option[CustomerUsage]
 }
 
 type UnlockChunk struct {
