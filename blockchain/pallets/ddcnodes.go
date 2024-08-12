@@ -16,6 +16,7 @@ type StorageNode struct {
 	ProviderId types.AccountID
 	ClusterId  types.Option[ClusterId]
 	Props      StorageNodeProps
+	TotalUsage types.Option[NodeUsage]
 }
 
 // TODO: `Host` is not `[MaxHostLen]types.U8` because the original `BoundedVec<_, MaxHostLen>`
