@@ -181,3 +181,10 @@ type CustomerUsage struct {
 	NumberOfPuts     types.U64
 	NumberOfGets     types.U64
 }
+
+type NodeUsage struct {
+	TransferredBytes types.U64
+	StoredBytes      types.I64
+	NumberOfPuts     types.U64
+	NumberOfGets     types.U64
+}
