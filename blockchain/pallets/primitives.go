@@ -140,7 +140,7 @@ func (m *ClusterStatus) Decode(decoder scale.Decoder) error {
 
 	i := int(b)
 
-	v := reflect.ValueOf(m)
+	v := reflect.ValueOf(m).Elem()
 	if i > v.NumField() {
 		return ErrUnknownVariant
 	}
@@ -157,7 +157,7 @@ func (m ClusterStatus) Encode(encoder scale.Encoder) error {
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).Bool() {
 			err1 = encoder.PushByte(byte(i))
-			err2 = encoder.Encode(i + 1) // values are defined from 1
+			err2 = encoder.Encode(i)
 			break
 		}
 		if i == v.NumField()-1 {
