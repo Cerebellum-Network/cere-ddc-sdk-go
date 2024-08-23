@@ -140,7 +140,7 @@ func (m *ClusterStatus) Decode(decoder scale.Decoder) error {
 
 	i := int(b)
 
-	v := reflect.ValueOf(m)
+	v := reflect.ValueOf(m).Elem()
 	if i > v.NumField() {
 		return ErrUnknownVariant
 	}
