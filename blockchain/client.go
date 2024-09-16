@@ -17,6 +17,9 @@ import (
 	"github.com/cerebellum-network/cere-ddc-sdk-go/blockchain/pallets"
 )
 
+// Stop events listening when no new events received for this time.
+const EventsListeningTimeout = 60 * time.Second
+
 type EventsListener func(events []*parser.Event, blockNumber types.BlockNumber, blockHash types.Hash) error
 
 type Client struct {
@@ -202,7 +205,7 @@ func (c *Client) ListenEvents(
 		// Watchdog for the websocket. It silently hangs sometimes with no error nor new events. In
 		// all Cere blockchain runtimes we have `pallet-timestamp` which makes at least one event
 		// (System.ExtrinsicSuccess for the timestamp.set extrinsic) per block.
-		case <-time.After(60 * time.Second):
+		case <-time.After(EventsListeningTimeout):
 			return context.DeadlineExceeded
 		}
 
