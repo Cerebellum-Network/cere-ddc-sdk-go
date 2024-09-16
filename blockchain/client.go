@@ -3,6 +3,7 @@ package blockchain
 import (
 	"context"
 	"sync"
+	"time"
 
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/registry"
@@ -183,7 +184,8 @@ func (c *Client) ListenEvents(
 
 	// Invoke listeners.
 	g.Go(func() error {
-		for blockEvents := range eventsC {
+		select {
+		case blockEvents := <-eventsC:
 			for callback := range c.eventsListeners {
 				err := (*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
 				if err != nil {
@@ -197,6 +199,11 @@ func (c *Client) ListenEvents(
 					return err
 				}
 			}
+		// Watchdog for the websocket. It silently hangs sometimes with no error nor new events. In
+		// all Cere blockchain runtimes we have `pallet-timestamp` which makes at least one event
+		// (System.ExtrinsicSuccess for the timestamp.set extrinsic) per block.
+		case <-time.After(60 * time.Second):
+			return context.DeadlineExceeded
 		}
 
 		return ctx.Err()
