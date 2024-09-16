@@ -128,7 +128,7 @@ func (c *Client) ListenEvents(
 	})
 
 	// Sequence historical and live headers.
-	headersC := make(chan types.Header)
+	headersC := make(chan types.Header, 2)
 	g.Go(func() error {
 		defer close(headersC)
 
@@ -152,7 +152,7 @@ func (c *Client) ListenEvents(
 	})
 
 	// Retrieve events skipping blocks before 'begin'.
-	eventsC := make(chan blockEvents)
+	eventsC := make(chan blockEvents, 2)
 	g.Go(func() error {
 		defer close(eventsC)
 
