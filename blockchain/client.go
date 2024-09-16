@@ -187,29 +187,29 @@ func (c *Client) ListenEvents(
 
 	// Invoke listeners.
 	g.Go(func() error {
-		select {
-		case blockEvents := <-eventsC:
-			for callback := range c.eventsListeners {
-				err := (*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
-				if err != nil {
-					return err
+		for {
+			select {
+			case blockEvents := <-eventsC:
+				for callback := range c.eventsListeners {
+					err := (*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
+					if err != nil {
+						return err
+					}
 				}
-			}
 
-			if after != nil {
-				err := after(blockEvents.Number, blockEvents.Hash)
-				if err != nil {
-					return err
+				if after != nil {
+					err := after(blockEvents.Number, blockEvents.Hash)
+					if err != nil {
+						return err
+					}
 				}
+			// Watchdog for the websocket. It silently hangs sometimes with no error nor new events. In
+			// all Cere blockchain runtimes we have `pallet-timestamp` which makes at least one event
+			// (System.ExtrinsicSuccess for the timestamp.set extrinsic) per block.
+			case <-time.After(EventsListeningTimeout):
+				return context.DeadlineExceeded
 			}
-		// Watchdog for the websocket. It silently hangs sometimes with no error nor new events. In
-		// all Cere blockchain runtimes we have `pallet-timestamp` which makes at least one event
-		// (System.ExtrinsicSuccess for the timestamp.set extrinsic) per block.
-		case <-time.After(EventsListeningTimeout):
-			return context.DeadlineExceeded
 		}
-
-		return ctx.Err()
 	})
 
 	return g.Wait()
