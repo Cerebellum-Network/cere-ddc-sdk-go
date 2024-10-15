@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -21,6 +22,10 @@ import (
 const (
 	// EventsListeningTimeout Stop events listening when no new events received for this time.
 	EventsListeningTimeout = 60 * time.Second
+)
+
+var (
+	ErrHeaderChannelClosed = errors.New("header channel closed")
 )
 
 type EventsListener func(events []*parser.Event, blockNumber types.BlockNumber, blockHash types.Hash) error
@@ -222,7 +227,7 @@ func forwardHeaders(ctx context.Context, from <-chan types.Header, to chan types
 			return ctx.Err()
 		case header, ok := <-from:
 			if !ok {
-				return context.Canceled
+				return ErrHeaderChannelClosed
 			}
 
 			select {
@@ -240,7 +245,7 @@ func getFirstLiveHeader(ctx context.Context, c <-chan types.Header) (types.Heade
 		return types.Header{}, ctx.Err()
 	case firstLiveHeader, ok := <-c:
 		if !ok {
-			return types.Header{}, context.Canceled
+			return types.Header{}, ErrHeaderChannelClosed
 		}
 
 		return firstLiveHeader, nil
