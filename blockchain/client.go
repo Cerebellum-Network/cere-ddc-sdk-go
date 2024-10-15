@@ -93,7 +93,7 @@ func (c *Client) ListenEvents(
 
 		<-ctx.Done()
 
-		return nil
+		return ctx.Err()
 	})
 
 	// Query historical headers.
@@ -126,7 +126,7 @@ func (c *Client) ListenEvents(
 
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		case histHeadersC <- firstLiveHeader:
 		}
 
@@ -153,7 +153,7 @@ func (c *Client) ListenEvents(
 		for {
 			select {
 			case <-ctx.Done():
-				return nil
+				return ctx.Err()
 			case header := <-headersC:
 				if header.Number < begin {
 					continue
@@ -187,7 +187,7 @@ func (c *Client) ListenEvents(
 		for {
 			select {
 			case <-ctx.Done():
-				return nil
+				return ctx.Err()
 			case blockEvents := <-eventsC:
 				for callback := range c.eventsListeners {
 					err := (*callback)(blockEvents.Events, blockEvents.Number, blockEvents.Hash)
@@ -227,7 +227,7 @@ func forwardHeaders(ctx context.Context, from, to chan types.Header) error {
 
 			select {
 			case <-ctx.Done():
-				return nil
+				return ctx.Err()
 			case to <- header:
 			}
 		}
