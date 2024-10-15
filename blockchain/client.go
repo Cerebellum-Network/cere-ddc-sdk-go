@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// EventsListeningTimeout Stop events listening when no new events received for this time.
+	// EventsListeningTimeout stop events listening when no new events received for this time.
 	EventsListeningTimeout = 60 * time.Second
 )
 
