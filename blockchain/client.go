@@ -142,7 +142,7 @@ func (c *Client) ListenEvents(
 			return err
 		}
 
-		return forwardHeaders(ctx, histHeadersC, headersC)
+		return forwardHeaders(ctx, liveHeadersC, headersC)
 	})
 
 	// Retrieve events skipping blocks before 'begin'.
@@ -215,11 +215,11 @@ func (c *Client) ListenEvents(
 	return g.Wait()
 }
 
-func forwardHeaders(ctx context.Context, from, to chan types.Header) error {
+func forwardHeaders(ctx context.Context, from <-chan types.Header, to chan types.Header) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		case header, ok := <-from:
 			if !ok {
 				return context.Canceled
