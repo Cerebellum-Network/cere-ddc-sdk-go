@@ -103,9 +103,10 @@ func (c *Client) ListenEvents(
 
 	// Query historical headers.
 	histHeadersC := make(chan types.Header)
-	defer close(histHeadersC)
 
 	g.Go(func() error {
+		defer close(histHeadersC)
+
 		firstLiveHeader, err := getFirstLiveHeader(ctx, liveHeadersC)
 		if err != nil {
 			return err
@@ -140,9 +141,10 @@ func (c *Client) ListenEvents(
 
 	// Sequence historical and live headers.
 	headersC := make(chan types.Header, 2)
-	defer close(headersC)
 
 	g.Go(func() error {
+		defer close(headersC)
+
 		if err = forwardHeaders(ctx, histHeadersC, headersC); err != nil {
 			return err
 		}
@@ -159,7 +161,11 @@ func (c *Client) ListenEvents(
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case header := <-headersC:
+			case header, ok := <-headersC:
+				if !ok {
+					return ErrHeaderChannelClosed
+				}
+
 				if header.Number < begin {
 					continue
 				}
@@ -227,7 +233,7 @@ func forwardHeaders(ctx context.Context, from <-chan types.Header, to chan types
 			return ctx.Err()
 		case header, ok := <-from:
 			if !ok {
-				return ErrHeaderChannelClosed
+				return nil
 			}
 
 			select {
