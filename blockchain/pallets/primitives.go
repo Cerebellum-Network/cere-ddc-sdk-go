@@ -175,7 +175,7 @@ func (m ClusterStatus) Encode(encoder scale.Encoder) error {
 	return nil
 }
 
-type CustomerUsage struct {
+type BucketUsage struct {
 	TransferredBytes types.U64
 	StoredBytes      types.I64
 	NumberOfPuts     types.U64
