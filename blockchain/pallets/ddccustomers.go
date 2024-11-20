@@ -19,7 +19,7 @@ type Bucket struct {
 	ClusterId           ClusterId
 	IsPublic            types.Bool
 	IsRemoved           types.Bool
-	TotalCustomersUsage types.Option[CustomerUsage]
+	TotalCustomersUsage types.Option[BucketUsage]
 }
 
 type UnlockChunk struct {
