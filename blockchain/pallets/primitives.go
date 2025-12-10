@@ -79,7 +79,7 @@ type StorageNodeMode struct {
 	IsFull    bool
 	IsStorage bool
 	IsCache   bool
-	IsDac     bool
+	IsCompute bool
 }
 
 func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
@@ -96,7 +96,7 @@ func (m *StorageNodeMode) Decode(decoder scale.Decoder) error {
 	} else if b == 3 {
 		m.IsCache = true
 	} else if b == 4 {
-		m.IsDac = true
+		m.IsCompute = true
 	} else {
 		return ErrUnknownVariant
 	}
@@ -112,7 +112,7 @@ func (m StorageNodeMode) Encode(encoder scale.Encoder) error {
 		err = encoder.PushByte(2)
 	} else if m.IsCache {
 		err = encoder.PushByte(3)
-	} else if m.IsDac {
+	} else if m.IsCompute {
 		err = encoder.PushByte(4)
 	} else {
 		return ErrUnknownVariant
