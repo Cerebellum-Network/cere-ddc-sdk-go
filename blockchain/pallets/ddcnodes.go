@@ -24,8 +24,6 @@ type StorageNode struct {
 // more".
 type StorageNodeProps struct {
 	Host     []types.U8
-	Domain   []types.U8
-	Ssl      types.Bool
 	HttpPort types.U16
 	GrpcPort types.U16
 	P2pPort  types.U16
