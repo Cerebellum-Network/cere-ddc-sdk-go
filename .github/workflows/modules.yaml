@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [auth, indexer, agentgateway]
+        module: [auth, indexer, agentgateway, storage]
     env:
       GOWORK: 'off'
     steps:

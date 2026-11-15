@@ -1,0 +1,2 @@
+proto/api/{file,dag,cns}: Cerebellum-Network/ddc-node 6e4d3a06 api/{file,dag,cns}/*.proto (verbatim)
+proto/activity/record.proto: Cerebellum-Network/ddc-proto dbf01bf97cb45e63f651b2c05ce60e991b4a105a proto/activity/record.proto (verbatim)
