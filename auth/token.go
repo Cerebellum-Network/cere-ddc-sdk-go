@@ -619,7 +619,10 @@ func signatureUsable(sig *pb.Signature) error {
 	if len(sig.GetSigner()) != ed25519.PublicKeySize {
 		return ErrInvalidSignature
 	}
-	if len(sig.GetValue()) == 0 {
+	// Both schemes produce 64-byte signatures. A value of any other length
+	// cannot verify; reporting it here keeps it ErrInvalidSignature rather than
+	// VerifySignature's ErrUnusableSignature.
+	if len(sig.GetValue()) != signatureSize {
 		return ErrInvalidSignature
 	}
 	return nil

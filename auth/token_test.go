@@ -722,6 +722,18 @@ func TestAuthorize(t *testing.T) {
 			wantErr:  ErrInvalidSignature,
 		},
 		{
+			name: "truncated signature value",
+			token: func(t *testing.T) string {
+				tok := bearerToken(t, owner)
+				tok.Signature.Value = tok.Signature.Value[:63]
+				return encode(t, tok)
+			},
+			op:       pb.Operation_COMPUTE,
+			bucketID: testBucket,
+			index:    fundedIndex(owner),
+			wantErr:  ErrInvalidSignature,
+		},
+		{
 			name: "piece-scoped token cannot authorize a bucket operation",
 			token: func(t *testing.T) string {
 				return encode(t, buildChain(t, level{
