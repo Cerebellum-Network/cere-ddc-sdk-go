@@ -1,4 +1,4 @@
-package agentgateway
+package agents
 
 import (
 	"bytes"
@@ -42,7 +42,7 @@ type StatusError struct {
 }
 
 func (e *StatusError) Error() string {
-	return fmt.Sprintf("agent-gateway %s returned %d: %s", e.Path, e.StatusCode, e.Body)
+	return fmt.Sprintf("agents: %s returned %d: %s", e.Path, e.StatusCode, e.Body)
 }
 
 // HTTPClient calls one agent gateway over HTTP.
@@ -248,12 +248,12 @@ func (c *HTTPClient) Health(ctx context.Context) error {
 func (c *HTTPClient) do(client *http.Client, req *http.Request, path string, out any) error {
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("agent-gateway %s transport: %w", path, err)
+		return fmt.Errorf("agents: %s transport: %w", path, err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("agent-gateway %s read: %w", path, err)
+		return fmt.Errorf("agents: %s read: %w", path, err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return &StatusError{Path: path, StatusCode: resp.StatusCode, Body: string(body)}
@@ -262,7 +262,7 @@ func (c *HTTPClient) do(client *http.Client, req *http.Request, path string, out
 		return nil
 	}
 	if err := json.Unmarshal(body, out); err != nil {
-		return fmt.Errorf("agent-gateway %s decode: %w", path, err)
+		return fmt.Errorf("agents: %s decode: %w", path, err)
 	}
 	return nil
 }

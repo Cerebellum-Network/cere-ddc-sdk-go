@@ -1,4 +1,4 @@
-package agentgateway
+package agents
 
 import (
 	"context"

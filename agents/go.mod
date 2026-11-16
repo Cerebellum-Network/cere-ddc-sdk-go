@@ -1,4 +1,4 @@
-module github.com/cerebellum-network/cere-ddc-sdk-go/agentgateway
+module github.com/cerebellum-network/cere-ddc-sdk-go/agents
 
 go 1.24.0
 
