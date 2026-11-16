@@ -187,6 +187,14 @@ var logQueryReserved = map[string]struct{}{
 	"level": {}, "q": {}, "limit": {}, "cursor": {},
 }
 
+// metricsQueryReserved are MetricsQuery's own parameter names. A label with one
+// of these names is dropped so it cannot shadow, or be shadowed by, the
+// parameter.
+var metricsQueryReserved = map[string]struct{}{
+	"bucket": {}, "cid": {}, "metric": {}, "groupBy": {},
+	"from": {}, "to": {}, "step": {},
+}
+
 // QueryMetrics returns an agent bundle's approximate resource use. The gateway
 // rejects a metric or label it does not allow with a 400 *StatusError.
 func (c *HTTPClient) QueryMetrics(ctx context.Context, q MetricsQuery) (*MetricsQueryResponse, error) {
@@ -195,9 +203,10 @@ func (c *HTTPClient) QueryMetrics(ctx context.Context, q MetricsQuery) (*Metrics
 	v.Set("cid", q.CID)
 	v.Set("metric", q.Metric)
 	for label, val := range q.Labels {
-		if val != "" {
-			v.Set(label, val)
+		if _, reserved := metricsQueryReserved[label]; reserved || val == "" {
+			continue
 		}
+		v.Set(label, val)
 	}
 	if q.GroupBy != "" {
 		v.Set("groupBy", q.GroupBy)

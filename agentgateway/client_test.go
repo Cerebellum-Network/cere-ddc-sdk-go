@@ -252,3 +252,22 @@ func TestHttpClient_Health(t *testing.T) {
 	require.ErrorAs(t, c.Health(context.Background()), &statusErr)
 	assert.Equal(t, http.StatusServiceUnavailable, statusErr.StatusCode)
 }
+
+func TestHttpClient_MetricsQueryDropsReservedLabels(t *testing.T) {
+	var query url.Values
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query = r.URL.Query()
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	_, err := NewClient(srv.URL, 5).QueryMetrics(context.Background(), MetricsQuery{
+		Bucket: "1", CID: "bafy", Metric: "cpu", GroupBy: "taskId",
+		Labels: map[string]string{"bucket": "2", "metric": "mem", "groupBy": "x", "taskId": "t1"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "1", query.Get("bucket"), "a label cannot shadow a reserved param")
+	assert.Equal(t, "cpu", query.Get("metric"))
+	assert.Equal(t, []string{"taskId"}, query["groupBy"])
+	assert.Equal(t, "t1", query.Get("taskId"))
+}

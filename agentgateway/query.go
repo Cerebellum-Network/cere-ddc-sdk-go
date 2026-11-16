@@ -41,7 +41,7 @@ type MetricsQuery struct {
 	Bucket  string
 	CID     string
 	Metric  string            // an allowed runtime metric name (required)
-	Labels  map[string]string // optional matchers; each key must be an allowed label of Metric
+	Labels  map[string]string // optional matchers; each key must be an allowed label of Metric; keys named like a field above are dropped
 	GroupBy string            // optional allowed label
 	From    time.Time         // optional
 	To      time.Time         // optional
