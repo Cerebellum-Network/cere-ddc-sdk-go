@@ -342,3 +342,58 @@ func TestHttpClient_SendsTheTokenAsTheRuntimeReadsIt(t *testing.T) {
 		require.NoError(t, err, "the runtime's decoder accepts it")
 	}
 }
+
+func TestNewClientTrimsTheBaseURLAndDefaultsTheTimeout(t *testing.T) {
+	var path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path = r.URL.Path
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL+"/", 0)
+	require.NoError(t, c.Health(context.Background()))
+	assert.Equal(t, "/health", path)
+	assert.Equal(t, DefaultRequestTimeout, c.client.Timeout)
+}
+
+func TestHttpClient_MetricsQueryDropsEveryGatewayReservedName(t *testing.T) {
+	var query url.Values
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		query = r.URL.Query()
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	labels := map[string]string{"taskId": "t1"}
+	for _, name := range []string{"stat", "quantile", "window", "vault", "vaultId"} {
+		labels[name] = "x"
+	}
+	_, err := NewClient(srv.URL, 5, WithToken(testToken)).QueryMetrics(context.Background(),
+		MetricsQuery{Bucket: "1", CID: "c", Metric: "m", Labels: labels})
+	require.NoError(t, err)
+	for _, name := range []string{"stat", "quantile", "window", "vault", "vaultId"} {
+		assert.Empty(t, query.Get(name), name)
+	}
+	assert.Equal(t, "t1", query.Get("taskId"))
+}
+
+func TestHttpClient_CapsWhatItReads(t *testing.T) {
+	big := strings.Repeat("x", maxResponseBytes+10)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/logs" {
+			w.WriteHeader(http.StatusBadGateway)
+		}
+		_, _ = w.Write([]byte(big))
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, 5, WithToken(testToken))
+
+	_, err := c.Invoke(context.Background(), InvokeRequest{Handler: "h"})
+	require.ErrorContains(t, err, "response exceeds")
+
+	_, err = c.QueryLogs(context.Background(), LogQuery{BucketID: "b", CID: "c"})
+	var statusErr *StatusError
+	require.ErrorAs(t, err, &statusErr)
+	assert.Len(t, statusErr.Body, maxErrorBodyBytes)
+}

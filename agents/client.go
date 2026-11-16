@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mr-tron/base58"
@@ -25,6 +26,18 @@ const authTokenHeader = "X-Auth-Token"
 // gateway that accepts the call and never answers does not hold the caller
 // forever.
 const DefaultInvokeTimeout = 30 * time.Minute
+
+// DefaultRequestTimeout bounds a log, metrics or health request when NewClient
+// is given no timeout.
+const DefaultRequestTimeout = 30 * time.Second
+
+const (
+	// maxResponseBytes caps a response body the client reads. Larger answers
+	// are an error rather than unbounded memory use.
+	maxResponseBytes = 32 << 20
+	// maxErrorBodyBytes caps the body a StatusError carries.
+	maxErrorBodyBytes = 64 << 10
+)
 
 var (
 	// ErrNoToken is returned by Invoke, QueryLogs and QueryMetrics when neither
@@ -134,12 +147,16 @@ func (c *HTTPClient) authorize(req *http.Request, opts []CallOption) error {
 }
 
 // NewClient returns a client for the gateway at baseURL. timeoutSeconds bounds
-// each log, metrics and health request; invokes are bounded by their context
-// and by WithInvokeTimeout.
+// each log, metrics and health request (DefaultRequestTimeout when <= 0);
+// invokes are bounded by their context and by WithInvokeTimeout.
 func NewClient(baseURL string, timeoutSeconds int, opts ...Option) *HTTPClient {
+	timeout := time.Duration(timeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = DefaultRequestTimeout
+	}
 	c := &HTTPClient{
-		baseURL:   baseURL,
-		client:    &http.Client{Timeout: time.Duration(timeoutSeconds) * time.Second},
+		baseURL:   strings.TrimRight(baseURL, "/"),
+		client:    &http.Client{Timeout: timeout},
 		invoke:    &http.Client{Timeout: DefaultInvokeTimeout},
 		invokeMax: DefaultInvokeTimeout,
 	}
@@ -262,9 +279,14 @@ var logQueryReserved = map[string]struct{}{
 // metricsQueryReserved are MetricsQuery's own parameter names. A label with one
 // of these names is dropped so it cannot shadow, or be shadowed by, the
 // parameter.
+//
+// The set mirrors the gateway's own reserved names, which also covers the
+// parameters this client does not expose (stat, quantile, window) and the
+// vault scope the gateway rejects.
 var metricsQueryReserved = map[string]struct{}{
 	"bucket": {}, "cid": {}, "metric": {}, "groupBy": {},
 	"from": {}, "to": {}, "step": {},
+	"stat": {}, "quantile": {}, "window": {}, "vault": {}, "vaultId": {},
 }
 
 // QueryMetrics returns an agent bundle's approximate resource use. The gateway
@@ -323,12 +345,18 @@ func (c *HTTPClient) do(client *http.Client, req *http.Request, path string, out
 		return fmt.Errorf("agents: %s transport: %w", path, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("agents: %s read: %w", path, err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		if len(body) > maxErrorBodyBytes {
+			body = body[:maxErrorBodyBytes]
+		}
 		return &StatusError{Path: path, StatusCode: resp.StatusCode, Body: string(body)}
+	}
+	if len(body) > maxResponseBytes {
+		return fmt.Errorf("agents: %s: response exceeds %d bytes", path, maxResponseBytes)
 	}
 	if out == nil {
 		return nil
