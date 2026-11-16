@@ -19,11 +19,9 @@ jobs:
         with:
           go-version: 1.18.x
       - name: 'Checkout code'
-        uses: actions/checkout@v2
-        with:
-          submodules: "true"
+        uses: actions/checkout@v4
       - name: 'Cache go modules'
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -38,3 +36,10 @@ jobs:
           args: --timeout 5m
       - name: 'Run unit tests core module'
         run: go test -v ./core/...
+      #Blockchain module
+      - name: 'Build and vet blockchain module'
+        run: |
+          go build ./blockchain/...
+          go vet ./blockchain/...
+      - name: 'Run unit tests blockchain module'
+        run: go test -v ./blockchain/...
