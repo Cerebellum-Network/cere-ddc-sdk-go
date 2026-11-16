@@ -138,9 +138,14 @@ func VerifySignature(msg pb.SignableMessage) (bool, error) {
 		return false, err
 	}
 
-	msg.SetSignature(nil)
-	defer msg.SetSignature(sig)
-	raw, err := proto.Marshal(msg)
+	// Marshal a copy with the signature unset. Clearing it on msg itself would
+	// race with any other goroutine reading or verifying the same message.
+	unsigned, ok := proto.Clone(msg).(pb.SignableMessage)
+	if !ok {
+		return false, fmt.Errorf("%w: %T does not clone to a signable message", ErrUnusableSignature, msg)
+	}
+	unsigned.SetSignature(nil)
+	raw, err := proto.Marshal(unsigned)
 	if err != nil {
 		return false, err
 	}

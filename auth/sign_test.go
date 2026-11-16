@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -162,4 +163,29 @@ func TestNewSignerAdaptsAnyKeyHolder(t *testing.T) {
 	ok, err := VerifySignature(token)
 	require.NoError(t, err)
 	assert.True(t, ok)
+}
+
+// VerifySignature must not touch its argument: services cache a decoded token
+// and verify it from many goroutines. Run with -race.
+func TestVerifySignatureIsSafeForConcurrentUse(t *testing.T) {
+	var seed [32]byte
+	seed[0] = 9
+	token := &pb.AuthToken{Payload: &pb.Payload{Subject: []byte("subject")}}
+	require.NoError(t, SignToken(ed25519.NewKeyFromSeed(seed[:]), token))
+	sig := token.GetSignature()
+
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 50 {
+				ok, err := VerifySignature(token)
+				assert.NoError(t, err)
+				assert.True(t, ok)
+			}
+		}()
+	}
+	wg.Wait()
+	assert.Same(t, sig, token.GetSignature())
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -1668,4 +1669,39 @@ func TestBucketIDClaimingSomebodyElsesBucketIsStillRejected(t *testing.T) {
 	verified, err := authorizer.Authorize(context.Background(), encode(t, forged), pb.Operation_COMPUTE, bucketID)
 	assert.Nil(t, verified)
 	assert.ErrorIs(t, err, ErrInvalidOwnership)
+}
+
+// An empty middle level inherits; it must not erase the leaf's narrower set.
+// On the storage node it does, which lets this chain authorize PUT.
+func TestEmptyMiddleLevelDoesNotWidenTheLeaf(t *testing.T) {
+	owner, mid, leaf := newKey(t), newKey(t), newKey(t)
+	chain := func(rootOps, leafOps []pb.Operation) string {
+		return encode(t, buildChain(t,
+			level{signer: owner, subject: mid.pub, canDelegate: true, ops: rootOps, bucketID: testBucket, expiresIn: 3 * time.Hour},
+			level{signer: mid, subject: leaf.pub, canDelegate: true, ops: nil, bucketID: testBucket, expiresIn: 2 * time.Hour},
+			level{signer: leaf, ops: leafOps, bucketID: testBucket, expiresIn: time.Hour},
+		))
+	}
+	get, put := pb.Operation_GET, pb.Operation_PUT
+
+	_, err := New(fundedIndex(owner)).Authorize(
+		context.Background(), chain([]pb.Operation{get, put}, []pb.Operation{get}), put, testBucket)
+	require.ErrorIs(t, err, ErrInvalidPermissions, "a GET-only leaf must not authorize PUT")
+
+	verified, err := New(fundedIndex(owner)).Authorize(
+		context.Background(), chain([]pb.Operation{get}, []pb.Operation{get}), get, testBucket)
+	require.NoError(t, err, "an empty middle level still inherits")
+	assert.Equal(t, []pb.Operation{get}, verified.Operations)
+}
+
+// The index saying the bucket does not exist is an answer, not an outage.
+func TestUnknownBucketIsForbiddenNotUnavailable(t *testing.T) {
+	owner := newKey(t)
+	index := &stubIndex{err: fmt.Errorf("%w: bucket 999999", ErrUnknownBucket)}
+
+	_, err := New(index).Authorize(
+		context.Background(), encode(t, bearerToken(t, owner)), pb.Operation_COMPUTE, testBucket)
+	require.ErrorIs(t, err, ErrUnknownBucket)
+	assert.Equal(t, KindForbidden, KindOf(err))
+	assert.NotErrorIs(t, err, ErrOwnerLookup)
 }

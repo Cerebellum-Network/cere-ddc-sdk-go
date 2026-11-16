@@ -65,12 +65,17 @@
 //  1. The attenuation check is inverted: it enforces parent.ops ⊆ child.ops.
 //     Keep operation sets identical across levels. See permissionsValid.
 //  2. A nil or zero ExpiresAt reads as EXPIRED, not as "no expiry".
-//  3. A leaf with an EMPTY operation set inherits its parent's set instead of
-//     granting nothing.
+//  3. A level with an EMPTY operation set inherits instead of granting
+//     nothing.
 //  4. CanDelegate is only enforced at depth > 1: a grant minted with
 //     canDelegate=false can still have exactly one level signed beneath it.
 //     Tokens are bearer credentials with no proof of possession of Subject, so
 //     whoever could present the parent could already use it directly.
+//
+// One deviation from the storage node is a strict rejection: a middle level
+// with an empty operation set does not reset the set the walk has accumulated. On the
+// node it does, so root {GET, PUT}, then {}, then leaf {GET} authorizes PUT
+// there; here that chain is checked as if the empty level were absent.
 //
 // DecodeToken accepts base58 (DDC-native) and standard base64.
 package auth

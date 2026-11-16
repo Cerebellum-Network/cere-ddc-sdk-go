@@ -57,6 +57,13 @@ var (
 	ErrPieceScopedToken      = errors.New("piece-scoped token cannot authorize a bucket-level operation")
 	ErrUnknownOperation      = errors.New("requested operation is unknown")
 	ErrOwnerLookup           = errors.New("bucket owner lookup failed")
+
+	// ErrUnknownBucket is the answer a BucketOwnerIndex gives, wrapped in its
+	// Lookup error, when the index says the bucket (or its owner's account)
+	// does not exist. It is a definitive denial, not an outage: Authorize
+	// classifies it as KindForbidden instead of KindUnavailable, so a token for a
+	// bucket that never existed is not reported (or retried) as an index outage.
+	ErrUnknownBucket = errors.New("bucket is unknown to the index")
 )
 
 // Kind classifies a rejection so a transport can shape a response without
@@ -145,6 +152,7 @@ var forbiddenErrors = []error{
 	ErrBucketMismatch,
 	ErrPieceScopedToken,
 	ErrUnknownOperation,
+	ErrUnknownBucket,
 }
 
 // reject wraps err in a typed rejection, classifying it by sentinel so the Kind
@@ -186,8 +194,8 @@ type Verified struct {
 
 	// Operations is the root level's operation set. Given the (inverted)
 	// attenuation check the chain enforces, the root set is contained in every
-	// descendant's, so it is the narrowest grant and the correct one to authorize
-	// against.
+	// descendant level that names operations (a level that names none inherits),
+	// so it is the narrowest grant and the correct one to authorize against.
 	Operations []pb.Operation
 }
 
@@ -322,7 +330,11 @@ func (a *authorizer) Authorize(
 
 	result, err := a.index.Lookup(ctx, bucketID)
 	if err != nil {
-		// A lookup failure is a rejection, never an allow.
+		// A lookup failure is a rejection, never an allow. The index saying the
+		// bucket does not exist is an answer; anything else is an outage.
+		if errors.Is(err, ErrUnknownBucket) {
+			return nil, reject(err)
+		}
 		return nil, reject(fmt.Errorf("%w: %w", ErrOwnerLookup, err))
 	}
 	if result.Removed {
@@ -469,7 +481,16 @@ func (a *authorizer) expandAndVerifyToken(token *pb.AuthToken, expanded *expande
 		return ErrInvalidPermissions
 	}
 
-	expanded.operations = token.Payload.Operations
+	// DEVIATION from the storage node, a strict rejection: a middle level with
+	// no operations inherits, so it must not reset the accumulated set. The node
+	// assigns unconditionally, which lets an empty middle level erase the
+	// leaf's set: root {GET, PUT}, mid {}, leaf {GET} would then authorize PUT.
+	// Keeping the set makes that chain check the root against the leaf, exactly
+	// as it would without the middle level. The root always assigns: its set is
+	// the grant, and an empty root grants nothing.
+	if len(token.Payload.Operations) > 0 || token.Payload.Prev == nil {
+		expanded.operations = token.Payload.Operations
+	}
 
 	if len(token.Payload.PieceCid) > 0 {
 		// if a piece is mentioned
@@ -607,8 +628,8 @@ func fieldsValid(token *pb.AuthToken) bool {
 }
 
 // signatureUsable rejects a signature the chain walk cannot use: an unknown
-// algorithm, a signer that is not a 32-byte public key, or an empty value. All
-// three are attacker-controlled fields.
+// algorithm, a signer that is not a 32-byte public key, or a value that is not
+// 64 bytes. All three are attacker-controlled fields.
 func signatureUsable(sig *pb.Signature) error {
 	switch sig.GetAlgorithm() {
 	case pb.Signature_ED_25519, pb.Signature_SR_25519:
