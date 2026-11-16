@@ -189,3 +189,14 @@ func TestVerifySignatureIsSafeForConcurrentUse(t *testing.T) {
 	wg.Wait()
 	assert.Same(t, sig, token.GetSignature())
 }
+
+// A key of the wrong size is a signing error, never a panic.
+func TestEd25519SignerWithAWrongSizeKeyErrors(t *testing.T) {
+	for _, key := range []ed25519.PrivateKey{nil, make([]byte, 32), make([]byte, 65)} {
+		var err error
+		require.NotPanics(t, func() {
+			_, err = SignMessage(NewEd25519Signer(key), &pb.AuthToken{Payload: &pb.Payload{}})
+		})
+		require.ErrorIs(t, err, ErrInvalidKey)
+	}
+}

@@ -392,9 +392,10 @@ type expandedToken struct {
 // parent. depth 0 is the leaf (the token actually presented); depth grows
 // towards the root.
 //
-// The walk is behaviour-identical to the DDC storage node's, with two additions
-// that are strict rejections and cannot widen access: a chain-depth bound and a
-// signature sanity check (see signatureUsable).
+// The walk is behaviour-identical to the DDC storage node's, with three
+// differences that are strict rejections and cannot widen access: a chain-depth
+// bound, a signature sanity check (see signatureUsable), and an empty middle
+// level that inherits instead of resetting the operation set (see below).
 func (a *authorizer) expandAndVerifyToken(token *pb.AuthToken, expanded *expandedToken, depth int) error {
 	if depth >= a.maxDepth {
 		return ErrChainTooDeep

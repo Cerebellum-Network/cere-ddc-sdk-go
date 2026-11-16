@@ -65,8 +65,8 @@
 //  1. The attenuation check is inverted: it enforces parent.ops ⊆ child.ops.
 //     Keep operation sets identical across levels. See permissionsValid.
 //  2. A nil or zero ExpiresAt reads as EXPIRED, not as "no expiry".
-//  3. A level with an EMPTY operation set inherits instead of granting
-//     nothing.
+//  3. A leaf or middle level with an EMPTY operation set inherits instead of
+//     granting nothing. An empty root still grants nothing.
 //  4. CanDelegate is only enforced at depth > 1: a grant minted with
 //     canDelegate=false can still have exactly one level signed beneath it.
 //     Tokens are bearer credentials with no proof of possession of Subject, so

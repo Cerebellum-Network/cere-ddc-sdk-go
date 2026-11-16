@@ -34,8 +34,21 @@ type Signer interface {
 	Sign(message []byte) ([]byte, error)
 }
 
-// NewEd25519Signer returns a Signer for an ed25519 private key.
+// ErrInvalidKey is returned by a signer built from a key of the wrong size.
+var ErrInvalidKey = errors.New("invalid signing key")
+
+// NewEd25519Signer returns a Signer for an ed25519 private key. A key that is
+// not ed25519.PrivateKeySize bytes gives a signer whose Sign returns
+// ErrInvalidKey, rather than a panic.
 func NewEd25519Signer(key ed25519.PrivateKey) Signer {
+	if len(key) != ed25519.PrivateKeySize {
+		return &funcSigner{
+			algorithm: pb.Signature_ED_25519,
+			sign: func([]byte) ([]byte, error) {
+				return nil, fmt.Errorf("%w: ed25519 key is %d bytes, want %d", ErrInvalidKey, len(key), ed25519.PrivateKeySize)
+			},
+		}
+	}
 	return &funcSigner{
 		algorithm: pb.Signature_ED_25519,
 		publicKey: key.Public().(ed25519.PublicKey),
