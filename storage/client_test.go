@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/auth"
@@ -213,13 +215,13 @@ func TestWithTokenSourceIsAskedPerCall(t *testing.T) {
 	calls := 0
 	client := storage.NewClient(capture.serve(t), storage.WithTokenSource(func(context.Context) (string, error) {
 		calls++
-		return "token-" + string(rune('0'+calls)), nil
+		return "token" + string(rune('0'+calls)), nil
 	}))
 	for range 2 {
 		_, err := client.PutPiece(context.Background(), testBucket, bytes.NewReader([]byte("a")), 1)
 		require.NoError(t, err)
 	}
-	assert.Equal(t, []string{"token-1", "token-2"}, capture.tokens)
+	assert.Equal(t, []string{"token1", "token2"}, capture.tokens)
 }
 
 type errReader struct{ err error }
@@ -243,14 +245,36 @@ func TestAnAbandonedPutPieceStoresNothing(t *testing.T) {
 // The call's token wins over the client's.
 func TestCallTokenOverridesTheClientToken(t *testing.T) {
 	capture := &capturingFile{}
-	client := storage.NewClient(capture.serve(t), storage.WithToken("client-token"))
+	client := storage.NewClient(capture.serve(t), storage.WithToken("ownTok"))
 	ctx := context.Background()
 
 	_, err := client.PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1)
 	require.NoError(t, err)
-	_, err = client.PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("bucket-token"))
+	_, err = client.PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("bucketTok"))
 	require.NoError(t, err)
-	_, err = storage.NewClient(capture.serve(t)).PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("only-call"))
+	_, err = storage.NewClient(capture.serve(t)).PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("mineTok"))
 	require.NoError(t, err)
-	assert.Equal(t, []string{"client-token", "bucket-token", "only-call"}, capture.tokens)
+	assert.Equal(t, []string{"ownTok", "bucketTok", "mineTok"}, capture.tokens)
+}
+
+// A node that refuses an upload after the metadata message ends the stream;
+// the client must report the node's status, not the EOF its next Send gets.
+func TestARefusedLargeUploadReportsTheNodesStatus(t *testing.T) {
+	owner, stranger := authtest.NewKey(t), authtest.NewKey(t)
+	node := storagetest.Start(t, owner.Pub, testBucket)
+	client := newClient(t, node.Conn(), writeToken(t, stranger, testBucket))
+
+	body := bytes.Repeat([]byte{0x5a}, 4*storage.PieceChunkSize)
+	_, err := client.PutPiece(context.Background(), testBucket, bytes.NewReader(body), int64(len(body)))
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err), "got %v", err)
+	assert.Zero(t, node.Writes(testBucket))
+}
+
+func TestATokenThatIsNotBase58IsRefusedBeforeTheCall(t *testing.T) {
+	capture := &capturingFile{}
+	_, err := storage.NewClient(capture.serve(t), storage.WithToken("CgH/")).
+		PutPiece(context.Background(), testBucket, bytes.NewReader([]byte("a")), 1)
+	require.ErrorIs(t, err, storage.ErrInvalidToken)
+	assert.Empty(t, capture.tokens)
 }

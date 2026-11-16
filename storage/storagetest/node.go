@@ -86,6 +86,10 @@ type bucket struct {
 // Start serves a node whose buckets are owned by owner, and returns it with a
 // client connection already dialled. owner's key authorizes writes, exactly as
 // a bucket owner's does on chain.
+//
+// Every bucket starts PUBLIC, so reads (GetNode, ResolveName) pass without a
+// valid token, as they do for a public bucket on a real node. To test that your
+// reads carry the right token, call SetPublic(bucket, false) first.
 func Start(t testing.TB, owner ed25519.PublicKey, buckets ...uint64) *Node {
 	t.Helper()
 	owners := make(map[uint64]auth.LookupResult, len(buckets))

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mr-tron/base58"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -46,6 +47,10 @@ var (
 
 	// ErrNoRecordSigner is returned by PutName when the client has no signer.
 	ErrNoRecordSigner = errors.New("no cns record signer configured")
+
+	// ErrInvalidToken is returned when the access token is not in the form
+	// auth.EncodeToken produces (base58), the only form a storage node reads.
+	ErrInvalidToken = errors.New("access token is not base58 (auth.EncodeToken)")
 
 	// ErrNoToken is returned by every call when neither the client nor the call
 	// carries a token.
@@ -131,6 +136,9 @@ func (c *Client) withToken(ctx context.Context, opts []CallOption) (context.Cont
 	if token == "" {
 		return nil, ErrNoToken
 	}
+	if raw, err := base58.Decode(token); err != nil || len(raw) == 0 {
+		return nil, ErrInvalidToken
+	}
 	return metadata.AppendToOutgoingContext(ctx, TokenMetadataKey, token), nil
 }
 
@@ -166,7 +174,7 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 	if err := stream.Send(&fileapi.PutRawPieceRequest{Body: &fileapi.PutRawPieceRequest_Metadata_{
 		Metadata: &fileapi.PutRawPieceRequest_Metadata{BucketId: bucketID, Size: uint64(size)},
 	}}); err != nil {
-		return "", fmt.Errorf("put piece: send metadata: %w", err)
+		return "", sendFailed(stream, "send metadata", err)
 	}
 	var sent int64
 	for {
@@ -183,7 +191,7 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 			if err := stream.Send(&fileapi.PutRawPieceRequest{Body: &fileapi.PutRawPieceRequest_Content_{
 				Content: &fileapi.PutRawPieceRequest_Content{Data: buf[:n]},
 			}}); err != nil {
-				return "", fmt.Errorf("put piece: send content: %w", err)
+				return "", sendFailed(stream, "send content", err)
 			}
 		}
 		if errors.Is(rerr, io.EOF) || errors.Is(rerr, io.ErrUnexpectedEOF) {
@@ -201,6 +209,20 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 		return "", fmt.Errorf("put piece: %w", err)
 	}
 	return CIDString(resp.GetCid())
+}
+
+// sendFailed reports a failed Send. io.EOF means the node already ended the
+// stream, typically by refusing the upload after the metadata message (a bad
+// token, a foreign owner, no balance). Its status is only available from
+// CloseAndRecv, so that is what is returned, keeping the gRPC code callers
+// classify by.
+func sendFailed(stream fileapi.FileApi_PutRawPieceClient, step string, err error) error {
+	if errors.Is(err, io.EOF) {
+		if _, statusErr := stream.CloseAndRecv(); statusErr != nil {
+			return fmt.Errorf("put piece: %w", statusErr)
+		}
+	}
+	return fmt.Errorf("put piece: %s: %w", step, err)
 }
 
 // PutNode stores a DAG node and returns the CID the node computed for it.

@@ -35,7 +35,7 @@ cid, err := client.ResolveName(ctx, bucketID, "site") // errors.Is(err, storage.
 node, err := client.GetNode(ctx, bucketID, cid)
 ```
 
-CIDs cross `Client` as base32 strings, the form DDC CDN URLs use. For a token that expires, use `WithTokenSource` to supply a fresh one per call. A service that writes to many buckets shares one client and passes each bucket's token per call: `client.PutNode(ctx, bucketID, node, storage.CallToken(bucketToken))`. A call with no token returns `ErrNoToken` without reaching the node.
+CIDs cross `Client` as base32 strings, the form DDC CDN URLs use. For a token that expires, use `WithTokenSource` to supply a fresh one per call. A service that writes to many buckets shares one client and passes each bucket's token per call: `client.PutNode(ctx, bucketID, node, storage.CallToken(bucketToken))`. A call with no token returns `ErrNoToken`, and a token that is not base58 (the form `auth.EncodeToken` makes, and the only one a storage node reads) returns `ErrInvalidToken`, both without reaching the node. A refused upload returns the node's gRPC status (for example `codes.PermissionDenied`).
 
 ## Protobuf
 
