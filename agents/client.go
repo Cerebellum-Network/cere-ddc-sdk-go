@@ -3,6 +3,7 @@ package agents
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/mr-tron/base58"
 )
 
 // authTokenHeader is the header DDC services read an access token from. It is
@@ -23,9 +26,15 @@ const authTokenHeader = "X-Auth-Token"
 // forever.
 const DefaultInvokeTimeout = 30 * time.Minute
 
-// ErrNoToken is returned by Invoke, QueryLogs and QueryMetrics when neither the
-// client nor the call carries an access token.
-var ErrNoToken = errors.New("no access token configured")
+var (
+	// ErrNoToken is returned by Invoke, QueryLogs and QueryMetrics when neither
+	// the client nor the call carries an access token.
+	ErrNoToken = errors.New("no access token configured")
+
+	// ErrInvalidToken is returned when the access token is not in the form
+	// auth.EncodeToken produces (base58).
+	ErrInvalidToken = errors.New("access token is not base58 (auth.EncodeToken)")
+)
 
 // Client is the agent gateway API. HTTPClient implements it.
 type Client interface {
@@ -112,7 +121,15 @@ func (c *HTTPClient) authorize(req *http.Request, opts []CallOption) error {
 	if token == "" {
 		return ErrNoToken
 	}
-	req.Header.Set(authTokenHeader, token)
+	// The gateway accepts base58 and base64, but forwards the header unchanged
+	// to the agent runtime, which reads only base64 of the protobuf bytes. So
+	// the token is re-encoded to that form, the one the gateway and runtime
+	// have always received.
+	raw, err := base58.Decode(token)
+	if err != nil || len(raw) == 0 {
+		return ErrInvalidToken
+	}
+	req.Header.Set(authTokenHeader, base64.StdEncoding.EncodeToString(raw))
 	return nil
 }
 

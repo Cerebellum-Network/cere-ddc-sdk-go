@@ -23,7 +23,7 @@ resp, err := client.Invoke(ctx, agents.InvokeRequest{
 })
 ```
 
-A service that runs agents for many buckets shares one client and passes each run's own token: `client.Invoke(ctx, req, agents.CallToken(runToken))`. A call with no token returns `ErrNoToken` without reaching the gateway.
+A service that runs agents for many buckets shares one client and passes each run's own token: `client.Invoke(ctx, req, agents.CallToken(runToken))`. A call with no token returns `ErrNoToken` without reaching the gateway. On the wire the client sends the token as base64 of its protobuf bytes, the form the agent runtime behind the gateway reads.
 
 - **`err` is not nil** for a transport failure, or for a non-200 answer as a `*agents.StatusError` (401 no or bad token, 403 not the bucket owner, 408 timeout, 503 no runtime available).
 - **`resp.Status == "error"`** means the handler ran and failed. `resp.Error.Code` is one of the `Code*` constants and `resp.Error.Retryable` says whether retrying can help.
