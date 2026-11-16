@@ -47,7 +47,8 @@ var (
 	// ErrNoRecordSigner is returned by PutName when the client has no signer.
 	ErrNoRecordSigner = errors.New("no cns record signer configured")
 
-	// ErrNoToken is returned by every call when the client has no token.
+	// ErrNoToken is returned by every call when neither the client nor the call
+	// carries a token.
 	ErrNoToken = errors.New("no access token configured")
 )
 
@@ -87,6 +88,20 @@ func WithRecordSigner(signer auth.Signer) Option {
 	return func(c *Client) { c.signer = signer }
 }
 
+// CallOption customizes one call.
+type CallOption func(*callOptions)
+
+type callOptions struct {
+	token string
+}
+
+// CallToken authorizes this call with encoded instead of the client's token. A
+// service that writes to many buckets passes each bucket's token here and shares
+// one client.
+func CallToken(encoded string) CallOption {
+	return func(o *callOptions) { o.token = encoded }
+}
+
 // NewClient returns a client for the storage node behind conn.
 func NewClient(conn grpc.ClientConnInterface, opts ...Option) *Client {
 	c := &Client{
@@ -100,13 +115,21 @@ func NewClient(conn grpc.ClientConnInterface, opts ...Option) *Client {
 	return c
 }
 
-func (c *Client) withToken(ctx context.Context) (context.Context, error) {
-	if c.token == nil {
-		return nil, ErrNoToken
+// withToken attaches the call's token, else the client's, to ctx.
+func (c *Client) withToken(ctx context.Context, opts []CallOption) (context.Context, error) {
+	var o callOptions
+	for _, opt := range opts {
+		opt(&o)
 	}
-	token, err := c.token(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("access token: %w", err)
+	token := o.token
+	if token == "" && c.token != nil {
+		var err error
+		if token, err = c.token(ctx); err != nil {
+			return nil, fmt.Errorf("access token: %w", err)
+		}
+	}
+	if token == "" {
+		return nil, ErrNoToken
 	}
 	return metadata.AppendToOutgoingContext(ctx, TokenMetadataKey, token), nil
 }
@@ -120,14 +143,14 @@ func (c *Client) withToken(ctx context.Context) (context.Context, error) {
 // When PutPiece gives up part-way (the content is shorter or longer than size,
 // or reading it fails) it cancels the stream rather than closing it, so the node
 // never sees a complete upload and stores nothing.
-func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reader, size int64) (string, error) {
+func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reader, size int64, opts ...CallOption) (string, error) {
 	if size <= 0 {
 		return "", fmt.Errorf("put piece: size must be positive, got %d", size)
 	}
 	if size > MaxRawPieceSize {
 		return "", fmt.Errorf("put piece: %d bytes exceeds the %d-byte raw piece limit", size, MaxRawPieceSize)
 	}
-	ctx, err := c.withToken(ctx)
+	ctx, err := c.withToken(ctx, opts)
 	if err != nil {
 		return "", fmt.Errorf("put piece: %w", err)
 	}
@@ -181,8 +204,8 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 }
 
 // PutNode stores a DAG node and returns the CID the node computed for it.
-func (c *Client) PutNode(ctx context.Context, bucketID uint64, node *dagapi.Node) (string, error) {
-	ctx, err := c.withToken(ctx)
+func (c *Client) PutNode(ctx context.Context, bucketID uint64, node *dagapi.Node, opts ...CallOption) (string, error) {
+	ctx, err := c.withToken(ctx, opts)
 	if err != nil {
 		return "", fmt.Errorf("put node: %w", err)
 	}
@@ -194,12 +217,12 @@ func (c *Client) PutNode(ctx context.Context, bucketID uint64, node *dagapi.Node
 }
 
 // GetNode reads a DAG node by CID.
-func (c *Client) GetNode(ctx context.Context, bucketID uint64, id string) (*dagapi.Node, error) {
+func (c *Client) GetNode(ctx context.Context, bucketID uint64, id string, opts ...CallOption) (*dagapi.Node, error) {
 	raw, err := CIDBytes(id)
 	if err != nil {
 		return nil, fmt.Errorf("get node: %w", err)
 	}
-	ctx, err = c.withToken(ctx)
+	ctx, err = c.withToken(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("get node: %w", err)
 	}
@@ -216,7 +239,7 @@ func (c *Client) GetNode(ctx context.Context, bucketID uint64, id string) (*daga
 // PutName points a CNS name in the bucket at a CID, with a record signed by the
 // client's record signer. The signature covers the record marshaled without its
 // signature, signed as-is, which is what the storage node verifies.
-func (c *Client) PutName(ctx context.Context, bucketID uint64, name, id string) error {
+func (c *Client) PutName(ctx context.Context, bucketID uint64, name, id string, opts ...CallOption) error {
 	if c.signer == nil {
 		return fmt.Errorf("put name %q: %w", name, ErrNoRecordSigner)
 	}
@@ -228,7 +251,7 @@ func (c *Client) PutName(ctx context.Context, bucketID uint64, name, id string) 
 	if _, err := auth.SignMessage(c.signer, record); err != nil {
 		return fmt.Errorf("put name %q: sign record: %w", name, err)
 	}
-	ctx, err = c.withToken(ctx)
+	ctx, err = c.withToken(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("put name %q: %w", name, err)
 	}
@@ -241,8 +264,8 @@ func (c *Client) PutName(ctx context.Context, bucketID uint64, name, id string) 
 // ResolveName returns the CID a CNS name in the bucket points at. It returns an
 // error wrapping ErrNameNotFound only when the node says the bucket has no such
 // name.
-func (c *Client) ResolveName(ctx context.Context, bucketID uint64, name string) (string, error) {
-	ctx, err := c.withToken(ctx)
+func (c *Client) ResolveName(ctx context.Context, bucketID uint64, name string, opts ...CallOption) (string, error) {
+	ctx, err := c.withToken(ctx, opts)
 	if err != nil {
 		return "", fmt.Errorf("resolve name %q: %w", name, err)
 	}

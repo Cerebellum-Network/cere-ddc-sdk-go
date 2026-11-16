@@ -239,3 +239,18 @@ func TestAnAbandonedPutPieceStoresNothing(t *testing.T) {
 	require.ErrorContains(t, err, "longer than the announced")
 	assert.Never(t, func() bool { return node.Writes(testBucket) > 0 }, 300*time.Millisecond, 10*time.Millisecond)
 }
+
+// The call's token wins over the client's.
+func TestCallTokenOverridesTheClientToken(t *testing.T) {
+	capture := &capturingFile{}
+	client := storage.NewClient(capture.serve(t), storage.WithToken("client-token"))
+	ctx := context.Background()
+
+	_, err := client.PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1)
+	require.NoError(t, err)
+	_, err = client.PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("bucket-token"))
+	require.NoError(t, err)
+	_, err = storage.NewClient(capture.serve(t)).PutPiece(ctx, testBucket, bytes.NewReader([]byte("a")), 1, storage.CallToken("only-call"))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"client-token", "bucket-token", "only-call"}, capture.tokens)
+}
