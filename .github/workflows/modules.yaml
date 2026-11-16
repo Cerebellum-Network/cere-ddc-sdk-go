@@ -48,3 +48,16 @@ jobs:
       - name: 'go.mod is tidy'
         working-directory: ${{ matrix.module }}
         run: go mod tidy -diff
+
+      # The tests above build against ../auth through a replace, which
+      # consumers ignore. Build once more against the auth version go.mod
+      # requires, so a stale requirement fails here and not for consumers.
+      - name: 'Builds against the required auth'
+        if: matrix.module == 'indexer' || matrix.module == 'storage'
+        working-directory: ${{ matrix.module }}
+        env:
+          GOFLAGS: '-mod=mod'
+        run: |
+          go mod edit -dropreplace=github.com/cerebellum-network/cere-ddc-sdk-go/auth
+          go build ./...
+          go vet ./...
