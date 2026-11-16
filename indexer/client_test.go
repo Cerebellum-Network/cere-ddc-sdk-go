@@ -15,6 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cerebellum-network/cere-ddc-sdk-go/auth"
 )
 
 // The assertion that *Client satisfies authz.BucketOwnerIndex lives in
@@ -1845,4 +1847,36 @@ func TestClientLookupFillsLookupResultDelegates(t *testing.T) {
 	result, err = client.Lookup(context.Background(), 7)
 	require.NoError(t, err)
 	assert.Empty(t, result.Delegates, "an absent field decodes as no delegates")
+}
+
+// A bucket the index says does not exist must reach the authorizer as a
+// denial (403), not as an outage (503).
+func TestClientUnknownBucketIsADenialForTheAuthorizer(t *testing.T) {
+	for _, code := range []string{CodeBucketNotFound, CodeAccountNotFound} {
+		index := newStubIndex(t)
+		index.setRespond(func(w http.ResponseWriter, _ uint64) {
+			writeContractError(w, http.StatusNotFound, code, "no")
+		})
+		client := newTestClient(t, index.server.URL, newFakeClock())
+
+		_, err := client.Lookup(context.Background(), 7)
+		require.ErrorIs(t, err, auth.ErrUnknownBucket, code)
+	}
+
+	down := newStubIndex(t)
+	down.setRespond(func(w http.ResponseWriter, _ uint64) { w.WriteHeader(http.StatusBadGateway) })
+	_, err := newTestClient(t, down.server.URL, newFakeClock()).Lookup(context.Background(), 7)
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, auth.ErrUnknownBucket, "an outage is not a denial")
+}
+
+func TestNewAppliesTheRequestTimeoutToTheDefaultHTTPClient(t *testing.T) {
+	client, err := New("http://indexer.invalid", WithRequestTimeout(10*time.Second))
+	require.NoError(t, err)
+	assert.Equal(t, 10*time.Second, client.httpClient.Timeout)
+}
+
+func TestNewRejectsBalanceTTLAboveOwnershipTTL(t *testing.T) {
+	_, err := New("http://indexer.invalid", WithTTLs(30*time.Second, 10*time.Minute))
+	require.ErrorContains(t, err, "must not exceed ownership TTL")
 }

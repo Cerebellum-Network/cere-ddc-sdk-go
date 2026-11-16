@@ -100,7 +100,8 @@ func WithClock(now func() time.Time) Option {
 }
 
 // WithTTLs sets how long an ownership answer and a balance answer stay fresh.
-// Ownership is near-static; balance moves, so it wants a short window.
+// Ownership is near-static; balance moves, so it wants a short window. balance
+// must not exceed ownership: New rejects that configuration.
 func WithTTLs(ownership, balance time.Duration) Option {
 	return func(c *Client) { c.ownershipTTL, c.balanceTTL = ownership, balance }
 }
@@ -146,7 +147,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	if c.httpClient == nil {
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.MaxIdleConnsPerHost = defaultMaxIdleConnsPerHost
-		c.httpClient = &http.Client{Transport: transport, Timeout: defaultRequestTimeout}
+		c.httpClient = &http.Client{Transport: transport, Timeout: c.requestTimeout}
 	}
 
 	return c, nil
@@ -170,6 +171,9 @@ func (c *Client) validate() error {
 		if f.d <= 0 {
 			return fmt.Errorf("indexer: %s must be positive", f.name)
 		}
+	}
+	if c.balanceTTL > c.ownershipTTL {
+		return fmt.Errorf("indexer: balance TTL %s must not exceed ownership TTL %s", c.balanceTTL, c.ownershipTTL)
 	}
 	if c.requestTimeout <= 0 {
 		return fmt.Errorf("indexer: request timeout must be positive")
@@ -203,6 +207,12 @@ func (c *Client) validate() error {
 func (c *Client) Lookup(ctx context.Context, bucketID uint64) (auth.LookupResult, error) {
 	info, err := c.LookupBucket(ctx, bucketID)
 	if err != nil {
+		if isDefinitiveDenial(err) {
+			// The index answered: there is no such bucket or owner account.
+			// auth.ErrUnknownBucket tells the authorizer this is a denial,
+			// not an outage.
+			return auth.LookupResult{}, fmt.Errorf("%w: %w", auth.ErrUnknownBucket, err)
+		}
 		return auth.LookupResult{}, err
 	}
 	return auth.LookupResult{
@@ -262,8 +272,8 @@ func (c *Client) LookupBucket(ctx context.Context, bucketID uint64) (BucketInfo,
 //   - age < BalanceTTL+GraceWindow — the operator's explicit, bounded tolerance
 //     for serving an answer whose balance half may have moved.
 //   - age < OwnershipTTL — the hard ceiling on the age of any answer this client
-//     will serve, which no grace window can raise. Config.Validate enforces
-//     BalanceTTL <= OwnershipTTL, so this bound really is a ceiling.
+//     will serve, which no grace window can raise. New rejects a
+//     BalanceTTL above OwnershipTTL, so this bound really is a ceiling.
 //
 // With GraceWindow = 0 the first bound is age < BalanceTTL, which this path has
 // already established is false: zero grace means the client fails closed the
