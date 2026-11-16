@@ -363,6 +363,9 @@ func (s cnsServer) Get(ctx context.Context, req *cnsapi.GetRequest) (*cnsapi.Get
 	if s.n.AfterResolve != nil {
 		s.n.AfterResolve(req.GetBucketId(), req.GetName())
 	}
+	// The name lookup comes before authorization, as on the real node
+	// (internal/storage/cns/api.go), so a caller without a valid token also
+	// learns whether a name exists.
 	if rec == nil {
 		return nil, status.Error(codes.NotFound, UnknownCnsRecordMessage)
 	}

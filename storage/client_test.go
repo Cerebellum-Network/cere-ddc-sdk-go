@@ -225,3 +225,17 @@ func TestWithTokenSourceIsAskedPerCall(t *testing.T) {
 type errReader struct{ err error }
 
 func (r errReader) Read([]byte) (int, error) { return 0, r.err }
+
+// An upload PutPiece abandons is cancelled, not half-closed: the node has seen
+// every announced byte here, and a clean end of stream would let it commit the
+// piece while the caller is told the upload failed.
+func TestAnAbandonedPutPieceStoresNothing(t *testing.T) {
+	owner := authtest.NewKey(t)
+	node := storagetest.Start(t, owner.Pub, testBucket)
+	client := newClient(t, node.Conn(), writeToken(t, owner, testBucket))
+
+	body := bytes.Repeat([]byte{0xcd}, storage.PieceChunkSize+1)
+	_, err := client.PutPiece(context.Background(), testBucket, bytes.NewReader(body), storage.PieceChunkSize)
+	require.ErrorContains(t, err, "longer than the announced")
+	assert.Never(t, func() bool { return node.Writes(testBucket) > 0 }, 300*time.Millisecond, 10*time.Millisecond)
+}

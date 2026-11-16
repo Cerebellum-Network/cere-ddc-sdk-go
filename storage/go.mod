@@ -3,7 +3,7 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/storage
 go 1.24.0
 
 require (
-	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.0.0-20261115182106-459174bed563
+	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.0.0-20261116143455-8bd376b0b8c6
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/multiformats/go-varint v0.0.7

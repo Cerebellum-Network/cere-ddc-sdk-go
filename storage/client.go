@@ -116,6 +116,10 @@ func (c *Client) withToken(ctx context.Context) (context.Context, error) {
 // content in PieceChunkSize messages. The node rejects a body that disagrees
 // with the announced size, so size must be exact; PutPiece checks it before the
 // node does.
+//
+// When PutPiece gives up part-way (the content is shorter or longer than size,
+// or reading it fails) it cancels the stream rather than closing it, so the node
+// never sees a complete upload and stores nothing.
 func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reader, size int64) (string, error) {
 	if size <= 0 {
 		return "", fmt.Errorf("put piece: size must be positive, got %d", size)
@@ -127,6 +131,11 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 	if err != nil {
 		return "", fmt.Errorf("put piece: %w", err)
 	}
+	// Cancelling this context is how an abandoned upload is aborted, and it
+	// releases the stream however PutPiece returns.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	stream, err := c.file.PutRawPiece(ctx)
 	if err != nil {
 		return "", fmt.Errorf("put piece: open stream: %w", err)
@@ -134,46 +143,41 @@ func (c *Client) PutPiece(ctx context.Context, bucketID uint64, content io.Reade
 	if err := stream.Send(&fileapi.PutRawPieceRequest{Body: &fileapi.PutRawPieceRequest_Metadata_{
 		Metadata: &fileapi.PutRawPieceRequest_Metadata{BucketId: bucketID, Size: uint64(size)},
 	}}); err != nil {
-		return "", closeWithCause(stream, fmt.Errorf("put piece: send metadata: %w", err))
+		return "", fmt.Errorf("put piece: send metadata: %w", err)
 	}
-	buf := make([]byte, PieceChunkSize)
 	var sent int64
 	for {
-		n, rerr := content.Read(buf)
+		// A fresh buffer per message: gRPC may still read a sent message after
+		// Send returns. Read one byte past the announced size to catch content
+		// that is too long before its last chunk goes out.
+		buf := make([]byte, min(PieceChunkSize, size-sent+1))
+		n, rerr := io.ReadFull(content, buf)
 		if n > 0 {
 			sent += int64(n)
 			if sent > size {
-				return "", closeWithCause(stream, fmt.Errorf("put piece: content is longer than the announced %d bytes", size))
+				return "", fmt.Errorf("put piece: content is longer than the announced %d bytes", size)
 			}
 			if err := stream.Send(&fileapi.PutRawPieceRequest{Body: &fileapi.PutRawPieceRequest_Content_{
 				Content: &fileapi.PutRawPieceRequest_Content{Data: buf[:n]},
 			}}); err != nil {
-				return "", closeWithCause(stream, fmt.Errorf("put piece: send content: %w", err))
+				return "", fmt.Errorf("put piece: send content: %w", err)
 			}
 		}
-		if errors.Is(rerr, io.EOF) {
+		if errors.Is(rerr, io.EOF) || errors.Is(rerr, io.ErrUnexpectedEOF) {
 			break
 		}
 		if rerr != nil {
-			return "", closeWithCause(stream, fmt.Errorf("put piece: read content: %w", rerr))
+			return "", fmt.Errorf("put piece: read content: %w", rerr)
 		}
 	}
 	if sent != size {
-		return "", closeWithCause(stream, fmt.Errorf("put piece: content is %d bytes, announced %d", sent, size))
+		return "", fmt.Errorf("put piece: content is %d bytes, announced %d", sent, size)
 	}
 	resp, err := stream.CloseAndRecv()
 	if err != nil {
 		return "", fmt.Errorf("put piece: %w", err)
 	}
 	return CIDString(resp.GetCid())
-}
-
-// closeWithCause half-closes a stream the client is abandoning and returns the
-// client-side cause. That is the useful error: the node's answer to a truncated
-// stream only restates it.
-func closeWithCause(stream fileapi.FileApi_PutRawPieceClient, cause error) error {
-	_ = stream.CloseSend()
-	return cause
 }
 
 // PutNode stores a DAG node and returns the CID the node computed for it.
