@@ -3,8 +3,8 @@ package agents
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,11 +23,15 @@ const authTokenHeader = "X-Auth-Token"
 // forever.
 const DefaultInvokeTimeout = 30 * time.Minute
 
+// ErrNoToken is returned by Invoke, QueryLogs and QueryMetrics when neither the
+// client nor the call carries an access token.
+var ErrNoToken = errors.New("no access token configured")
+
 // Client is the agent gateway API. HTTPClient implements it.
 type Client interface {
-	Invoke(ctx context.Context, req InvokeRequest, authToken []byte) (*InvokeResponse, error)
-	QueryLogs(ctx context.Context, q LogQuery) (*LogQueryResponse, error)
-	QueryMetrics(ctx context.Context, q MetricsQuery) (*MetricsQueryResponse, error)
+	Invoke(ctx context.Context, req InvokeRequest, opts ...CallOption) (*InvokeResponse, error)
+	QueryLogs(ctx context.Context, q LogQuery, opts ...CallOption) (*LogQueryResponse, error)
+	QueryMetrics(ctx context.Context, q MetricsQuery, opts ...CallOption) (*MetricsQueryResponse, error)
 	Health(ctx context.Context) error
 }
 
@@ -56,10 +60,61 @@ type HTTPClient struct {
 	// can only shorten.
 	invoke    *http.Client
 	invokeMax time.Duration
+	token     func(context.Context) (string, error)
 }
 
 // Option customizes an HTTPClient.
 type Option func(*HTTPClient)
+
+// WithToken authorizes every call with one encoded DDC access token (see
+// auth.EncodeToken): a token for the bucket that pays for the runs, or whose
+// logs and metrics are read.
+func WithToken(encoded string) Option {
+	return func(c *HTTPClient) {
+		c.token = func(context.Context) (string, error) { return encoded, nil }
+	}
+}
+
+// WithTokenSource authorizes each call with the token source returns at call
+// time, for tokens that are refreshed before they expire.
+func WithTokenSource(source func(context.Context) (string, error)) Option {
+	return func(c *HTTPClient) { c.token = source }
+}
+
+// CallOption customizes one call.
+type CallOption func(*callOptions)
+
+type callOptions struct {
+	token string
+}
+
+// CallToken authorizes this call with encoded instead of the client's token. A
+// service that runs agents for many buckets passes each run's own token here
+// and shares one client.
+func CallToken(encoded string) CallOption {
+	return func(o *callOptions) { o.token = encoded }
+}
+
+// authorize sets the access token header from the call's token, else the
+// client's.
+func (c *HTTPClient) authorize(req *http.Request, opts []CallOption) error {
+	var o callOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	token := o.token
+	if token == "" && c.token != nil {
+		var err error
+		if token, err = c.token(req.Context()); err != nil {
+			return fmt.Errorf("access token: %w", err)
+		}
+	}
+	if token == "" {
+		return ErrNoToken
+	}
+	req.Header.Set(authTokenHeader, token)
+	return nil
+}
 
 // NewClient returns a client for the gateway at baseURL. timeoutSeconds bounds
 // each log, metrics and health request; invokes are bounded by their context
@@ -106,15 +161,14 @@ func (c *HTTPClient) BaseURL() string { return c.baseURL }
 
 // Invoke runs one handler of an agent bundle and returns its outcome.
 //
-// authToken is the DDC access token chain for the bucket that pays for the
-// run, as protobuf bytes (pb.AuthToken marshaled); the runtime rejects a call
-// without one with 401. Invoke is bounded by ctx, not by the per-request
+// The call carries the access token for the bucket that pays for the run (see
+// WithToken and CallToken). Invoke is bounded by ctx, not by the per-request
 // timeout, so give ctx a deadline that outlasts req.Limits.TimeoutMs. A ctx
 // with no deadline gets the invoke ceiling.
 //
 // A 200 whose Status is "error" is returned as a response, not an error: the
 // handler ran and failed. Any other status is a *StatusError.
-func (c *HTTPClient) Invoke(ctx context.Context, req InvokeRequest, authToken []byte) (*InvokeResponse, error) {
+func (c *HTTPClient) Invoke(ctx context.Context, req InvokeRequest, opts ...CallOption) (*InvokeResponse, error) {
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, c.invokeMax)
@@ -129,8 +183,8 @@ func (c *HTTPClient) Invoke(ctx context.Context, req InvokeRequest, authToken []
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	if len(authToken) > 0 {
-		httpReq.Header.Set(authTokenHeader, base64.StdEncoding.EncodeToString(authToken))
+	if err := c.authorize(httpReq, opts); err != nil {
+		return nil, fmt.Errorf("agents: /v1/invoke: %w", err)
 	}
 
 	var out InvokeResponse
@@ -140,8 +194,9 @@ func (c *HTTPClient) Invoke(ctx context.Context, req InvokeRequest, authToken []
 	return &out, nil
 }
 
-// QueryLogs returns one page of an agent bundle's log records.
-func (c *HTTPClient) QueryLogs(ctx context.Context, q LogQuery) (*LogQueryResponse, error) {
+// QueryLogs returns one page of an agent bundle's log records. Log streams are
+// tenant data: the token must be for q.BucketID.
+func (c *HTTPClient) QueryLogs(ctx context.Context, q LogQuery, opts ...CallOption) (*LogQueryResponse, error) {
 	v := url.Values{}
 	v.Set("bucket", q.BucketID)
 	v.Set("cid", q.CID)
@@ -170,8 +225,8 @@ func (c *HTTPClient) QueryLogs(ctx context.Context, q LogQuery) (*LogQueryRespon
 	if err != nil {
 		return nil, err
 	}
-	if q.AuthToken != "" {
-		httpReq.Header.Set(authTokenHeader, q.AuthToken)
+	if err := c.authorize(httpReq, opts); err != nil {
+		return nil, fmt.Errorf("agents: /v1/logs: %w", err)
 	}
 	var out LogQueryResponse
 	if err := c.do(c.client, httpReq, "/v1/logs", &out); err != nil {
@@ -197,7 +252,7 @@ var metricsQueryReserved = map[string]struct{}{
 
 // QueryMetrics returns an agent bundle's approximate resource use. The gateway
 // rejects a metric or label it does not allow with a 400 *StatusError.
-func (c *HTTPClient) QueryMetrics(ctx context.Context, q MetricsQuery) (*MetricsQueryResponse, error) {
+func (c *HTTPClient) QueryMetrics(ctx context.Context, q MetricsQuery, opts ...CallOption) (*MetricsQueryResponse, error) {
 	v := url.Values{}
 	v.Set("bucket", q.Bucket)
 	v.Set("cid", q.CID)
@@ -225,8 +280,8 @@ func (c *HTTPClient) QueryMetrics(ctx context.Context, q MetricsQuery) (*Metrics
 	if err != nil {
 		return nil, err
 	}
-	if q.AuthToken != "" {
-		httpReq.Header.Set(authTokenHeader, q.AuthToken)
+	if err := c.authorize(httpReq, opts); err != nil {
+		return nil, fmt.Errorf("agents: /v1/metrics: %w", err)
 	}
 	var out MetricsQueryResponse
 	if err := c.do(c.client, httpReq, "/v1/metrics", &out); err != nil {

@@ -10,11 +10,11 @@ import (
 )
 
 func ExampleHTTPClient_Invoke() {
-	client := agents.NewClient("https://agents.example.com", 30)
+	// A COMPUTE grant on bucket 1337, minted and encoded with the auth module
+	// (auth.EncodeToken).
+	var token string
 
-	// A COMPUTE grant on bucket 1337, minted with the auth module and
-	// marshaled with proto.Marshal.
-	var tokenBytes []byte
+	client := agents.NewClient("https://agents.example.com", 30, agents.WithToken(token))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -23,7 +23,7 @@ func ExampleHTTPClient_Invoke() {
 		Handler: "onMessage",
 		Event:   json.RawMessage(`{"text":"hello"}`),
 		Limits:  &agents.InvokeLimits{TimeoutMs: 60_000},
-	}, tokenBytes)
+	})
 	if err != nil {
 		panic(err) // transport failure or a non-200 *agents.StatusError
 	}

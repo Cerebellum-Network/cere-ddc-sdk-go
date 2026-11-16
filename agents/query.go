@@ -21,11 +21,6 @@ type LogQuery struct {
 	// them the query returns the bundle's merged stream across all runs. A key
 	// that collides with one of the query's own parameters is dropped.
 	Labels map[string]string
-
-	// AuthToken is the encoded DDC access token proving the caller owns
-	// BucketID. Log streams are tenant data, so a query without one is
-	// rejected with 401.
-	AuthToken string
 }
 
 // LogQueryResponse is one page of log records.
@@ -46,10 +41,6 @@ type MetricsQuery struct {
 	From    time.Time         // optional
 	To      time.Time         // optional
 	Step    string            // optional; selects a range query
-
-	// AuthToken is the encoded DDC access token proving the caller owns
-	// Bucket. See LogQuery.AuthToken.
-	AuthToken string
 }
 
 // MetricsQueryResponse carries the metrics store's Prometheus-format result in

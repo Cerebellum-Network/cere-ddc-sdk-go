@@ -12,6 +12,7 @@ An agent is a JavaScript bundle stored in DDC. `Invoke` runs one of its handlers
 
 ```go
 client := agents.NewClient("https://agents.example.com", 30,
+	agents.WithToken(encodedToken), // auth.EncodeToken; or WithTokenSource
 	agents.WithInvokeTimeout(10*time.Minute))
 
 resp, err := client.Invoke(ctx, agents.InvokeRequest{
@@ -19,8 +20,10 @@ resp, err := client.Invoke(ctx, agents.InvokeRequest{
 	Handler: "onMessage",
 	Event:   json.RawMessage(`{"text":"hello"}`),
 	Limits:  &agents.InvokeLimits{TimeoutMs: 60_000},
-}, tokenBytes) // proto.Marshal of the pb.AuthToken
+})
 ```
+
+A service that runs agents for many buckets shares one client and passes each run's own token: `client.Invoke(ctx, req, agents.CallToken(runToken))`. A call with no token returns `ErrNoToken` without reaching the gateway.
 
 - **`err` is not nil** for a transport failure, or for a non-200 answer as a `*agents.StatusError` (401 no or bad token, 403 not the bucket owner, 408 timeout, 503 no runtime available).
 - **`resp.Status == "error"`** means the handler ran and failed. `resp.Error.Code` is one of the `Code*` constants and `resp.Error.Retryable` says whether retrying can help.
@@ -32,10 +35,9 @@ resp, err := client.Invoke(ctx, agents.InvokeRequest{
 logs, err := client.QueryLogs(ctx, agents.LogQuery{
 	BucketID: "1337", CID: bundleCID, Since: from, Until: to,
 	Labels: map[string]string{"runId": runID}, // labels you invoked with
-	AuthToken: encodedToken,                    // auth.EncodeToken
 })
 usage, err := client.QueryMetrics(ctx, agents.MetricsQuery{
-	Bucket: "1337", CID: bundleCID, Metric: "agent_invocations_total", AuthToken: encodedToken,
+	Bucket: "1337", CID: bundleCID, Metric: "agent_invocations_total",
 })
 err = client.Health(ctx)
 ```
