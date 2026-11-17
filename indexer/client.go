@@ -362,7 +362,14 @@ func (c *Client) interpret(bucketID uint64, statusCode int, body []byte, readErr
 		return info, nil
 
 	case statusCode == http.StatusNotFound:
-		return BucketInfo{}, decodeErrorBody(body, fmt.Errorf("%w: status 404", ErrBucketNotFound))
+		// Only the contract's error body can say the bucket does not exist. A 404
+		// without it comes from something that does not serve the contract at this
+		// URL: a router's default page, a proxy, or a ddc-node storage node that
+		// is not yet assigned to a cluster and so has not mounted /v1/buckets.
+		// Reading that as "no such bucket" would cache a denial (a 403) for an
+		// outage; it fails closed as unavailable instead, and is not cached.
+		return BucketInfo{}, decodeErrorBody(body,
+			fmt.Errorf("%w: status 404 without a contract error body", ErrUnavailable))
 
 	case statusCode == http.StatusBadRequest:
 		// The client only ever sends decimal, non-zero bucket ids, so a 400 means

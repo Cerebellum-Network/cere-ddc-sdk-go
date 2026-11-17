@@ -636,23 +636,49 @@ func TestClientTreatsADegradedCodeAsUnavailableNotADenial(t *testing.T) {
 	}
 }
 
-func TestClientIgnoresErrorBodyFromAnotherContractVersion(t *testing.T) {
-	// A body this client cannot trust falls back to what the status alone
-	// supports. A 404 supports "not found", so the denial stands — but it is the
-	// status that carried it, not the unreadable body.
-	index := newStubIndex(t)
-	index.setRespond(func(w http.ResponseWriter, _ uint64) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{
-			ContractVersion: ContractVersion + 1,
-			Code:            "renamed_in_v2",
-		})
-	})
-	client := newTestClient(t, index.server.URL, newFakeClock())
+// TestClient404WithoutContractBodyIsUnavailableNotADenial: only the contract's
+// error body says a bucket does not exist. Any other 404 — a router's default
+// page (a ddc-node storage node mounts /v1/buckets only once it is assigned to
+// a cluster), a v1 body with no code, or a body from another contract version —
+// fails closed as unavailable and is never cached as a denial.
+func TestClient404WithoutContractBodyIsUnavailableNotADenial(t *testing.T) {
+	cases := map[string]func(w http.ResponseWriter){
+		"plain text": func(w http.ResponseWriter) {
+			http.Error(w, "404 page not found", http.StatusNotFound)
+		},
+		"echo default": func(w http.ResponseWriter) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"Not Found"}`))
+		},
+		"v1 body without a code": func(w http.ResponseWriter) {
+			writeContractError(w, http.StatusNotFound, "", "no code")
+		},
+		"another contract version": func(w http.ResponseWriter) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(ErrorResponse{
+				ContractVersion: ContractVersion + 1,
+				Code:            CodeBucketNotFound,
+			})
+		},
+	}
+	for name, respond := range cases {
+		t.Run(name, func(t *testing.T) {
+			index := newStubIndex(t)
+			index.setRespond(func(w http.ResponseWriter, _ uint64) { respond(w) })
+			client := newTestClient(t, index.server.URL, newFakeClock())
 
-	_, err := client.Lookup(context.Background(), 7)
-	assert.ErrorIs(t, err, ErrBucketNotFound)
+			_, err := client.Lookup(context.Background(), 42)
+			require.ErrorIs(t, err, ErrUnavailable)
+			assert.NotErrorIs(t, err, ErrBucketNotFound)
+
+			_, err = client.Lookup(context.Background(), 42)
+			require.ErrorIs(t, err, ErrUnavailable)
+			assert.Equal(t, int64(2), index.requests.Load(),
+				"a 404 without the contract's body must not be cached as a denial")
+		})
+	}
 }
 
 func TestClientDenialCostsOneRequest(t *testing.T) {
