@@ -3,7 +3,7 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/storage
 go 1.24.0
 
 require (
-	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.0.0-20261116151358-a3930b4d6920
+	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.1.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
@@ -35,7 +35,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
-
-// Builds against the auth module in this repository. Consumers ignore this
-// replace and use the version required above.
-replace github.com/cerebellum-network/cere-ddc-sdk-go/auth => ../auth

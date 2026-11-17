@@ -1,5 +1,7 @@
 github.com/ChainSafe/go-schnorrkel v1.1.0 h1:rZ6EU+CZFCjB4sHUE1jIu8VDoB/wRKZxoe1tkcO71Wk=
 github.com/ChainSafe/go-schnorrkel v1.1.0/go.mod h1:ABkENxiP+cvjFiByMIZ9LYbRoNNLeBLiakC1XeTFxfE=
+github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.1.0 h1:Ry98AwpoUuInJ3HxTazLL8dDcvMr9VRnDczuU9vyYtY=
+github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.1.0/go.mod h1:oXoD6dZO8+8ykW1vnv7uYJ5COq4xLiQGj7i9JC2CQPY=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d h1:49RLWk1j44Xu4fjHb6JFYmeUnDORVwHNkDxaQ0ctCVU=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
