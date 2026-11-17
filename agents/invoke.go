@@ -31,6 +31,10 @@ type InvokeRequest struct {
 	// inference gateway labels the request's metrics with it. Empty sends no
 	// header.
 	Caller string `json:"caller,omitempty"`
+	// CallerDeployment is the workflow deployment the run's inference calls are
+	// made for. The runtime sends it as the X-Caller-Deployment header beside
+	// X-Caller. Empty sends no header.
+	CallerDeployment string `json:"callerDeployment,omitempty"`
 }
 
 // InvokeLimits bounds one run.

@@ -47,13 +47,20 @@ func TestInvokeRequest_OmitsEmptyFields(t *testing.T) {
 	b, err := json.Marshal(req)
 	require.NoError(t, err, "marshal")
 	s := string(b)
-	for _, omitted := range []string{`"cluster"`, `"event"`, `"context"`, `"labels"`, `"limits"`} {
+	for _, omitted := range []string{`"cluster"`, `"event"`, `"context"`, `"labels"`, `"limits"`, `"caller"`, `"callerDeployment"`} {
 		assert.NotContains(t, s, omitted, "expected field to be omitted")
 	}
 	// Required fields should be present.
 	assert.Contains(t, s, `"bucketId":"b"`, "bucketId missing")
 	assert.Contains(t, s, `"cid":"c"`, "cid missing")
 	assert.Contains(t, s, `"handler":"h"`, "handler missing")
+}
+
+func TestInvokeRequest_CallerDeploymentJSONName(t *testing.T) {
+	t.Parallel()
+	b, err := json.Marshal(InvokeRequest{Handler: "h", Caller: "a", CallerDeployment: "d1"})
+	require.NoError(t, err, "marshal")
+	assert.Contains(t, string(b), `"callerDeployment":"d1"`)
 }
 
 func TestInvokeResponse_SuccessShape(t *testing.T) {
