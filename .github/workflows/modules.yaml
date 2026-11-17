@@ -1,0 +1,63 @@
+name: 'Modules'
+
+# Lint and test for the modules that build with Go 1.24 (auth, and the modules
+# that follow it). They are not in go.work, so every step runs with GOWORK=off.
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  module:
+    name: '${{ matrix.module }}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [auth, indexer, agents, storage]
+    env:
+      GOWORK: 'off'
+    steps:
+      - name: 'Checkout code'
+        uses: actions/checkout@v4
+
+      - name: 'Install Go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.x
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: 'Lint'
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+          working-directory: ${{ matrix.module }}
+          args: --config ../.golangci.v2.yaml --timeout 5m
+
+      - name: 'Test'
+        working-directory: ${{ matrix.module }}
+        run: go test -race ./...
+
+      - name: 'go.mod is tidy'
+        working-directory: ${{ matrix.module }}
+        run: go mod tidy -diff
+
+      # The tests above build against ../auth through a replace, which
+      # consumers ignore. Build once more against the auth version go.mod
+      # requires, so a stale requirement fails here and not for consumers.
+      - name: 'Builds against the required auth'
+        if: matrix.module == 'indexer' || matrix.module == 'storage'
+        working-directory: ${{ matrix.module }}
+        env:
+          GOFLAGS: '-mod=mod'
+        run: |
+          go mod edit -dropreplace=github.com/cerebellum-network/cere-ddc-sdk-go/auth
+          go build ./...
+          go vet ./...
