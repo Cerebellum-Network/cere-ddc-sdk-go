@@ -3,7 +3,7 @@ module github.com/cerebellum-network/cere-ddc-sdk-go/indexer
 go 1.24.0
 
 require (
-	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.0.0-20261116151358-a3930b4d6920
+	github.com/cerebellum-network/cere-ddc-sdk-go/auth v0.1.0
 	github.com/stretchr/testify v1.10.0
 )
 
@@ -21,7 +21,3 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// Builds against the auth module in this repository. Consumers ignore this
-// replace and use the version required above.
-replace github.com/cerebellum-network/cere-ddc-sdk-go/auth => ../auth
