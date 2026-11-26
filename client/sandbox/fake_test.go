@@ -30,8 +30,9 @@ type fake struct {
 	runSecret map[string]map[string]string // id -> name -> value
 	records   []map[string]any
 	egressLog []map[string]any
-	keys      map[string]string // Idempotency-Key -> sandbox id
-	keyBodies map[string]string // Idempotency-Key -> the create body, secret values left out
+	keys      map[string]string      // Idempotency-Key -> sandbox id
+	keyBodies map[string]string      // Idempotency-Key -> the create body, secret values left out
+	detached  map[string][]*fakeExec // sandbox id -> its detached execs, newest first
 
 	// What the tests check.
 	creates    []map[string]any // create bodies as sent
@@ -41,12 +42,33 @@ type fake struct {
 	startAs    string           // the status a create answers (default running)
 	failStart  bool             // a created sandbox fails to start
 	loseCreate int              // creates that make the sandbox but answer 502, as if the answer was lost
+	keepOutput int              // bytes of each stream of a detached exec kept (0: all)
+	maxRead    int              // bytes of each stream one output read returns (0: 1 MiB)
+	dropOutput []int            // per output stream connection, in turn: drop it after this many chunks
+	outputs    []string         // the query of each output request
+}
+
+// fakeExec is a detached exec: the Exec as JSON, its body (for its key) and
+// what it wrote. It runs until it is read twice, or streamed to its end.
+type fakeExec struct {
+	m              map[string]any
+	body           string
+	stdout, stderr string
+	reads          int
+}
+
+func (e *fakeExec) exit(code any, errMsg any) {
+	if e.m["status"] == sandbox.ExecStatusExited {
+		return
+	}
+	e.m["status"], e.m["exit_code"], e.m["error"] = sandbox.ExecStatusExited, code, errMsg
+	e.m["ended_at"], e.m["duration_ms"] = time.Now().UTC().Format(time.RFC3339), 1200
 }
 
 func newFake(t *testing.T) (*fake, *sandbox.Service) {
 	f := &fake{t: t, sandboxes: map[string]map[string]any{}, files: map[string]map[string][]byte{},
 		secrets: map[string]map[string]any{}, runSecret: map[string]map[string]string{}, startAs: sandbox.StatusRunning,
-		keys: map[string]string{}, keyBodies: map[string]string{}}
+		keys: map[string]string{}, keyBodies: map[string]string{}, detached: map[string][]*fakeExec{}}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 	c, err := client.New(client.WithBaseURL(srv.URL), client.WithToken("tok"),
@@ -282,6 +304,9 @@ func (f *fake) end(sb map[string]any, kind, reason string, code any, extra []str
 			kept = append(kept, map[string]any{"path": name, "size": len(f.files[id][name])})
 		}
 	}
+	for _, ex := range f.detached[id] {
+		ex.exit(nil, "the sandbox ended while the command ran")
+	}
 	sb["status"], sb["exit_kind"], sb["exit_reason"], sb["exit_code"] = "terminated", kind, reason, code
 	sb["ended_at"], sb["retained"], sb["not_retained"] = now.Format(time.RFC3339), kept, missing
 	if len(kept) > 0 {
@@ -390,17 +415,20 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 			}
 		}
 		apiError(w, 410, "file_gone", "not retained")
+	case r.Method == http.MethodGet && len(rest) >= 1 && rest[0] == "exec":
+		f.readExec(w, r, id, rest[1:])
 	case ended(sb):
 		apiError(w, 409, "not_running", "the sandbox has ended")
+	case route == "POST exec" && f.detach(w, r, id):
+		// answered: a detached exec
 	case route == "POST exec":
 		var req struct {
 			Command  []string `json:"command"`
 			Stdin    *string  `json:"stdin"`
 			TimeoutS int      `json:"timeout_s"`
 		}
-		raw, _ := io.ReadAll(r.Body)
-		f.execs = append(f.execs, string(raw))
-		_ = json.Unmarshal(raw, &req)
+		raw := f.execs[len(f.execs)-1]
+		_ = json.Unmarshal([]byte(raw), &req)
 		out := strings.Join(req.Command, " ")
 		if req.Stdin != nil {
 			out += " <" + *req.Stdin
@@ -459,6 +487,146 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 	default:
 		apiError(w, 405, "method_not_allowed", route)
 	}
+}
+
+// detach records an exec's body and, when it asks for a detached exec,
+// starts one and answers 202; it reports whether it answered.
+func (f *fake) detach(w http.ResponseWriter, r *http.Request, id string) bool {
+	raw, _ := io.ReadAll(r.Body)
+	f.execs = append(f.execs, string(raw))
+	var req struct {
+		Command []string `json:"command"`
+		Detach  bool     `json:"detach"`
+	}
+	_ = json.Unmarshal(raw, &req)
+	key := r.Header.Get("Idempotency-Key")
+	if !req.Detach {
+		if key != "" {
+			apiError(w, 400, "invalid_request", "Idempotency-Key is only taken with detach")
+			return true
+		}
+		return false
+	}
+	brief := func(e *fakeExec) map[string]any {
+		return map[string]any{"exec_id": e.m["exec_id"], "status": e.m["status"], "started_at": e.m["started_at"]}
+	}
+	for _, e := range f.detached[id] {
+		if key != "" && e.m["idempotency_key"] == key {
+			if e.body != string(raw) {
+				apiError(w, 409, "idempotency_conflict", "the idempotency key was used with another body")
+				return true
+			}
+			w.Header().Set("Idempotent-Replayed", "true")
+			reply(w, 202, brief(e))
+			return true
+		}
+	}
+	// The command "seq N" writes the numbers 1 to N, a line each, and a line
+	// to stderr; any other its words.
+	var stdout string
+	if len(req.Command) == 2 && req.Command[0] == "seq" {
+		n, _ := strconv.Atoi(req.Command[1])
+		for i := 1; i <= n; i++ {
+			stdout += strconv.Itoa(i) + "\n"
+		}
+	} else {
+		stdout = strings.Join(req.Command, " ") + "\n"
+	}
+	var keyField any
+	if key != "" {
+		keyField = key
+	}
+	e := &fakeExec{body: string(raw), stdout: stdout, stderr: "warn\n", m: map[string]any{
+		"exec_id": fmt.Sprintf("ex-%024d", len(f.execs)), "status": sandbox.ExecStatusRunning, "command": req.Command,
+		"started_at": time.Now().UTC().Format(time.RFC3339), "ended_at": nil, "duration_ms": nil, "exit_code": nil,
+		"timed_out": false, "error": nil, "stdout_bytes": len(stdout), "stderr_bytes": 5,
+		"stdout_truncated_before": 0, "stderr_truncated_before": 0, "output_interrupted": false, "idempotency_key": keyField,
+	}}
+	if f.keepOutput > 0 {
+		e.m["stdout_truncated_before"] = max(0, len(e.stdout)-f.keepOutput)
+		e.m["stderr_truncated_before"] = max(0, len(e.stderr)-f.keepOutput)
+	}
+	f.detached[id] = append([]*fakeExec{e}, f.detached[id]...)
+	reply(w, 202, brief(e))
+	return true
+}
+
+// readExec serves the GET routes of a sandbox's detached execs.
+func (f *fake) readExec(w http.ResponseWriter, r *http.Request, id string, rest []string) {
+	if len(rest) == 0 {
+		items := []any{}
+		for _, e := range f.detached[id] {
+			items = append(items, e.m)
+		}
+		reply(w, 200, map[string]any{"items": items})
+		return
+	}
+	var e *fakeExec
+	for _, x := range f.detached[id] {
+		if x.m["exec_id"] == rest[0] {
+			e = x
+		}
+	}
+	if e == nil {
+		apiError(w, 404, "exec_not_found", "no exec "+rest[0])
+		return
+	}
+	if len(rest) == 1 {
+		if e.reads++; e.reads >= 2 {
+			e.exit(0, nil)
+		}
+		reply(w, 200, e.m)
+		return
+	}
+	q := r.URL.Query()
+	f.outputs = append(f.outputs, r.URL.RawQuery)
+	from := map[string]int{}
+	for _, name := range []string{"stdout", "stderr"} {
+		from[name], _ = strconv.Atoi(q.Get(name + "_offset"))
+	}
+	kept := map[string]int{"stdout": e.m["stdout_truncated_before"].(int), "stderr": e.m["stderr_truncated_before"].(int)}
+	data := map[string]string{"stdout": e.stdout, "stderr": e.stderr}
+	if q.Get("stream") != "1" {
+		maxRead := f.maxRead
+		if maxRead == 0 {
+			maxRead = 1 << 20
+		}
+		out := map[string]any{"status": e.m["status"], "exit_code": e.m["exit_code"]}
+		for _, name := range []string{"stdout", "stderr"} {
+			start := min(max(from[name], kept[name]), len(data[name]))
+			end := min(start+maxRead, len(data[name]))
+			out[name], out[name+"_offset"], out[name+"_truncated_before"] = data[name][start:end], end, kept[name]
+		}
+		reply(w, 200, out)
+		return
+	}
+	drop := -1
+	if len(f.dropOutput) > 0 {
+		drop, f.dropOutput = f.dropOutput[0], f.dropOutput[1:]
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	_, _ = io.WriteString(w, ": ping\n\n")
+	sent := 0
+	for _, name := range []string{"stdout", "stderr"} {
+		at := from[name]
+		if at < kept[name] {
+			fmt.Fprintf(w, "event: truncated\ndata: %s\n\n", mustJSON(map[string]any{"stream": name, "truncated_before": kept[name]}))
+			at = kept[name]
+		}
+		// A chunk is a line.
+		for at < len(data[name]) {
+			if sent == drop {
+				w.(http.Flusher).Flush()
+				panic(http.ErrAbortHandler) // the connection drops
+			}
+			end := at + strings.IndexByte(data[name][at:], '\n') + 1
+			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", name, mustJSON(map[string]any{"data": data[name][at:end], "offset": end}))
+			at, sent = end, sent+1
+		}
+	}
+	e.exit(0, nil)
+	fmt.Fprintf(w, "event: exit\ndata: %s\n\n", mustJSON(map[string]any{"exit_code": e.m["exit_code"],
+		"duration_ms": e.m["duration_ms"], "timed_out": false, "error": e.m["error"]}))
 }
 
 func (f *fake) bucketSecrets(w http.ResponseWriter, r *http.Request, rest []string) {

@@ -31,6 +31,10 @@ type ExecRequest struct {
 	Workdir string
 	// Env is added to the command's environment (not secret).
 	Env map[string]string
+	// IdempotencyKey (1 to 255 printable ASCII characters, for example
+	// "<task id>:<attempt>") makes ExecDetach safe to repeat: the same key on
+	// the same sandbox never starts a second process. ExecDetach only.
+	IdempotencyKey string
 }
 
 // httpTimeout bounds a synchronous exec's HTTP call: the command's timeout
@@ -45,12 +49,21 @@ func (r ExecRequest) httpTimeout() time.Duration {
 	return DefaultExecTimeout + execSlack
 }
 
-func (r ExecRequest) body() (any, error) {
+// body is the exec's JSON body; detach asks for a detached exec.
+func (r ExecRequest) body(detach bool) (any, error) {
 	if len(r.Command) == 0 {
 		return nil, errors.New("sandbox: exec needs a command")
 	}
 	if r.Timeout < 0 && r.Timeout != NoTimeout {
 		return nil, errors.New("sandbox: an exec timeout must not be negative (NoTimeout asks for none)")
+	}
+	if r.IdempotencyKey != "" {
+		if !detach {
+			return nil, errors.New("sandbox: an exec's IdempotencyKey is for ExecDetach only")
+		}
+		if err := checkIdempotencyKey(r.IdempotencyKey); err != nil {
+			return nil, err
+		}
 	}
 	type wire struct {
 		Command  []string          `json:"command"`
@@ -58,8 +71,9 @@ func (r ExecRequest) body() (any, error) {
 		TimeoutS *int64            `json:"timeout_s,omitempty"`
 		Workdir  string            `json:"workdir,omitempty"`
 		Env      map[string]string `json:"env,omitempty"`
+		Detach   bool              `json:"detach,omitempty"`
 	}
-	w := wire{Command: r.Command, TimeoutS: timeoutSeconds(r.Timeout), Workdir: r.Workdir, Env: r.Env}
+	w := wire{Command: r.Command, TimeoutS: timeoutSeconds(r.Timeout), Workdir: r.Workdir, Env: r.Env, Detach: detach}
 	if r.Stdin != "" {
 		stdin := r.Stdin
 		w.Stdin = &stdin
@@ -92,9 +106,9 @@ type ExecResult struct {
 // Exec runs a command and waits for it, returning its output whole (each
 // stream kept up to MaxExecOutputBytes). A sandbox that is not running
 // answers CodeNotRunning. Use ExecStream for long output or to see it as it
-// comes.
+// comes, and ExecDetach for a command that must outlive its caller.
 func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, error) {
-	body, err := req.body()
+	body, err := req.body(false)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +129,10 @@ func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 // goroutine; a writer's error ends the call. The command may run for as long
 // as its Timeout allows; the stream is given up only if it sends nothing, not
 // even the API's keep-alive (every 15 s), for 2 minutes. A dropped stream
-// cannot be reattached.
+// cannot be reattached: for that, start the command with ExecDetach and read
+// it with Exec.Stream.
 func (sb *Sandbox) ExecStream(ctx context.Context, req ExecRequest, stdout, stderr io.Writer) (*ExitStatus, error) {
-	body, err := req.body()
+	body, err := req.body(false)
 	if err != nil {
 		return nil, err
 	}
