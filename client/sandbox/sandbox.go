@@ -54,12 +54,14 @@ func (s *Service) Client() *client.Client { return s.c }
 // Terminate) update its fields: run them while no other call uses the same
 // handle, or give each goroutine its own (Service.Get).
 type Sandbox struct {
-	ID        string    `json:"id"`
-	Status    string    `json:"status"`
-	Bucket    uint64    `json:"bucket"`
-	Node      string    `json:"node"`
-	Runtime   string    `json:"runtime"`
-	Image     string    `json:"image"`
+	ID      string `json:"id"`
+	Status  string `json:"status"`
+	Bucket  uint64 `json:"bucket"`
+	Node    string `json:"node"`
+	Runtime string `json:"runtime"`
+	// Image is the reference it was created with and, once its node has the
+	// image, its digest, size and how long getting it took.
+	Image     Image     `json:"image"`
 	Command   []string  `json:"command"`
 	Workdir   string    `json:"workdir"`
 	Resources Resources `json:"resources"`
@@ -72,10 +74,14 @@ type Sandbox struct {
 	Egress Egress            `json:"egress"`
 	Labels map[string]string `json:"labels"`
 	// Secrets are the sandbox's own secrets, without values.
-	Secrets   []SecretInfo `json:"secrets"`
-	CreatedAt time.Time    `json:"created_at"`
-	StartedAt *time.Time   `json:"started_at"`
-	EndedAt   *time.Time   `json:"ended_at"`
+	Secrets []SecretInfo `json:"secrets"`
+	// CreatedAt, StartedAt (the container started; billing starts) and
+	// ReadyAt (its node had it running and said so), with Image.PullMS,
+	// break the start down.
+	CreatedAt time.Time  `json:"created_at"`
+	StartedAt *time.Time `json:"started_at"`
+	ReadyAt   *time.Time `json:"ready_at"`
+	EndedAt   *time.Time `json:"ended_at"`
 	// StartupMS is how long the sandbox took to start; 0 until it has.
 	StartupMS int64 `json:"startup_ms"`
 	// ExitReason says why it ended: "terminated by API[: reason]", "timeout
@@ -83,14 +89,27 @@ type Sandbox struct {
 	// "disk_limit (...)", "insufficient_balance", "exited with code N",
 	// "failed: ...", "lost: ...". Empty while it runs.
 	ExitReason string `json:"exit_reason"`
+	// ExitKind is the class of ExitReason, one of the ExitKind constants.
+	ExitKind string `json:"exit_kind"`
 	// ExitCode is the main process's exit code, when it has one.
 	ExitCode *int `json:"exit_code"`
-	// Retained lists the files kept readable after the end (Terminate).
-	Retained []string `json:"retained"`
+	// Retain is what the create asked to keep after the end.
+	Retain *Retain `json:"retain"`
+	// Retained lists the files kept after the end (Retain, Terminate), each
+	// readable with ReadFile until RetainedUntil.
+	Retained []RetainedFile `json:"retained"`
+	// NotRetained lists the paths asked for and not kept, and why.
+	NotRetained   []NotRetained `json:"not_retained"`
+	RetainedUntil *time.Time    `json:"retained_until"`
+	// RegistryCredential names the secret its image was pulled with.
+	RegistryCredential string `json:"registry_credential"`
+	// IdempotencyKey is the key it was created with.
+	IdempotencyKey string `json:"idempotency_key"`
 	// Usage is the usage as last reported: live while it runs, final after.
 	Usage Usage `json:"usage"`
 
-	svc *Service
+	svc      *Service
+	replayed bool
 }
 
 // Running reports whether the sandbox was running when last read.
@@ -102,14 +121,19 @@ func (sb *Sandbox) Ended() bool { return sb.Status == StatusTerminated || sb.Sta
 
 func (sb *Sandbox) path(rest string) string { return "/v1/sandboxes/" + url.PathEscape(sb.ID) + rest }
 
+// Replayed reports whether Create found the sandbox an earlier create with
+// the same IdempotencyKey had made (the API answered Idempotent-Replayed),
+// rather than making it.
+func (sb *Sandbox) Replayed() bool { return sb.replayed }
+
 func (sb *Sandbox) update(from *Sandbox) {
-	svc := sb.svc
+	svc, replayed := sb.svc, sb.replayed
 	*sb = *from
-	sb.svc = svc
+	sb.svc, sb.replayed = svc, replayed
 }
 
 // StartError is returned by Create and WaitRunning when a sandbox ended
-// instead of starting.
+// without having started.
 type StartError struct {
 	ID, Status, ExitReason string
 }
@@ -128,7 +152,12 @@ type createOptions struct{ noWait bool }
 func NoWait() CreateOption { return func(o *createOptions) { o.noWait = true } }
 
 // Create creates a sandbox and waits until it runs (see NoWait). A sandbox
-// that fails to start is returned with a *StartError.
+// that fails to start is returned with a *StartError; one that started and
+// has already ended (its command exited at once, or a replayed create's
+// sandbox ran earlier) is returned ended, without an error.
+//
+// With an IdempotencyKey, a create that an earlier one with the same key
+// already made answers that sandbox, with Replayed set, and creates nothing.
 //
 // The create's token only has to be valid when the node checks it: the
 // sandbox then runs until its Timeout or another end, and stops early only if
@@ -147,13 +176,14 @@ func (s *Service) Create(ctx context.Context, req CreateRequest, opts ...CreateO
 		return nil, err
 	}
 	sb := &Sandbox{svc: s}
-	err := s.c.Do(ctx, &client.Request{
-		Method: http.MethodPost, Path: "/v1/sandboxes", JSON: req,
+	res, err := s.c.DoResponse(ctx, &client.Request{
+		Method: http.MethodPost, Path: "/v1/sandboxes", JSON: req, IdempotencyKey: req.IdempotencyKey,
 		Timeout: createTimeout, RetryOn: []string{CodeNoCapacity},
 	}, sb)
 	if err != nil {
 		return nil, err
 	}
+	sb.replayed = res.Replayed()
 	if o.noWait {
 		return sb, nil
 	}
@@ -226,7 +256,8 @@ func (sb *Sandbox) Refresh(ctx context.Context) error {
 }
 
 // WaitRunning polls until the sandbox leaves starting (and unknown). It
-// returns nil once it runs, and a *StartError if it ended instead.
+// returns nil once it runs or has run (a sandbox whose command already
+// exited), and a *StartError if it ended without starting.
 func (sb *Sandbox) WaitRunning(ctx context.Context) error {
 	for sb.Status == StatusStarting || sb.Status == StatusUnknown || sb.Status == "" {
 		if err := pause(ctx, pollInterval); err != nil {
@@ -236,7 +267,7 @@ func (sb *Sandbox) WaitRunning(ctx context.Context) error {
 			return err
 		}
 	}
-	if sb.Status != StatusRunning {
+	if sb.Status != StatusRunning && (!sb.Ended() || sb.StartedAt == nil) {
 		return &StartError{ID: sb.ID, Status: sb.Status, ExitReason: sb.ExitReason}
 	}
 	return nil
@@ -290,8 +321,9 @@ func (sb *Sandbox) WriteFile(ctx context.Context, path string, data []byte) erro
 }
 
 // ReadFile reads a file of a running sandbox, or a retained file of an ended
-// one for 24 hours. A missing file answers CodeFileNotFound; a file of an
-// ended sandbox that was not retained, or no longer is, CodeFileGone.
+// one (Retained) until RetainedUntil. A missing file answers
+// CodeFileNotFound; a file of an ended sandbox that was not retained, or no
+// longer is, CodeFileGone.
 func (sb *Sandbox) ReadFile(ctx context.Context, path string) ([]byte, error) {
 	return sb.svc.c.Bytes(ctx, &client.Request{
 		Method: http.MethodGet, Path: sb.path("/files"), Query: url.Values{"path": {path}}, Accept: "*/*",
@@ -345,8 +377,11 @@ func (sb *Sandbox) CurrentUsage(ctx context.Context) (*Usage, error) {
 
 // TerminateOptions say what to keep when a sandbox ends.
 type TerminateOptions struct {
-	// Retain lists files (each at most 16 MiB) that stay readable with
-	// ReadFile for 24 hours after the end.
+	// Retain adds files or directories (no commas in their paths) to those
+	// the create's Retain names, within the same MaxRetainedBytes; they stay
+	// readable with ReadFile for the create's Retain.TTLS, else RetainFor. On
+	// a sandbox created without Retain the files are copied out of the
+	// running sandbox first, which needs sh and tar in its image.
 	Retain []string
 	// Reason (at most 120 characters) is recorded as "terminated by API:
 	// <reason>".

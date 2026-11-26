@@ -22,10 +22,27 @@ const PlaceholderPrefix = "cere:"
 
 var secretName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
-// Secret is a credential the egress proxy adds to a sandbox's requests: the
-// proxy sets Header to Value on the requests an egress rule naming it allows,
-// and only to Hosts. The value goes in and never comes out, and the sandbox
-// never sees it. Printing a Secret with fmt never shows the value.
+// Secret types.
+const (
+	// SecretTypeHeader is a credential the egress proxy sets as a header.
+	SecretTypeHeader = "header"
+	// SecretTypeRegistry is a registry credential, used only to pull a
+	// private image (CreateRequest.RegistryCredential).
+	SecretTypeRegistry = "registry"
+)
+
+// Secret is a credential, held by the developer platform and never given
+// back. It is of one of two types:
+//
+//   - header (the default): the egress proxy sets Header to Value on the
+//     requests an egress rule naming it allows, and only to Hosts. The
+//     sandbox never sees the value.
+//   - registry (RegistrySecret): Username and Value (a password or token) to
+//     pull a private image from the registry in Hosts, named by
+//     CreateRequest.RegistryCredential. It is used on the node for the pull
+//     only; an egress rule cannot name it.
+//
+// Printing a Secret with fmt never shows the value.
 //
 // A secret belongs to one of three scopes, looked up narrowest first:
 //
@@ -39,12 +56,21 @@ var secretName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 type Secret struct {
 	// Name matches ^[a-z0-9][a-z0-9-]{0,62}$.
 	Name string
-	// Header is the header the proxy sets (default "Authorization").
+	// Type is SecretTypeHeader (the default when empty) or
+	// SecretTypeRegistry.
+	Type string
+	// Header is the header the proxy sets (default "Authorization"); a
+	// header secret's only.
 	Header string
-	// Value is the header's value, at most 8 KiB, one line.
+	// Username is a registry secret's user name. It is not secret: listing
+	// shows it.
+	Username string
+	// Value is the header's value, or the registry password or token: at
+	// most 8 KiB, one line.
 	Value string
 	// Hosts are the only hosts the value is ever sent to: exact names, or
-	// "*.example.com" for exactly one more label. Required.
+	// "*.example.com" for exactly one more label. A registry secret's are
+	// registry hosts ("ghcr.io", "docker.io" for Docker Hub). Required.
 	Hosts []string
 }
 
@@ -54,6 +80,13 @@ func BearerSecret(name, token string, hosts ...string) Secret {
 	return Secret{Name: name, Header: "Authorization", Value: "Bearer " + strings.TrimSpace(token), Hosts: hosts}
 }
 
+// RegistrySecret is a registry credential for private images on hosts (for
+// example "ghcr.io"): store it with Service.SetSecret or SetAgentSecret and
+// name it in CreateRequest.RegistryCredential.
+func RegistrySecret(name, username, password string, hosts ...string) Secret {
+	return Secret{Name: name, Type: SecretTypeRegistry, Username: username, Value: password, Hosts: hosts}
+}
+
 // Placeholder is what a sandbox writes in a request header to name a
 // credential, "cere:" + name: with a rule whose Placeholders list name, the
 // egress proxy replaces the header with the secret's.
@@ -61,19 +94,33 @@ func Placeholder(name string) string { return PlaceholderPrefix + name }
 
 // MarshalJSON writes the secret as the API takes it, value included.
 func (s Secret) MarshalJSON() ([]byte, error) {
-	return json.Marshal(secretBody{Name: s.Name, Type: "header", Header: s.header(), Value: s.Value, Hosts: s.Hosts})
+	b := s.body()
+	b.Name = s.Name
+	return json.Marshal(b)
 }
 
 type secretBody struct {
-	Name   string   `json:"name,omitempty"`
-	Type   string   `json:"type"`
-	Header string   `json:"header"`
-	Value  string   `json:"value"`
-	Hosts  []string `json:"hosts"`
+	Name     string   `json:"name,omitempty"`
+	Type     string   `json:"type"`
+	Header   string   `json:"header,omitempty"`
+	Username string   `json:"username,omitempty"`
+	Value    string   `json:"value"`
+	Hosts    []string `json:"hosts"`
+}
+
+// body is the secret as PUT /v1/secrets/{name} takes it.
+func (s Secret) body() secretBody {
+	if s.typ() == SecretTypeRegistry {
+		return secretBody{Type: SecretTypeRegistry, Username: s.Username, Value: s.Value, Hosts: s.Hosts}
+	}
+	return secretBody{Type: SecretTypeHeader, Header: s.header(), Value: s.Value, Hosts: s.Hosts}
 }
 
 // String never shows the value.
 func (s Secret) String() string {
+	if s.typ() == SecretTypeRegistry {
+		return fmt.Sprintf("Secret(%s, registry, username=%s, hosts=%v)", s.Name, s.Username, s.Hosts)
+	}
 	return fmt.Sprintf("Secret(%s, header=%s, hosts=%v)", s.Name, s.header(), s.Hosts)
 }
 
@@ -87,9 +134,31 @@ func (s Secret) header() string {
 	return s.Header
 }
 
+func (s Secret) typ() string {
+	if s.Type == "" {
+		return SecretTypeHeader
+	}
+	return s.Type
+}
+
 func (s Secret) validate() error {
 	if !secretName.MatchString(s.Name) {
 		return fmt.Errorf("sandbox: secret name %q: lower-case letters, digits and '-', at most 63 characters", s.Name)
+	}
+	switch s.typ() {
+	case SecretTypeHeader:
+		if s.Username != "" {
+			return fmt.Errorf("sandbox: secret %s: a header secret has no username (a registry secret does)", s.Name)
+		}
+	case SecretTypeRegistry:
+		if s.Header != "" {
+			return fmt.Errorf("sandbox: secret %s: a registry secret has no header", s.Name)
+		}
+		if strings.TrimSpace(s.Username) == "" {
+			return fmt.Errorf("sandbox: secret %s: a registry secret needs a username", s.Name)
+		}
+	default:
+		return fmt.Errorf("sandbox: secret %s: type %q: want %q or %q", s.Name, s.Type, SecretTypeHeader, SecretTypeRegistry)
 	}
 	if err := checkValue(s.Value); err != nil {
 		return fmt.Errorf("sandbox: secret %s: %w", s.Name, err)
@@ -121,10 +190,14 @@ func checkValue(v string) error {
 
 // SecretInfo describes a stored secret, never its value.
 type SecretInfo struct {
-	Name   string   `json:"name"`
-	Type   string   `json:"type"`
-	Header string   `json:"header"`
-	Hosts  []string `json:"hosts"`
+	Name string `json:"name"`
+	// Type is SecretTypeHeader or SecretTypeRegistry.
+	Type string `json:"type"`
+	// Header is a header secret's header.
+	Header string `json:"header,omitempty"`
+	// Username is a registry secret's user name.
+	Username string   `json:"username,omitempty"`
+	Hosts    []string `json:"hosts"`
 	// Agent is set on an agent's secret.
 	Agent     string    `json:"agent,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
@@ -132,7 +205,8 @@ type SecretInfo struct {
 }
 
 // SetSecret stores (or replaces) a secret of the bucket: any sandbox of the
-// bucket whose rule names it may use it. Storing again replaces the value and
+// bucket whose rule names it may use it, or, for a registry secret, whose
+// create names it in RegistryCredential. Storing again replaces the value and
 // the hosts together.
 func (s *Service) SetSecret(ctx context.Context, secret Secret) error {
 	return s.putSecret(ctx, "", secret)
@@ -154,12 +228,13 @@ func (s *Service) putSecret(ctx context.Context, agent string, secret Secret) er
 	}
 	return s.c.Do(ctx, &client.Request{
 		Method: http.MethodPut, Path: "/v1/secrets/" + url.PathEscape(secret.Name), Query: agentQuery(agent),
-		JSON: secretBody{Type: "header", Header: secret.header(), Value: secret.Value, Hosts: secret.Hosts},
+		JSON: secret.body(),
 	}, nil)
 }
 
-// ListSecrets lists the bucket's and its agents' secrets, never values. A
-// sandbox's own secrets are on the sandbox (Sandbox.Secrets).
+// ListSecrets lists the bucket's and its agents' secrets, never values (a
+// registry secret's username is shown). A sandbox's own secrets are on the
+// sandbox (Sandbox.Secrets).
 func (s *Service) ListSecrets(ctx context.Context) ([]SecretInfo, error) {
 	var page client.Page[SecretInfo]
 	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/secrets"}, &page); err != nil {

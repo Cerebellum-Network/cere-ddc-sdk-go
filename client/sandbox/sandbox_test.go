@@ -326,7 +326,8 @@ func TestFilesLogsUsageAndTerminate(t *testing.T) {
 	if err := sb.Terminate(ctx, sandbox.TerminateOptions{Retain: []string{"/workspace/a.txt"}, Reason: "done"}); err != nil {
 		t.Fatal(err)
 	}
-	if !sb.Ended() || sb.ExitReason != "terminated by API: done" || sb.Usage.WallSeconds != 12.5 || sb.Retained[0] != "/workspace/a.txt" {
+	if !sb.Ended() || sb.ExitReason != "terminated by API: done" || sb.Usage.WallSeconds != 12.5 ||
+		len(sb.Retained) != 1 || sb.Retained[0] != (sandbox.RetainedFile{Path: "/workspace/a.txt", Size: 1}) || sb.ExitKind != sandbox.ExitKindTerminated {
 		t.Fatalf("after terminate: %+v", sb)
 	}
 	if b, err := sb.ReadFile(ctx, "/workspace/a.txt"); err != nil || string(b) != "A" {
@@ -503,9 +504,15 @@ func TestParseAllow(t *testing.T) {
 func TestSandboxDecodesTheAPIsShape(t *testing.T) {
 	raw := `{"id":"sb-1","status":"terminated","bucket":4116,"resources":{"cpu":0.25,"memory":128,"cpu_limit":4,
 		"memory_limit":1024,"pids":2048,"disk":512,"gpu":null},"timeout_s":300,
-		"egress":{"allow":[{"host":"pypi.org","methods":["GET"]}]},"started_at":"2026-11-25T10:00:01Z","ended_at":null,
-		"startup_ms":900,"exit_reason":"oom_killed","exit_code":137,"usage":{"wall_s":60,"cpu_s":1.5,"billing_basis":
-		"request_or_usage","reserved_cpu_s":15,"burst_cpu_s":2.5,"cpu_peak":3.5}}`
+		"image":{"ref":"ghcr.io/acme/agent:1.4","digest":"sha256:ab","size_bytes":52428800,"cached":true,"pull_ms":0},
+		"egress":{"allow":[{"host":"pypi.org","methods":["GET"]}]},"started_at":"2026-11-25T10:00:01Z",
+		"ready_at":"2026-11-25T10:00:02Z","ended_at":null,"startup_ms":900,"exit_reason":"oom_killed","exit_kind":"oom",
+		"exit_code":137,"retain":{"paths":["/workspace/out/"],"on":"failure","ttl_s":600},
+		"retained":[{"path":"/workspace/out/a.txt","size":2}],"not_retained":[{"path":"/workspace/t.jsonl",
+		"reason":"it does not exist in the sandbox"}],"retained_until":"2026-11-25T10:15:00Z",
+		"registry_credential":"ghcr-pull","idempotency_key":"task:t-81:1",
+		"usage":{"wall_s":60,"cpu_s":1.5,"billing_basis":"request_or_usage","reserved_cpu_s":15,"burst_cpu_s":2.5,
+		"cpu_peak":3.5,"cpu_avg":0.025}}`
 	var sb sandbox.Sandbox
 	if err := json.Unmarshal([]byte(raw), &sb); err != nil {
 		t.Fatal(err)
@@ -514,5 +521,17 @@ func TestSandboxDecodesTheAPIsShape(t *testing.T) {
 		sb.ExitReason != "oom_killed" || sb.EndedAt != nil || sb.StartedAt == nil || sb.Usage.BurstCPUSeconds != 2.5 ||
 		sb.Usage.ReservedCPUSeconds != 15 || sb.Egress.Allow[0].Host != "pypi.org" {
 		t.Fatalf("%+v", sb)
+	}
+	if sb.Image != (sandbox.Image{Ref: "ghcr.io/acme/agent:1.4", Digest: "sha256:ab", SizeBytes: 52428800, Cached: true}) ||
+		sb.Image.String() != "ghcr.io/acme/agent:1.4" || sb.ReadyAt == nil || sb.ExitKind != sandbox.ExitKindOOM ||
+		sb.Retain.On != sandbox.RetainOnFailure || sb.Retain.TTLS != 600 || sb.Retained[0].Size != 2 ||
+		sb.NotRetained[0].Path != "/workspace/t.jsonl" || sb.RetainedUntil == nil || sb.RegistryCredential != "ghcr-pull" ||
+		sb.IdempotencyKey != "task:t-81:1" || sb.Usage.CPUAvg != 0.025 {
+		t.Fatalf("%+v", sb)
+	}
+	// Before the node has the image, only its reference is set.
+	if err := json.Unmarshal([]byte(`{"image":{"ref":"alpine","digest":null,"size_bytes":null,"cached":null,"pull_ms":null}}`), &sb); err != nil ||
+		sb.Image.Ref != "alpine" {
+		t.Fatalf("%+v %v", sb.Image, err)
 	}
 }

@@ -30,6 +30,8 @@ type fake struct {
 	runSecret map[string]map[string]string // id -> name -> value
 	records   []map[string]any
 	egressLog []map[string]any
+	keys      map[string]string // Idempotency-Key -> sandbox id
+	keyBodies map[string]string // Idempotency-Key -> the create body, secret values left out
 
 	// What the tests check.
 	creates    []map[string]any // create bodies as sent
@@ -38,11 +40,13 @@ type fake struct {
 	createFail []int            // statuses to answer the next creates with
 	startAs    string           // the status a create answers (default running)
 	failStart  bool             // a created sandbox fails to start
+	loseCreate int              // creates that make the sandbox but answer 502, as if the answer was lost
 }
 
 func newFake(t *testing.T) (*fake, *sandbox.Service) {
 	f := &fake{t: t, sandboxes: map[string]map[string]any{}, files: map[string]map[string][]byte{},
-		secrets: map[string]map[string]any{}, runSecret: map[string]map[string]string{}, startAs: sandbox.StatusRunning}
+		secrets: map[string]map[string]any{}, runSecret: map[string]map[string]string{}, startAs: sandbox.StatusRunning,
+		keys: map[string]string{}, keyBodies: map[string]string{}}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 	c, err := client.New(client.WithBaseURL(srv.URL), client.WithToken("tok"),
@@ -119,11 +123,27 @@ func (f *fake) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f.creates = append(f.creates, body)
+	key := r.Header.Get("Idempotency-Key")
+	if id, ok := f.keys[key]; ok && key != "" {
+		if f.keyBodies[key] != withoutSecretValues(body) {
+			apiError(w, 409, "idempotency_conflict", "the idempotency key was used with another body")
+			return
+		}
+		w.Header().Set("Idempotent-Replayed", "true")
+		reply(w, 200, f.sandboxes[id])
+		return
+	}
 	if len(f.createFail) > 0 {
 		status := f.createFail[0]
 		f.createFail = f.createFail[1:]
 		apiError(w, status, map[int]string{503: "no_capacity", 409: "limit_active_sandboxes", 502: "node_unreachable"}[status], "refused")
 		return
+	}
+	if cred, _ := body["registry_credential"].(string); cred != "" {
+		if code, msg := f.checkRegistry(cred, body["image"].(string)); code != "" {
+			apiError(w, 400, code, msg)
+			return
+		}
 	}
 	id := fmt.Sprintf("sb-%026d", len(f.order)+1)
 	res := map[string]any{"cpu": 0.25, "memory": 128, "cpu_limit": 8, "memory_limit": 1024, "pids": 2048, "disk": 512}
@@ -145,12 +165,23 @@ func (f *fake) create(w http.ResponseWriter, r *http.Request) {
 	if egress == nil {
 		egress = map[string]any{"allow": []any{}}
 	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	var keyField any
+	if key != "" {
+		keyField = key
+	}
 	sb := map[string]any{
 		"id": id, "status": f.startAs, "bucket": 4116, "node": strings.Repeat("ab", 32), "runtime": body["runtime"],
-		"image": body["image"], "command": body["command"], "workdir": "/workspace", "resources": res,
+		"image":   map[string]any{"ref": body["image"], "digest": "sha256:" + strings.Repeat("0f", 32), "size_bytes": 52428800, "cached": false, "pull_ms": 840},
+		"command": body["command"], "workdir": "/workspace", "resources": res,
 		"timeout_s": body["timeout_s"], "labels": body["labels"], "egress": egress, "secrets": secrets,
-		"created_at": time.Now().UTC().Format(time.RFC3339), "exit_reason": nil, "exit_code": nil, "retained": []string{},
+		"created_at": now, "started_at": nil, "ready_at": nil, "exit_reason": nil, "exit_kind": nil, "exit_code": nil,
+		"retain": body["retain"], "retained": []any{}, "not_retained": []any{}, "retained_until": nil,
+		"registry_credential": body["registry_credential"], "idempotency_key": keyField,
 		"usage": map[string]any{"wall_s": 0, "billing_basis": ""},
+	}
+	if f.startAs == sandbox.StatusRunning {
+		sb["started_at"], sb["ready_at"] = now, now
 	}
 	if f.failStart {
 		sb["status"] = sandbox.StatusStarting
@@ -159,7 +190,118 @@ func (f *fake) create(w http.ResponseWriter, r *http.Request) {
 	f.order = append([]string{id}, f.order...)
 	f.files[id] = map[string][]byte{}
 	f.runSecret[id] = values
+	if key != "" {
+		f.keys[key], f.keyBodies[key] = id, withoutSecretValues(body)
+	}
+	if f.loseCreate > 0 {
+		f.loseCreate--
+		apiError(w, 502, "node_unreachable", "the answer was lost")
+		return
+	}
 	reply(w, 201, sb)
+}
+
+// withoutSecretValues is a create body as an idempotency key compares it.
+func withoutSecretValues(body map[string]any) string {
+	cp := map[string]any{}
+	for k, v := range body {
+		cp[k] = v
+	}
+	if list, ok := body["secrets"].([]any); ok {
+		var out []any
+		for _, s := range list {
+			m := map[string]any{}
+			for k, v := range s.(map[string]any) {
+				if k != "value" {
+					m[k] = v
+				}
+			}
+			out = append(out, m)
+		}
+		cp["secrets"] = out
+	}
+	return mustJSON(cp)
+}
+
+// checkRegistry resolves a registry credential as the API does: the bucket's
+// secret of that name, of type registry, bound to the image's registry host.
+func (f *fake) checkRegistry(name, image string) (code, msg string) {
+	s := f.secrets["/"+name]
+	switch {
+	case s == nil:
+		return "unknown_credential", "no secret " + name
+	case s["type"] != sandbox.SecretTypeRegistry:
+		return "invalid_request", name + " is not a registry secret"
+	}
+	host := "docker.io"
+	if first, _, ok := strings.Cut(image, "/"); ok && strings.ContainsAny(first, ".:") {
+		host = first
+	}
+	for _, h := range s["hosts"].([]any) {
+		if h == host {
+			return "", ""
+		}
+	}
+	return "credential_not_bound", "not bound to " + host
+}
+
+// end ends a running sandbox as its node would: kind and reason, the exit
+// code, the files kept (the create's retain, unless it is on failure and
+// the end is not one, and the paths of a DELETE's ?retain=), and a final
+// usage record carrying its labels.
+func (f *fake) end(sb map[string]any, kind, reason string, code any, extra []string) {
+	id := sb["id"].(string)
+	now := time.Now().UTC()
+	var paths []string
+	ttl := 86400.0
+	if retain, ok := sb["retain"].(map[string]any); ok {
+		if t, ok := retain["ttl_s"].(float64); ok {
+			ttl = t
+		}
+		success := kind == "terminated" || (kind == "main_exited" && code == 0)
+		if retain["on"] != sandbox.RetainOnFailure || !success {
+			for _, p := range retain["paths"].([]any) {
+				paths = append(paths, p.(string))
+			}
+		}
+	}
+	paths = append(paths, extra...)
+	kept, missing := []any{}, []any{}
+	for _, p := range paths {
+		var files []string
+		for name := range f.files[id] {
+			if name == p || (strings.HasSuffix(p, "/") && strings.HasPrefix(name, p)) || strings.HasPrefix(name, p+"/") {
+				files = append(files, name)
+			}
+		}
+		slices.Sort(files)
+		if len(files) == 0 {
+			missing = append(missing, map[string]any{"path": p, "reason": "it does not exist in the sandbox"})
+		}
+		for _, name := range files {
+			kept = append(kept, map[string]any{"path": name, "size": len(f.files[id][name])})
+		}
+	}
+	sb["status"], sb["exit_kind"], sb["exit_reason"], sb["exit_code"] = "terminated", kind, reason, code
+	sb["ended_at"], sb["retained"], sb["not_retained"] = now.Format(time.RFC3339), kept, missing
+	if len(kept) > 0 {
+		sb["retained_until"] = now.Add(time.Duration(ttl) * time.Second).Format(time.RFC3339)
+	}
+	sb["usage"] = map[string]any{"wall_s": 12.5, "billing_basis": "request_or_usage", "billed_cpu_s": 3.2, "cpu_avg": 0.04}
+	f.records = append(f.records, map[string]any{"record_id": "r-" + id, "sandbox_id": id, "final": true,
+		"labels": sb["labels"], "billed_cpu_s": 3.2, "billed_ram_gib_s": 1.5, "cpu_s": 0.5, "wall_s": 12.5,
+		"memory_limit": 1024, "dac_status": "pushed"})
+}
+
+// exitMain ends a sandbox by its main process exiting with code.
+func (f *fake) exitMain(id string, code int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	sb := f.sandboxes[id]
+	if sb["started_at"] == nil {
+		sb["started_at"] = time.Now().UTC().Format(time.RFC3339)
+	}
+	f.end(sb, "main_exited", fmt.Sprintf("exited with code %d", code), code, nil)
 }
 
 func (f *fake) labelsMatch(sb map[string]any, filters []string) bool {
@@ -219,9 +361,10 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 	case route == "GET ":
 		if sb["status"] == sandbox.StatusStarting {
 			if f.failStart {
-				sb["status"], sb["exit_reason"] = "failed", "failed: image pull no such image"
+				sb["status"], sb["exit_reason"], sb["exit_kind"] = "failed", "failed: image pull no such image", "failed"
 			} else {
-				sb["status"] = "running"
+				now := time.Now().UTC().Format(time.RFC3339)
+				sb["status"], sb["started_at"], sb["ready_at"] = "running", now, now
 			}
 		}
 		reply(w, 200, sb)
@@ -231,23 +374,22 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 			if q := r.URL.Query().Get("reason"); q != "" {
 				reason += ": " + q
 			}
-			var kept []string
+			var extra []string
 			if q := r.URL.Query().Get("retain"); q != "" {
-				kept = strings.Split(q, ",")
+				extra = strings.Split(q, ",")
 			}
-			sb["status"], sb["exit_reason"], sb["retained"] = "terminated", reason, kept
-			sb["usage"] = map[string]any{"wall_s": 12.5, "billing_basis": "request_or_usage", "billed_cpu_s": 3.2}
-			f.records = append(f.records, map[string]any{"record_id": "r-" + id, "sandbox_id": id, "final": true,
-				"billed_cpu_s": 3.2, "billed_ram_gib_s": 1.5, "cpu_s": 0.5, "memory_limit": 1024, "dac_status": "pushed"})
+			f.end(sb, "terminated", reason, nil, extra)
 		}
 		reply(w, 200, sb)
 	case ended(sb) && route == "GET files":
 		path := r.URL.Query().Get("path")
-		if !slices.Contains(sb["retained"].([]string), path) {
-			apiError(w, 410, "file_gone", "not retained")
-			return
+		for _, kept := range sb["retained"].([]any) {
+			if kept.(map[string]any)["path"] == path {
+				_, _ = w.Write(f.files[id][path])
+				return
+			}
 		}
-		_, _ = w.Write(f.files[id][path])
+		apiError(w, 410, "file_gone", "not retained")
 	case ended(sb):
 		apiError(w, 409, "not_running", "the sandbox has ended")
 	case route == "POST exec":
@@ -340,7 +482,12 @@ func (f *fake) bucketSecrets(w http.ResponseWriter, r *http.Request, rest []stri
 	case r.Method == http.MethodPut && len(rest) == 1:
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		if _, named := body["name"]; named || body["type"] != "header" {
+		_, named := body["name"]
+		_, header := body["header"]
+		_, user := body["username"]
+		headerSecret := body["type"] == "header" && header && !user
+		registrySecret := body["type"] == "registry" && user && !header
+		if named || (!headerSecret && !registrySecret) {
 			apiError(w, 400, "invalid_request", "unexpected body")
 			return
 		}
