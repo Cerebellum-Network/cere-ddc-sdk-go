@@ -38,7 +38,16 @@
 // code ("not_running", "no_capacity", ...): match on those with IsCode and
 // StatusOf, never on the message. Calls that cannot have taken effect twice are
 // retried with backoff (see RetryPolicy): reads and replacements (GET, PUT,
-// DELETE) on 429, 502, 503 and 504 and on transport errors, and any call the API
-// refused before doing anything (429, 503 AUTH_UNAVAILABLE, a connection that
-// was never made).
+// DELETE) and calls with an Idempotency-Key (Request.IdempotencyKey) on 429,
+// 502, 503 and 504 and on transport errors, and any call the API refused
+// before doing anything (429, 503 AUTH_UNAVAILABLE, a connection that was
+// never made). DoResponse also returns the answer's headers; Response.Replayed
+// says the API answered a repeated key with the first call's result.
+//
+// # Streams
+//
+// Stream reads one event stream. Follow reads one that can be resumed (an
+// event feed with Last-Event-ID, a command's output from byte offsets): it
+// opens it again, from where its caller got to, whenever a connection ends,
+// drops or goes silent.
 package client

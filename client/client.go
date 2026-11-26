@@ -148,6 +148,14 @@ type Request struct {
 	ContentType string
 	// Accept is the Accept header (default application/json).
 	Accept string
+	// Header holds headers to send beside the client's own (Authorization,
+	// Accept, Content-Type, User-Agent, which it sets itself), for example
+	// Last-Event-ID.
+	Header http.Header
+	// IdempotencyKey, when set, is sent as the Idempotency-Key header. The
+	// API answers a repeat of such a call with the first one's result instead
+	// of acting again, so a POST with a key is retried as a PUT is.
+	IdempotencyKey string
 	// Timeout bounds one try, reading the answer included: 0 is the client's
 	// timeout, a negative value none (the context still applies).
 	Timeout time.Duration
@@ -158,13 +166,47 @@ type Request struct {
 	MaxResponse int64
 }
 
+// Headers of the API's idempotent calls and resumable streams.
+const (
+	// HeaderIdempotencyKey carries Request.IdempotencyKey.
+	HeaderIdempotencyKey = "Idempotency-Key"
+	// HeaderIdempotentReplayed is "true" on the answer to a repeated call
+	// with an Idempotency-Key (Response.Replayed).
+	HeaderIdempotentReplayed = "Idempotent-Replayed"
+	// HeaderLastEventID is the id of the last event a client read of a
+	// stream it reconnects to.
+	HeaderLastEventID = "Last-Event-ID"
+)
+
+// Response is the status and headers of a 2xx answer.
+type Response struct {
+	Status int
+	Header http.Header
+}
+
+// Replayed reports whether the API answered a call that carried an
+// Idempotency-Key with the result of an earlier call with the same key
+// (Idempotent-Replayed: true), instead of acting on it. The earlier call may
+// be this call's own first try, retried after its answer was lost.
+func (r *Response) Replayed() bool {
+	return r != nil && strings.EqualFold(r.Header.Get(HeaderIdempotentReplayed), "true")
+}
+
 // Do sends r and decodes a JSON answer into out (unless out is nil).
 func (c *Client) Do(ctx context.Context, r *Request, out any) error {
-	return c.roundTrip(ctx, r, func(resp *http.Response) error {
+	_, err := c.DoResponse(ctx, r, out)
+	return err
+}
+
+// DoResponse is Do that also returns the answer's status and headers.
+func (c *Client) DoResponse(ctx context.Context, r *Request, out any) (*Response, error) {
+	var res *Response
+	err := c.roundTrip(ctx, r, func(resp *http.Response) error {
 		raw, err := readCapped(resp.Body, r.maxResponse())
 		if err != nil {
 			return err
 		}
+		res = &Response{Status: resp.StatusCode, Header: resp.Header.Clone()}
 		if out == nil || len(bytes.TrimSpace(raw)) == 0 {
 			return nil
 		}
@@ -173,6 +215,10 @@ func (c *Client) Do(ctx context.Context, r *Request, out any) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Bytes sends r and returns the answer's body as it is.
@@ -190,6 +236,10 @@ func (c *Client) Bytes(ctx context.Context, r *Request) ([]byte, error) {
 type Event struct {
 	// Name is the event's name ("message" when the stream names none).
 	Name string
+	// ID is the stream's last event id when the event was sent: the id the
+	// event carries, else the last one an earlier event carried (empty when
+	// none has). A client that reconnects sends it as Last-Event-ID.
+	ID string
 	// Data is the event's data: JSON on every stream of the API.
 	Data json.RawMessage
 }
@@ -305,7 +355,7 @@ func (c *Client) roundTrip(ctx context.Context, r *Request, read func(*http.Resp
 		if err == nil {
 			return nil
 		}
-		if started || attempt >= c.retry.MaxAttempts || ctx.Err() != nil || !shouldRetry(r.Method, r.RetryOn, err) {
+		if started || attempt >= c.retry.MaxAttempts || ctx.Err() != nil || !shouldRetry(r, err) {
 			return err
 		}
 		if sleep(ctx, c.retry.backoff(attempt, err)) != nil {
@@ -343,6 +393,14 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 	req, err := http.NewRequestWithContext(tctx, r.Method, u, rd)
 	if err != nil {
 		return false, wrapf("%s %s: %w", r.Method, r.Path, err)
+	}
+	for k, vs := range r.Header {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
+	if r.IdempotencyKey != "" {
+		req.Header.Set(HeaderIdempotencyKey, r.IdempotencyKey)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	accept := r.Accept

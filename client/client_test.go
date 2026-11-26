@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -343,5 +344,131 @@ func TestList(t *testing.T) {
 	}
 	if len(r.Query["cursor"]) != 0 {
 		t.Error("List changed the caller's query")
+	}
+}
+
+func TestHeadersIdempotencyKeyAndResponse(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer tok" || r.Header.Get("X-Extra") != "1" ||
+			r.Header.Get("Idempotency-Key") != "task:t-81:1" {
+			http.Error(w, "bad request headers", http.StatusTeapot)
+			return
+		}
+		if calls.Add(1) == 1 {
+			w.WriteHeader(http.StatusBadGateway) // the first try's answer is lost
+			return
+		}
+		w.Header().Set("Idempotent-Replayed", "true")
+		_, _ = io.WriteString(w, `{"id":"x"}`)
+	}))
+	var out struct{ ID string }
+	// A POST with a key is retried on 502, as a PUT is; the extra headers
+	// never replace the client's own Authorization.
+	res, err := c.DoResponse(context.Background(), &client.Request{Method: http.MethodPost, Path: "/v1/x",
+		IdempotencyKey: "task:t-81:1", Header: http.Header{"X-Extra": {"1"}, "Authorization": {"Bearer other"}}}, &out)
+	if err != nil || calls.Load() != 2 || out.ID != "x" || res.Status != 200 || !res.Replayed() {
+		t.Fatalf("%+v %+v %v after %d calls", res, out, err, calls.Load())
+	}
+	var none *client.Response
+	if none.Replayed() {
+		t.Error("a nil response is not replayed")
+	}
+	// Without a key, no Idempotency-Key is sent.
+	calls.Store(0)
+	err = c.Do(context.Background(), &client.Request{Method: http.MethodPost, Path: "/v1/x",
+		Header: http.Header{"X-Extra": {"1"}}}, nil)
+	if client.StatusOf(err) != http.StatusTeapot || calls.Load() != 0 {
+		t.Fatalf("%v after %d calls", err, calls.Load())
+	}
+}
+
+func TestStreamEventIDs(t *testing.T) {
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sse(w, "id: 7", "event: a", "data: {}", "", "event: b", "data: {}", "", "id: 9", "data: {}", "", "id: x\x00y", "data: {}", "")
+	}))
+	var ids []string
+	err := c.Stream(context.Background(), &client.Request{Method: http.MethodGet, Path: "/v1/s"}, 0,
+		func(ev client.Event) error { ids = append(ids, ev.ID); return nil })
+	if err != nil || strings.Join(ids, ",") != "7,7,9,9" {
+		t.Fatalf("%v %q", err, ids)
+	}
+}
+
+func TestFollowResumes(t *testing.T) {
+	var conns []string
+	var mu sync.Mutex
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		conns = append(conns, r.Header.Get("Last-Event-ID"))
+		n := len(conns)
+		mu.Unlock()
+		switch n {
+		case 1:
+			sse(w, "id: 1", "data: {}", "", "id: 2", "data: {}", "") // then the server ends the stream
+		case 2:
+			w.WriteHeader(http.StatusServiceUnavailable) // a deploy
+		case 3:
+			sse(w, "id: 3", "data: {}", "")
+			panic(http.ErrAbortHandler) // the connection drops
+		default:
+			sse(w, "id: 4", "data: {}", "")
+		}
+	}), client.WithRetry(client.RetryPolicy{MaxAttempts: 1, MinBackoff: time.Millisecond, MaxBackoff: time.Millisecond}))
+	last := ""
+	var got []string
+	err := c.Follow(context.Background(), func() *client.Request {
+		r := &client.Request{Method: http.MethodGet, Path: "/v1/events"}
+		if last != "" {
+			r.Header = http.Header{client.HeaderLastEventID: {last}}
+		}
+		return r
+	}, time.Second, func(ev client.Event) error {
+		last = ev.ID
+		got = append(got, ev.ID)
+		if ev.ID == "4" {
+			return io.EOF
+		}
+		return nil
+	})
+	if err != nil || strings.Join(got, ",") != "1,2,3,4" || strings.Join(conns, ",") != ",2,2,3" {
+		t.Fatalf("%v: events %q, Last-Event-ID per connection %q", err, got, conns)
+	}
+}
+
+func TestFollowStops(t *testing.T) {
+	// A refusal that will not pass ends it at once.
+	var calls atomic.Int32
+	c := newClient(t, statusSeq(&calls, []string{"cursor_expired"}, 410), client.WithRetry(client.NoRetry))
+	open := func() *client.Request { return &client.Request{Method: http.MethodGet, Path: "/v1/events"} }
+	err := c.Follow(context.Background(), open, 0, func(client.Event) error { return nil })
+	if !client.IsCode(err, "cursor_expired") || calls.Load() != 1 {
+		t.Fatalf("%v after %d calls", err, calls.Load())
+	}
+	// Five failed connections in a row without an event.
+	calls.Store(0)
+	c = newClient(t, statusSeq(&calls, nil, 502, 502, 502, 502, 502, 502),
+		client.WithRetry(client.RetryPolicy{MaxAttempts: 1, MinBackoff: time.Millisecond, MaxBackoff: time.Millisecond}))
+	err = c.Follow(context.Background(), open, 0, func(client.Event) error { return nil })
+	if client.StatusOf(err) != 502 || calls.Load() != 5 {
+		t.Fatalf("%v after %d calls", err, calls.Load())
+	}
+	// fn's error is returned as it is.
+	boom := errors.New("boom")
+	c = newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { sse(w, "data: {}", "") }))
+	if err := c.Follow(context.Background(), open, 0, func(client.Event) error { return boom }); !errors.Is(err, boom) {
+		t.Fatalf("%v", err)
+	}
+	// A cancelled context ends it between connections.
+	ctx, cancel := context.WithCancel(context.Background())
+	n := 0
+	err = c.Follow(ctx, open, 0, func(client.Event) error {
+		if n++; n == 2 {
+			cancel()
+		}
+		return nil
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("%v", err)
 	}
 }

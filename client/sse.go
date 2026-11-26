@@ -10,12 +10,14 @@ import (
 
 // readEvents reads a text/event-stream and calls fn with each event: lines
 // "event: <name>" and "data: <json>" (several data lines are joined with a
-// newline), ended by a blank line. Comments (": ping") and the id and retry
-// fields are skipped. It returns fn's first error, a read error (as a
-// transport error), or nil at the end of the stream.
+// newline), ended by a blank line. An "id: <id>" line sets the id of that
+// event and of the ones after it, until the next id line (as the stream's
+// last event id). Comments (": ping") and the retry field are skipped. It
+// returns fn's first error, a read error (as a transport error), or nil at
+// the end of the stream.
 func readEvents(r io.Reader, fn func(Event) error) error {
 	br := bufio.NewReaderSize(r, 64<<10)
-	var name string
+	var name, lastID string
 	var data bytes.Buffer
 	hasData := false
 	dispatch := func() error {
@@ -23,7 +25,7 @@ func readEvents(r io.Reader, fn func(Event) error) error {
 			name = ""
 			return nil
 		}
-		ev := Event{Name: name, Data: bytes.Clone(data.Bytes())}
+		ev := Event{Name: name, ID: lastID, Data: bytes.Clone(data.Bytes())}
 		if ev.Name == "" {
 			ev.Name = "message"
 		}
@@ -56,6 +58,10 @@ func readEvents(r io.Reader, fn func(Event) error) error {
 			switch string(field) {
 			case "event":
 				name = string(value)
+			case "id":
+				if !bytes.ContainsRune(value, 0) {
+					lastID = string(value)
+				}
 			case "data":
 				if hasData {
 					data.WriteByte('\n')

@@ -14,8 +14,9 @@ import (
 //
 // A call is tried again only when doing so cannot make it take effect twice:
 //
-//   - GET, HEAD, PUT and DELETE (reads and whole replacements): on 429, 502, 503
-//     and 504, and on transport errors;
+//   - GET, HEAD, PUT and DELETE (reads and whole replacements), and any call
+//     with an Idempotency-Key (a sandbox create, a detached exec): on 429,
+//     502, 503 and 504, and on transport errors;
 //   - any call, POST included: on 429 and 503 AUTH_UNAVAILABLE (the API refused
 //     before doing anything), on codes the service lists for that call (a
 //     sandbox create on 503 no_capacity), and when no connection was made.
@@ -36,18 +37,20 @@ var DefaultRetryPolicy = RetryPolicy{MaxAttempts: 3, MinBackoff: 250 * time.Mill
 // NoRetry tries every call once.
 var NoRetry = RetryPolicy{MaxAttempts: 1}
 
-func idempotent(method string) bool {
-	switch method {
+// idempotent reports whether sending r twice has the effect of sending it
+// once: a read, a whole replacement, or a call with an Idempotency-Key.
+func (r *Request) idempotent() bool {
+	switch r.Method {
 	case http.MethodGet, http.MethodHead, http.MethodPut, http.MethodDelete, http.MethodOptions:
 		return true
 	}
-	return false
+	return r.IdempotencyKey != ""
 }
 
-// shouldRetry reports whether err, from one try of a call with this method,
-// may be retried. retryOn lists codes the call's service says were refused
-// before anything was done.
-func shouldRetry(method string, retryOn []string, err error) bool {
+// shouldRetry reports whether err, from one try of r, may be retried.
+// r.RetryOn lists codes the call's service says were refused before anything
+// was done.
+func shouldRetry(r *Request, err error) bool {
 	var apiErr *Error
 	if errors.As(err, &apiErr) {
 		switch {
@@ -55,9 +58,9 @@ func shouldRetry(method string, retryOn []string, err error) bool {
 			return true
 		case apiErr.Status == http.StatusServiceUnavailable && apiErr.Code == CodeAuthUnavailable:
 			return true
-		case apiErr.Code != "" && slices.Contains(retryOn, apiErr.Code):
+		case apiErr.Code != "" && slices.Contains(r.RetryOn, apiErr.Code):
 			return true
-		case idempotent(method):
+		case r.idempotent():
 			switch apiErr.Status {
 			case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 				return true
@@ -67,7 +70,7 @@ func shouldRetry(method string, retryOn []string, err error) bool {
 	}
 	var te *transportError
 	if errors.As(err, &te) {
-		return te.unsent || idempotent(method)
+		return te.unsent || r.idempotent()
 	}
 	return false
 }
