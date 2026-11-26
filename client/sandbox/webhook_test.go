@@ -111,6 +111,11 @@ func TestVerifyWebhookVector(t *testing.T) {
 	if err := sandbox.VerifyWebhook(vectorSecret, webhookHeader(vectorID, vectorTS, vectorSig), []byte(vectorBody), decade); err != nil {
 		t.Fatalf("the vector: %v", err)
 	}
+	// Header keys as another framework may hand them over, not canonical.
+	raw := http.Header{"webhook-id": {vectorID}, "webhook-timestamp": {vectorTS}, "webhook-signature": {vectorSig}}
+	if err := sandbox.VerifyWebhook(vectorSecret, raw, []byte(vectorBody), decade); err != nil {
+		t.Fatalf("lower-case keys: %v", err)
+	}
 	// Another signature first (a secret being rotated, a later version).
 	if err := sandbox.VerifyWebhook(vectorSecret, webhookHeader(vectorID, vectorTS, "v2,abc v1,AAAA "+vectorSig), []byte(vectorBody), decade); err != nil {
 		t.Fatalf("among several: %v", err)

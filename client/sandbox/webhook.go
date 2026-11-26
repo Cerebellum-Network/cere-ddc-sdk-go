@@ -179,7 +179,8 @@ func VerifyWebhook(secret string, header http.Header, body []byte, tolerance tim
 	if secret == "" {
 		return errors.New("sandbox: webhook: no secret to verify with")
 	}
-	id, ts, sigs := header.Get(HeaderWebhookID), header.Get(HeaderWebhookTimestamp), header.Get(HeaderWebhookSignature)
+	id, ts, sigs := headerValue(header, HeaderWebhookID), headerValue(header, HeaderWebhookTimestamp),
+		headerValue(header, HeaderWebhookSignature)
 	if id == "" || ts == "" || sigs == "" {
 		return errors.New("sandbox: webhook: the webhook-id, webhook-timestamp and webhook-signature headers are required")
 	}
@@ -207,4 +208,18 @@ func VerifyWebhook(secret string, header http.Header, body []byte, tolerance tim
 		}
 	}
 	return errors.New("sandbox: webhook: no signature matches")
+}
+
+// headerValue is h's value for name, whatever the case of h's keys (a map
+// built by hand need not be canonical).
+func headerValue(h http.Header, name string) string {
+	if v := h.Get(name); v != "" {
+		return v
+	}
+	for k, vs := range h {
+		if strings.EqualFold(k, name) && len(vs) > 0 {
+			return vs[0]
+		}
+	}
+	return ""
 }
