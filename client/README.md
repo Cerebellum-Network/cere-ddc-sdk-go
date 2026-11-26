@@ -50,7 +50,7 @@ Every call carries a DDC access token (see the `auth` module) with `COMPUTE` on 
 | A static token | `client.WithToken(tok)`, or `client.NewFromEnv()` for what `cere login` saved or `CERE_TOKEN` | a person, CI, a script. A token from the developer console lives 1, 7 or 30 days and cannot be revoked |
 | A delegation | the bucket owner signs a grant to the service's key once (`client.NewGrant`, or their wallet); the service uses `client.ParseDelegation(grant, auth.NewEd25519Signer(key))` as the token source | a service acting for a bucket it does not own. The owner's key never reaches the service; each call gets a token minted for 10 minutes |
 
-A create needs a token that is valid when the node checks it; after that the sandbox runs until its `Timeout` (none with `sandbox.NoTimeout`) or another end, and the bucket owner's balance, not the token, stops it early. Clusters before the lifetime change of 26 Nov 2026 also end a sandbox 60 s before its create token expires (exit reason `token_expiry`), so `Create` asks the token source for a token that outlives the sandbox's `Timeout` and that margin: a delegation mints one (harmless where the token no longer bounds the sandbox); a static token is sent as it is. A service that acts for many buckets makes one client and calls `c.WithToken(runToken)` (or `WithTokenSource`) per run.
+A create needs a token that is valid when the node checks it; after that the sandbox runs until its `Timeout` (none with `sandbox.NoTimeout`) or another end, and the bucket owner's balance, not the token, stops it early. A service that acts for many buckets makes one client and calls `c.WithToken(runToken)` (or `WithTokenSource`) per run.
 
 ```go
 d, err := client.ParseDelegation(grant, auth.NewEd25519Signer(serviceKey),
@@ -62,7 +62,7 @@ c, err := client.New(client.WithTokenSource(d))
 
 | Do | Call |
 |---|---|
-| create, wait until it runs | `sbx.Create(ctx, req)`; `sandbox.NoWait()` to return at `starting`; `Timeout` zero is the default (10 min), `sandbox.NoTimeout` none |
+| create, wait until it runs | `sbx.Create(ctx, req)`; `sandbox.NoWait()` to return at `starting`; `Timeout` zero is the default (5 min), `sandbox.NoTimeout` none |
 | find | `sbx.Get(ctx, id)`, `sbx.List(ctx, sandbox.ListOptions{Labels: ..., Status: ...})` |
 | run a command | `sb.Exec(ctx, req)` (output whole, each stream up to 16 MiB), `sb.ExecStream(ctx, req, stdout, stderr)`; `Timeout` zero is the API's default (1 h), `sandbox.NoTimeout` none |
 | files | `sb.WriteFile`, `sb.ReadFile` (up to 16 MiB) |
@@ -72,7 +72,7 @@ c, err := client.New(client.WithTokenSource(d))
 | end it | `sb.Terminate(ctx, sandbox.TerminateOptions{Retain: [...], Reason: ...})`; retained files stay readable 24 h |
 | usage | `sb.CurrentUsage`, `sb.Usage` (last reported, final after the end), `sbx.UsageRecords`, `sbx.UsageByLabel(ctx, "user", q)`, `sandbox.BillingState` |
 
-**Resources.** `CPU` (vCPU) and `Memory` (MiB) are the request: guaranteed, counted for placement, and billed as a floor while the sandbox runs (default 0.25 vCPU and 128 MiB). `CPULimit` and `MemoryLimit` are the most it can use (default: the node's sandbox CPU up to 8, and 1024 MiB or the request if more); use above the request is billed as used, and a sandbox that reaches its memory limit ends with `oom_killed`.
+**Resources.** `CPU` (vCPU) and `Memory` (MiB) are the request: guaranteed, counted for placement, and billed as a floor while the sandbox runs (default 0.25 vCPU and 128 MiB). `CPULimit` and `MemoryLimit` are the most it can use (default: the node's sandbox CPU up to 8, and 1024 MiB or the request if more); use above the request is billed as used, and a sandbox that reaches its memory limit ends with `oom_killed`. `Disk` (MiB) is the sandbox's writable disk: default 512, no fixed maximum; a write past it fails with `ENOSPC` inside the sandbox, which keeps running (`/tmp` is in memory and counts against `MemoryLimit`).
 
 **Egress.** A sandbox reaches only the hosts its `Allow` rules list. A rule may name a credential in one of two ways: `Credential` (the egress proxy sets that secret's header on every request the rule allows) or `Placeholders` (the sandbox writes `sandbox.Placeholder("slack-a")`, `cere:slack-a`, in a header, and the proxy swaps in that secret; this tells two accounts on one host apart). The sandbox never sees a value. A name resolves to the sandbox's own secret, then its agent's, then the bucket's, and the secret must be bound to the rule's host.
 

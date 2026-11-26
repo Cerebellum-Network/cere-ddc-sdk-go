@@ -151,10 +151,6 @@ type Request struct {
 	// Timeout bounds one try, reading the answer included: 0 is the client's
 	// timeout, a negative value none (the context still applies).
 	Timeout time.Duration
-	// TokenLife, when positive, asks the token source for a token that stays
-	// valid this long (LifetimeTokenSource). A source that cannot say is used
-	// as it is.
-	TokenLife time.Duration
 	// RetryOn lists codes that mean the API did nothing, so even a POST may be
 	// sent again (for a sandbox create, "no_capacity").
 	RetryOn []string
@@ -322,7 +318,7 @@ func (c *Client) roundTrip(ctx context.Context, r *Request, read func(*http.Resp
 // makes the call impossible to repeat.
 func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType string,
 	read func(*http.Response) error) (started bool, err error) {
-	token, err := c.token(ctx, r.TokenLife)
+	token, err := c.token(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -387,17 +383,11 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 }
 
 // token picks the token for one try.
-func (c *Client) token(ctx context.Context, life time.Duration) (string, error) {
+func (c *Client) token(ctx context.Context) (string, error) {
 	if c.tokens == nil {
 		return "", ErrNoToken
 	}
-	var tok string
-	var err error
-	if lts, ok := c.tokens.(LifetimeTokenSource); ok && life > 0 {
-		tok, err = lts.TokenFor(ctx, life)
-	} else {
-		tok, err = c.tokens.Token(ctx)
-	}
+	tok, err := c.tokens.Token(ctx)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "cere: ") {
 			return "", err

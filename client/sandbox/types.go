@@ -55,22 +55,15 @@ const (
 const (
 	// DefaultTimeout is how long a sandbox runs when its create names no
 	// timeout.
-	DefaultTimeout = 10 * time.Minute
+	DefaultTimeout = 5 * time.Minute
 	// DefaultExecTimeout is how long an exec waits for its command when the
 	// request names no timeout.
 	DefaultExecTimeout = time.Hour
 	// NoTimeout, as the Timeout of a CreateRequest or an ExecRequest, asks for
 	// none: the sandbox runs until its command exits, it is terminated, its
 	// idle timeout or a limit ends it, or its bucket's owner runs out of
-	// balance; a command runs until it finishes or the sandbox ends. Clusters
-	// before the lifetime change of 26 Nov 2026 read it as their default (a
-	// sandbox) or their maximum (an exec).
+	// balance; a command runs until it finishes or the sandbox ends.
 	NoTimeout time.Duration = -1
-	// TokenExpiryMargin: on clusters before the lifetime change of 26 Nov
-	// 2026, a sandbox ends this long before the token it was created with
-	// expires (exit reason token_expiry). Since then the token only has to be
-	// valid at create.
-	TokenExpiryMargin = 60 * time.Second
 	// MaxFileBytes is the largest file WriteFile sends and a retained file.
 	MaxFileBytes = 16 << 20
 	// RetainFor is how long a retained file stays readable after the sandbox ends.
@@ -95,32 +88,11 @@ type Resources struct {
 	MemoryLimit int `json:"memory_limit,omitempty"`
 	// PIDs is the most processes (default 2048).
 	PIDs int `json:"pids,omitempty"`
-	// Disk is the most the sandbox may write to its filesystem, in MiB (0:
-	// the node's default, 2048; at most 10240). A sandbox that writes more
-	// ends with "disk_limit (N MiB)".
-	Disk int `json:"disk_mib,omitempty"`
-}
-
-// UnmarshalJSON reads memory and memory_limit, or memory_mib and
-// memory_limit_mib from APIs before 26 Nov 2026.
-func (r *Resources) UnmarshalJSON(b []byte) error {
-	type plain Resources
-	var aux struct {
-		plain
-		MemoryMiB      int `json:"memory_mib"`
-		MemoryLimitMiB int `json:"memory_limit_mib"`
-	}
-	if err := json.Unmarshal(b, &aux); err != nil {
-		return err
-	}
-	*r = Resources(aux.plain)
-	if r.Memory == 0 {
-		r.Memory = aux.MemoryMiB
-	}
-	if r.MemoryLimit == 0 {
-		r.MemoryLimit = aux.MemoryLimitMiB
-	}
-	return nil
+	// Disk is the sandbox's writable disk, in MiB (0: the default, 512).
+	// There is no fixed maximum, only what a node can give. A write past it
+	// fails with ENOSPC inside the sandbox, which runs on. /tmp is kept in
+	// memory and counts against MemoryLimit, not Disk.
+	Disk int `json:"disk,omitempty"`
 }
 
 func (r Resources) validate() error {
@@ -326,24 +298,6 @@ type UsageRecord struct {
 	TCAID        int64      `json:"tca_id"`
 	DACStatus    string     `json:"dac_status"`
 	DACUpdatedAt *time.Time `json:"dac_updated_at"`
-}
-
-// UnmarshalJSON reads memory_limit, or memory_limit_mib from APIs before
-// 26 Nov 2026.
-func (r *UsageRecord) UnmarshalJSON(b []byte) error {
-	type plain UsageRecord
-	var aux struct {
-		plain
-		MemoryLimitMiB int `json:"memory_limit_mib"`
-	}
-	if err := json.Unmarshal(b, &aux); err != nil {
-		return err
-	}
-	*r = UsageRecord(aux.plain)
-	if r.MemoryLimit == 0 {
-		r.MemoryLimit = aux.MemoryLimitMiB
-	}
-	return nil
 }
 
 // EgressEntry is one request a sandbox made through the egress proxy, or one

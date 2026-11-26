@@ -38,7 +38,6 @@ type fake struct {
 	createFail []int            // statuses to answer the next creates with
 	startAs    string           // the status a create answers (default running)
 	failStart  bool             // a created sandbox fails to start
-	memoryOld  bool             // answer resources with memory_mib only, as before 26 Nov
 }
 
 func newFake(t *testing.T) (*fake, *sandbox.Service) {
@@ -127,16 +126,11 @@ func (f *fake) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := fmt.Sprintf("sb-%026d", len(f.order)+1)
-	res := map[string]any{"cpu": 0.25, "memory": 128, "cpu_limit": 8, "memory_limit": 1024, "pids": 2048, "disk_mib": 0}
+	res := map[string]any{"cpu": 0.25, "memory": 128, "cpu_limit": 8, "memory_limit": 1024, "pids": 2048, "disk": 512}
 	if req, ok := body["resources"].(map[string]any); ok {
 		for k, v := range req {
 			res[k] = v
 		}
-	}
-	if f.memoryOld {
-		res["memory_mib"], res["memory_limit_mib"] = res["memory"], res["memory_limit"]
-		delete(res, "memory")
-		delete(res, "memory_limit")
 	}
 	var secrets []any
 	values := map[string]string{}
@@ -244,7 +238,7 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 			sb["status"], sb["exit_reason"], sb["retained"] = "terminated", reason, kept
 			sb["usage"] = map[string]any{"wall_s": 12.5, "billing_basis": "request_or_usage", "billed_cpu_s": 3.2}
 			f.records = append(f.records, map[string]any{"record_id": "r-" + id, "sandbox_id": id, "final": true,
-				"billed_cpu_s": 3.2, "billed_ram_gib_s": 1.5, "cpu_s": 0.5, "memory_limit_mib": 1024, "dac_status": "pushed"})
+				"billed_cpu_s": 3.2, "billed_ram_gib_s": 1.5, "cpu_s": 0.5, "memory_limit": 1024, "dac_status": "pushed"})
 		}
 		reply(w, 200, sb)
 	case ended(sb) && route == "GET files":

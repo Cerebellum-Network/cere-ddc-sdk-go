@@ -81,8 +81,7 @@ type Sandbox struct {
 	// ExitReason says why it ended: "terminated by API[: reason]", "timeout
 	// (Ns)", "idle_timeout (Ns)", "oom_killed", "memory_reclaimed",
 	// "disk_limit (...)", "insufficient_balance", "exited with code N",
-	// "failed: ...", "lost: ...", or "token_expiry" (clusters before the
-	// lifetime change of 26 Nov 2026). Empty while it runs.
+	// "failed: ...", "lost: ...". Empty while it runs.
 	ExitReason string `json:"exit_reason"`
 	// ExitCode is the main process's exit code, when it has one.
 	ExitCode *int `json:"exit_code"`
@@ -131,14 +130,10 @@ func NoWait() CreateOption { return func(o *createOptions) { o.noWait = true } }
 // Create creates a sandbox and waits until it runs (see NoWait). A sandbox
 // that fails to start is returned with a *StartError.
 //
-// The create's token must be valid when the node checks it; the sandbox then
-// runs until its Timeout or another end, and stops early only if its bucket's
-// owner runs out of balance. Clusters before the lifetime change of 26 Nov
-// 2026 also end a sandbox 60 s before its create token expires, so the create
-// asks the client's token source for a token that lasts the sandbox's Timeout
-// (DefaultTimeout for none) and that margin: a client.Delegation mints one,
-// which is harmless where the token no longer bounds the sandbox. A static
-// token is sent as it is. Later calls take any valid token for the bucket.
+// The create's token only has to be valid when the node checks it: the
+// sandbox then runs until its Timeout or another end, and stops early only if
+// its bucket's owner runs out of balance. Later calls take any valid token
+// for the bucket.
 //
 // A create that no node has room for (CodeNoCapacity) did nothing and is
 // retried under the client's retry policy; a bucket at its most sandboxes
@@ -151,15 +146,10 @@ func (s *Service) Create(ctx context.Context, req CreateRequest, opts ...CreateO
 	if err := req.validate(); err != nil {
 		return nil, err
 	}
-	life := req.Timeout
-	if life <= 0 { // the default, or none: a cluster before the change reads both as its default
-		life = DefaultTimeout
-	}
-	life += TokenExpiryMargin
 	sb := &Sandbox{svc: s}
 	err := s.c.Do(ctx, &client.Request{
 		Method: http.MethodPost, Path: "/v1/sandboxes", JSON: req,
-		Timeout: createTimeout, TokenLife: life, RetryOn: []string{CodeNoCapacity},
+		Timeout: createTimeout, RetryOn: []string{CodeNoCapacity},
 	}, sb)
 	if err != nil {
 		return nil, err

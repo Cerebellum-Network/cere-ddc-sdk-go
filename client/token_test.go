@@ -53,9 +53,6 @@ func TestStaticToken(t *testing.T) {
 	if got, err := tok.Token(context.Background()); err != nil || got != string(tok) {
 		t.Fatalf("Token: %v", err)
 	}
-	if got, err := tok.TokenFor(context.Background(), 40*time.Minute); err != nil || got != string(tok) {
-		t.Fatalf("TokenFor past the token's expiry returns it as it is: %v", err)
-	}
 	if _, err := client.StaticToken("not-a-ddc-token").ExpiresAt(); err == nil {
 		t.Error("ExpiresAt of an opaque token: no error")
 	}

@@ -44,7 +44,7 @@ func TestCreateSendsTheAPIsBody(t *testing.T) {
 		`{"credential":"gh","host":"api.github.com","methods":["GET"],"path_prefix":"/repos/"},` +
 		`{"host":"mcp.slack.com","methods":["*"],"placeholders":["slack-a","slack-b"]},` +
 		`{"host":"pypi.org","methods":["GET"]}]},"env":{"A":"1"},"idle_timeout_s":60,"image":"python:3.12-slim",` +
-		`"labels":{"user":"fred"},"resources":{"cpu":0.5,"cpu_limit":2,"disk_mib":512,"memory":256,"memory_limit":1024},` +
+		`"labels":{"user":"fred"},"resources":{"cpu":0.5,"cpu_limit":2,"disk":512,"memory":256,"memory_limit":1024},` +
 		`"runtime":"gvisor","secrets":[` +
 		`{"header":"Authorization","hosts":["mcp.slack.com"],"name":"slack-a","type":"header","value":"Bearer xoxp-1"},` +
 		`{"header":"Authorization","hosts":["api.github.com"],"name":"gh","type":"header","value":"token g"}],"timeout_s":91}`
@@ -195,18 +195,9 @@ func TestCreateTokens(t *testing.T) {
 	}
 	createExp, _ := client.StaticToken(f.tokens[0]).ExpiresAt()
 	callExp, _ := client.StaticToken(f.tokens[len(f.tokens)-1]).ExpiresAt()
-	if d := time.Until(createExp); d < time.Hour+2*time.Minute || d > time.Hour+4*time.Minute {
-		t.Errorf("the create's token lives %s, want 1 h + 60 s + 2 min", d)
-	}
-	// No timeout, or the default: minted for the default, which a cluster
-	// before the lifetime change applies to both.
-	f.tokens = nil
-	if _, err := delegated.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: sandbox.NoTimeout}); err != nil {
-		t.Fatal(err)
-	}
-	createExp, _ = client.StaticToken(f.tokens[0]).ExpiresAt()
-	if d := time.Until(createExp); d < 12*time.Minute || d > 14*time.Minute {
-		t.Errorf("a no-timeout create's token lives %s, want 10 min + 60 s + 2 min", d)
+	// The create's token only has to be valid at create, whatever the timeout.
+	if d := time.Until(createExp); d > client.DefaultCallTTL {
+		t.Errorf("the create's token lives %s, want at most %s", d, client.DefaultCallTTL)
 	}
 	if d := time.Until(callExp); d > client.DefaultCallTTL {
 		t.Errorf("an exec's token lives %s, want at most %s", d, client.DefaultCallTTL)
@@ -231,9 +222,8 @@ func ownerToken(t *testing.T, owner ed25519.PrivateKey, exp time.Time) string {
 	return tok
 }
 
-func TestGetListAndOldMemoryNames(t *testing.T) {
-	f, sbx := newFake(t)
-	f.memoryOld = true
+func TestGetListAndMemoryNames(t *testing.T) {
+	_, sbx := newFake(t)
 	var ids []string
 	for i := range 5 {
 		sb, err := sbx.Create(ctx, sandbox.CreateRequest{Image: "alpine", Resources: sandbox.Resources{Memory: 256},
@@ -242,7 +232,7 @@ func TestGetListAndOldMemoryNames(t *testing.T) {
 			t.Fatal(err)
 		}
 		if sb.Resources.Memory != 256 || sb.Resources.MemoryLimit != 1024 {
-			t.Errorf("memory_mib and memory_limit_mib: %+v", sb.Resources)
+			t.Errorf("memory and memory_limit: %+v", sb.Resources)
 		}
 		ids = append(ids, sb.ID)
 	}
@@ -512,7 +502,7 @@ func TestParseAllow(t *testing.T) {
 
 func TestSandboxDecodesTheAPIsShape(t *testing.T) {
 	raw := `{"id":"sb-1","status":"terminated","bucket":4116,"resources":{"cpu":0.25,"memory":128,"cpu_limit":4,
-		"memory_limit":1024,"pids":2048,"disk_mib":0,"gpu":null,"memory_mib":128,"memory_limit_mib":1024},"timeout_s":600,
+		"memory_limit":1024,"pids":2048,"disk":512,"gpu":null},"timeout_s":300,
 		"egress":{"allow":[{"host":"pypi.org","methods":["GET"]}]},"started_at":"2026-11-25T10:00:01Z","ended_at":null,
 		"startup_ms":900,"exit_reason":"oom_killed","exit_code":137,"usage":{"wall_s":60,"cpu_s":1.5,"billing_basis":
 		"request_or_usage","reserved_cpu_s":15,"burst_cpu_s":2.5,"cpu_peak":3.5}}`
@@ -520,7 +510,7 @@ func TestSandboxDecodesTheAPIsShape(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &sb); err != nil {
 		t.Fatal(err)
 	}
-	if !sb.Ended() || sb.Bucket != 4116 || sb.Resources.Memory != 128 || sb.TimeoutS != 600 || *sb.ExitCode != 137 ||
+	if !sb.Ended() || sb.Bucket != 4116 || sb.Resources.Memory != 128 || sb.Resources.Disk != 512 || sb.TimeoutS != 300 || *sb.ExitCode != 137 ||
 		sb.ExitReason != "oom_killed" || sb.EndedAt != nil || sb.StartedAt == nil || sb.Usage.BurstCPUSeconds != 2.5 ||
 		sb.Usage.ReservedCPUSeconds != 15 || sb.Egress.Allow[0].Host != "pypi.org" {
 		t.Fatalf("%+v", sb)

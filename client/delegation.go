@@ -49,8 +49,6 @@ type Delegation struct {
 	until  time.Time
 }
 
-var _ LifetimeTokenSource = (*Delegation)(nil)
-
 // DelegationOption configures a Delegation.
 type DelegationOption func(*Delegation)
 
@@ -173,8 +171,10 @@ func (d *Delegation) Token(context.Context) (string, error) {
 	return tok, nil
 }
 
+var _ LifetimeTokenSource = (*Delegation)(nil)
+
 // TokenFor mints a token valid for life and two minutes more, but never past
-// the grant.
+// the grant: a token to hand to a sandbox for its run (calls take Token).
 func (d *Delegation) TokenFor(_ context.Context, life time.Duration) (string, error) {
 	tok, _, err := d.Mint(life+lifetimeSlack, d.subject)
 	return tok, err

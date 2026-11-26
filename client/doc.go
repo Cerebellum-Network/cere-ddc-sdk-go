@@ -30,11 +30,7 @@
 //     and one for each sandbox that lives exactly as long as the sandbox needs.
 //
 // A sandbox create needs a token that is valid when the node checks it; the
-// owner's balance, not the token, bounds the sandbox's life. Clusters before
-// the lifetime change of 26 Nov 2026 also end a sandbox 60 s before its create
-// token expires, so a create asks the source for a token that outlives the
-// sandbox (LifetimeTokenSource): a Delegation mints one. A StaticToken is sent
-// as it is.
+// owner's balance, not the token, bounds the sandbox's life.
 //
 // # Errors and retries
 //

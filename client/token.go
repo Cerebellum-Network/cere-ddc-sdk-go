@@ -12,10 +12,10 @@ type TokenSource interface {
 	Token(ctx context.Context) (string, error)
 }
 
-// LifetimeTokenSource is a TokenSource that can mint a token that stays valid
-// for life, as far as it can. A sandbox create asks for one: on clusters
-// before the lifetime change of 26 Nov 2026, a sandbox ends 60 s before the
-// token it was created with expires.
+// LifetimeTokenSource is a TokenSource that can also give a token that stays
+// valid for life, as far as it can: a token to hand to a sandbox for its run
+// (for example the model key of an agent run). A Delegation mints one; a
+// StaticToken is itself.
 type LifetimeTokenSource interface {
 	TokenSource
 	TokenFor(ctx context.Context, life time.Duration) (string, error)
@@ -38,8 +38,7 @@ var _ LifetimeTokenSource = StaticToken("")
 // Token returns the token.
 func (t StaticToken) Token(context.Context) (string, error) { return string(t), nil }
 
-// TokenFor returns the token as it is: a static token cannot mint a longer
-// one. A create needs only a token that is valid when the node checks it.
+// TokenFor returns the token as it is: a static token cannot mint another.
 func (t StaticToken) TokenFor(context.Context, time.Duration) (string, error) { return string(t), nil }
 
 // ExpiresAt decodes the token and returns its expiry: the earliest of its
