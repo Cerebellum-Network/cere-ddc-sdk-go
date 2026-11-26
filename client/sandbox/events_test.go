@@ -53,7 +53,7 @@ func TestEventsLongPoll(t *testing.T) {
 	if err != nil || eventIDs(evs) != "4:sandbox.exited" || next != "4" {
 		t.Fatalf("%s next %s %v", eventIDs(evs), next, err)
 	}
-	if got := f.polls[len(f.polls)-1]; got != "after=0&label=task%3At-81&limit=10&types=sandbox.exited&wait_s=25" {
+	if got := f.polls[len(f.polls)-1]; got != "after=0&label=task%3Dt-81&limit=10&types=sandbox.exited&wait_s=25" {
 		t.Errorf("query %s", got)
 	}
 	// Nothing new: the cursor stays.
@@ -130,7 +130,7 @@ func TestStreamEventsFromNowMissesNothing(t *testing.T) {
 		t.Fatalf("%v: %s", err, eventIDs(got))
 	}
 	// It took the feed's position first, and streamed from there both times.
-	if f.polls[0] != "label=task%3At-81" || strings.Join(f.sseConns, "|") != "after=1 last=|after=1 last=" {
+	if f.polls[0] != "label=task%3Dt-81" || strings.Join(f.sseConns, "|") != "after=1 last=|after=1 last=" {
 		t.Errorf("polls %q, connections %q", f.polls, f.sseConns)
 	}
 }

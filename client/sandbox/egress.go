@@ -36,10 +36,13 @@ type Allow struct {
 	Placeholders []string `json:"placeholders,omitempty"`
 }
 
-// ParseAllow reads a rule as the `cere` CLI writes it,
-// "host[:METHODS[:path_prefix[:credential]]]": "pypi.org:GET:/simple/",
+// ParseAllow reads a rule as the `cere` CLI writes it, and as the CLI reads
+// it: "host[:METHODS[:path_prefix[:credential]]]": "pypi.org:GET:/simple/",
 // "api.github.com:GET,HEAD::github-readonly". Methods are comma-separated and
-// default to GET.
+// default to GET. A credential part of placeholders,
+// "api.example.com:POST:/openai/v1:cere:ddc-inference" or
+// "mcp.slack.com:*::cere:slack-a,cere:slack-b", is Placeholders (placeholder
+// mode), never a Credential.
 func ParseAllow(rule string) (Allow, error) {
 	parts := strings.SplitN(rule, ":", 4)
 	a := Allow{Host: strings.TrimSpace(parts[0]), Methods: []string{http.MethodGet}}
@@ -64,7 +67,17 @@ func ParseAllow(rule string) (Allow, error) {
 		a.PathPrefix = parts[2]
 	}
 	if len(parts) > 3 {
-		a.Credential = parts[3]
+		if !strings.HasPrefix(parts[3], PlaceholderPrefix) {
+			a.Credential = parts[3]
+			return a, nil
+		}
+		for _, p := range strings.Split(parts[3], ",") {
+			name, ok := strings.CutPrefix(strings.TrimSpace(p), PlaceholderPrefix)
+			if !ok || name == "" {
+				return Allow{}, fmt.Errorf("sandbox: egress rule %q: placeholders are written cere:<name>,cere:<name>", rule)
+			}
+			a.Placeholders = append(a.Placeholders, name)
+		}
 	}
 	return a, nil
 }

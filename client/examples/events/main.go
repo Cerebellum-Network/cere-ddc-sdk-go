@@ -3,9 +3,9 @@
 // run it again: it goes on after that event and misses none in between (for
 // up to 72 hours, how long events are kept).
 //
-//	CERE_TOKEN=<token> go run github.com/cerebellum-network/cere-ddc-sdk-go/client/examples/events@latest -label task:t-81
+//	CERE_TOKEN=<token> go run github.com/cerebellum-network/cere-ddc-sdk-go/client/examples/events@latest -label task=t-81
 //
-// -label key:value narrows to the sandboxes with that label; -cursor names the
+// -label key=value narrows to the sandboxes with that label; -cursor names the
 // cursor's file (events.cursor in the working directory).
 package main
 
@@ -25,7 +25,7 @@ import (
 
 func main() {
 	cursorFile := flag.String("cursor", "events.cursor", "file that keeps the ID of the last event handled")
-	label := flag.String("label", "", "only the events of sandboxes with this label, key:value")
+	label := flag.String("label", "", "only the events of sandboxes with this label, key=value")
 	flag.Parse()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -37,9 +37,9 @@ func main() {
 
 	q := sandbox.EventQuery{Types: []string{sandbox.EventSandboxRunning, sandbox.EventSandboxExited, sandbox.EventExecExited}}
 	if *label != "" {
-		k, v, ok := strings.Cut(*label, ":")
+		k, v, ok := strings.Cut(*label, "=")
 		if !ok {
-			log.Fatalf("-label %q: want key:value", *label)
+			log.Fatalf("-label %q: want key=value", *label)
 		}
 		q.Labels = map[string]string{k: v}
 	}

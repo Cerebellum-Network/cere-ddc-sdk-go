@@ -231,7 +231,7 @@ func (s *Service) List(ctx context.Context, o ListOptions) ([]*Sandbox, error) {
 	return items, nil
 }
 
-// labelQuery is labels as the API's filters, label=key:value, in key order.
+// labelQuery is labels as the API's filters, label=key=value, in key order.
 func labelQuery(labels map[string]string) url.Values {
 	q := url.Values{}
 	keys := make([]string, 0, len(labels))
@@ -240,7 +240,7 @@ func labelQuery(labels map[string]string) url.Values {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		q.Add("label", k+":"+labels[k])
+		q.Add("label", k+"="+labels[k])
 	}
 	return q
 }

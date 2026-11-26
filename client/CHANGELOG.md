@@ -3,7 +3,20 @@
 Releases are tagged `client/vX.Y.Z`. Nothing has shipped widely yet, so a release may rename or remove what an earlier
 one had, as the sandbox API does.
 
-## client/v0.1.0-alpha.4 (unreleased)
+## client/v0.1.0-alpha.5
+
+### Fixed
+
+- `sandbox.ParseAllow` reads a credential part of placeholders, `host:POST:/openai/v1:cere:ddc-inference` or
+  `host:*::cere:a,cere:b`, as `Allow.Placeholders`, as the `cere` CLI does. It was read as `Credential`
+  `"cere:ddc-inference"`, which the API refuses (`credential "cere:ddc-inference" is not a valid secret name`).
+
+### Changed
+
+- Label filters are sent as the API now takes them, `label=key=value` (`ListOptions.Labels`, `EventQuery.Labels`,
+  usage records and summary). `WebhookRequest.Label` and `Webhook.Label` are `"key=value"`; `"key:value"` is refused.
+
+## client/v0.1.0-alpha.4
 
 The sandbox API's events, detached exec, retained files, private images, summaries and limits.
 

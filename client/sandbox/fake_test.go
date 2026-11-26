@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -148,6 +149,12 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f.tokens = append(f.tokens, tok)
+	for _, l := range r.URL.Query()["label"] {
+		if !labelFilterRE.MatchString(l) {
+			apiError(w, 400, "invalid_request", fmt.Sprintf("label %q must be key=value, the key matching [a-z0-9._/-]{1,63}", l))
+			return
+		}
+	}
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
 	switch {
 	case parts[0] == "sandboxes" && len(parts) == 1 && r.Method == http.MethodPost:
@@ -387,10 +394,13 @@ func (f *fake) exitMain(id string, code int) {
 	f.end(sb, "main_exited", fmt.Sprintf("exited with code %d", code), code, nil)
 }
 
+// labelFilterRE is a label filter as the gateway takes it, key=value.
+var labelFilterRE = regexp.MustCompile(`^[a-z0-9._/-]{1,63}=`)
+
 func (f *fake) labelsMatch(sb map[string]any, filters []string) bool {
 	labels, _ := sb["labels"].(map[string]any)
 	for _, flt := range filters {
-		k, v, _ := strings.Cut(flt, ":")
+		k, v, _ := strings.Cut(flt, "=")
 		if labels[k] != v {
 			return false
 		}

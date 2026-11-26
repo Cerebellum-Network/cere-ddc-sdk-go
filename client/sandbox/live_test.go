@@ -472,7 +472,7 @@ func TestLiveRetainAndEvents(t *testing.T) {
 	// A webhook, created and deleted at once; its label matches no sandbox, so
 	// nothing is ever sent.
 	wh, err := sbx.CreateWebhook(ctx, sandbox.WebhookRequest{URL: "https://hooks.example.com/cere-sdk-go-live",
-		Types: []string{sandbox.EventSandboxExited}, Label: "task:none-" + task, Secret: "dummy-secret-" + task})
+		Types: []string{sandbox.EventSandboxExited}, Label: "task=none-" + task, Secret: "dummy-secret-" + task})
 	if err != nil {
 		t.Fatalf("create webhook: %v", err)
 	}

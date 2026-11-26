@@ -18,12 +18,12 @@ import (
 func TestWebhooks(t *testing.T) {
 	f, sbx := newFake(t)
 	req := sandbox.WebhookRequest{URL: "https://hooks.example.com/ddc", Types: []string{sandbox.EventSandboxExited},
-		Label: "task:t-81", Secret: "a-secret-of-24-chars-xyz"}
+		Label: "task=t-81", Secret: "a-secret-of-24-chars-xyz"}
 	wh, err := sbx.CreateWebhook(ctx, req)
-	if err != nil || !strings.HasPrefix(wh.ID, "wh-") || wh.Label != "task:t-81" || wh.Types[0] != sandbox.EventSandboxExited || wh.CreatedAt.IsZero() {
+	if err != nil || !strings.HasPrefix(wh.ID, "wh-") || wh.Label != "task=t-81" || wh.Types[0] != sandbox.EventSandboxExited || wh.CreatedAt.IsZero() {
 		t.Fatalf("%+v %v", wh, err)
 	}
-	if got := mustJSON(f.hookBodies[0]); got != `{"label":"task:t-81","secret":"a-secret-of-24-chars-xyz","types":["sandbox.exited"],"url":"https://hooks.example.com/ddc"}` {
+	if got := mustJSON(f.hookBodies[0]); got != `{"label":"task=t-81","secret":"a-secret-of-24-chars-xyz","types":["sandbox.exited"],"url":"https://hooks.example.com/ddc"}` {
 		t.Errorf("body %s", got)
 	}
 	// Every type, every sandbox: the filters are left out.

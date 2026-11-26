@@ -9,12 +9,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/client"
 )
+
+// labelKeyRE is a label key as the API takes it.
+var labelKeyRE = regexp.MustCompile(`^[a-z0-9._/-]{1,63}$`)
 
 // Webhook limits.
 const (
@@ -54,7 +58,7 @@ type WebhookRequest struct {
 	URL string
 	// Types are the event types sent (the Event constants); all when empty.
 	Types []string
-	// Label, "key:value", sends only the events of sandboxes with that
+	// Label, "key=value", sends only the events of sandboxes with that
 	// label; every sandbox's when empty.
 	Label string
 	// Secret (16 to 256 characters) signs each delivery: check it with
@@ -78,8 +82,8 @@ func (r WebhookRequest) validate() error {
 	if n := len(r.Secret); n < 16 || n > 256 {
 		return errors.New("sandbox: a webhook secret is 16 to 256 characters")
 	}
-	if r.Label != "" && !strings.Contains(r.Label, ":") {
-		return fmt.Errorf("sandbox: webhook label %q: want key:value", r.Label)
+	if k, _, ok := strings.Cut(r.Label, "="); r.Label != "" && (!ok || !labelKeyRE.MatchString(k)) {
+		return fmt.Errorf("sandbox: webhook label %q: want key=value, the key matching [a-z0-9._/-]{1,63}", r.Label)
 	}
 	return nil
 }
@@ -89,7 +93,7 @@ type Webhook struct {
 	ID    string   `json:"id"`
 	URL   string   `json:"url"`
 	Types []string `json:"types"`
-	// Label is "key:value", or empty for every sandbox.
+	// Label is "key=value", or empty for every sandbox.
 	Label     string    `json:"label"`
 	CreatedAt time.Time `json:"created_at"`
 }

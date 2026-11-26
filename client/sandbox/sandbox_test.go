@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -480,24 +481,49 @@ func TestBillingState(t *testing.T) {
 	}
 }
 
+// TestParseAllow reads every form the cere CLI's --allow takes (ddc-node
+// packages/cli main_test.go TestParseAllow and credentials_test.go) the way
+// the CLI reads it; the Python SDK's Allow.parse has the same table.
 func TestParseAllow(t *testing.T) {
-	for in, want := range map[string]string{
-		"pypi.org":                           `{"host":"pypi.org","methods":["GET"]}`,
-		"pypi.org:GET:/simple/":              `{"host":"pypi.org","methods":["GET"],"path_prefix":"/simple/"}`,
-		"api.github.com:get,head::gh":        `{"host":"api.github.com","methods":["GET","HEAD"],"credential":"gh"}`,
-		"*.example.com:*":                    `{"host":"*.example.com","methods":["*"]}`,
-		"h:POST:/a:b:c":                      `{"host":"h","methods":["POST"],"path_prefix":"/a","credential":"b:c"}`,
-		"files.pythonhosted.org::/packages/": `{"host":"files.pythonhosted.org","methods":["GET"],"path_prefix":"/packages/"}`,
+	for _, c := range []struct {
+		in   string
+		want sandbox.Allow
+	}{
+		{"pypi.org", sandbox.Allow{Host: "pypi.org", Methods: []string{"GET"}}},
+		{"pypi.org:GET:/pypi/", sandbox.Allow{Host: "pypi.org", Methods: []string{"GET"}, PathPrefix: "/pypi/"}},
+		{"api.github.com:get,head::github-ro",
+			sandbox.Allow{Host: "api.github.com", Methods: []string{"GET", "HEAD"}, Credential: "github-ro"}},
+		{"*.example.com:POST:/v1/:cred",
+			sandbox.Allow{Host: "*.example.com", Methods: []string{"POST"}, PathPrefix: "/v1/", Credential: "cred"}},
+		{"httpbin.org:GET:/headers:echo-test",
+			sandbox.Allow{Host: "httpbin.org", Methods: []string{"GET"}, PathPrefix: "/headers", Credential: "echo-test"}},
+		{"host::/p", sandbox.Allow{Host: "host", Methods: []string{"GET"}, PathPrefix: "/p"}},
+		{"a.b:GET:/x:cred-with:colon-is-kept?",
+			sandbox.Allow{Host: "a.b", Methods: []string{"GET"}, PathPrefix: "/x", Credential: "cred-with:colon-is-kept?"}},
+		{"api.example.com:POST:/openai/v1:cere:ddc-inference",
+			sandbox.Allow{Host: "api.example.com", Methods: []string{"POST"}, PathPrefix: "/openai/v1",
+				Placeholders: []string{"ddc-inference"}}},
+		{"mcp.slack.com:*::cere:slack-a,cere:slack-b",
+			sandbox.Allow{Host: "mcp.slack.com", Methods: []string{"*"}, Placeholders: []string{"slack-a", "slack-b"}}},
+		{"h:GET::cere:a, cere:b", sandbox.Allow{Host: "h", Methods: []string{"GET"}, Placeholders: []string{"a", "b"}}},
+		{" h : get , post ", sandbox.Allow{Host: "h", Methods: []string{"GET", "POST"}}},
+		{"h:GET::", sandbox.Allow{Host: "h", Methods: []string{"GET"}}},
 	} {
-		a, err := sandbox.ParseAllow(in)
-		if err != nil || mustJSON(a) != want {
-			t.Errorf("%q: %s %v", in, mustJSON(a), err)
+		got, err := sandbox.ParseAllow(c.in)
+		if err != nil || !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%q: got %+v %v, want %+v", c.in, got, err, c.want)
 		}
 	}
-	for _, bad := range []string{"", ":GET", "h:,", "h:GET:simple/"} {
+	for _, bad := range []string{"", ":GET", "h:,", "h:GET:nopath", "h:GET::cere:a,b", "h:GET::cere:", "h:GET::cere:a,,cere:b"} {
 		if _, err := sandbox.ParseAllow(bad); err == nil {
 			t.Errorf("%q: no error", bad)
 		}
+	}
+	// The placeholder form goes to the API as placeholders: the API refused
+	// it as a credential ("cere:ddc-inference" is not a valid secret name).
+	a := sandbox.MustParseAllow("api.example.com:POST:/openai/v1:cere:ddc-inference")
+	if got := mustJSON(a); got != `{"host":"api.example.com","methods":["POST"],"path_prefix":"/openai/v1","placeholders":["ddc-inference"]}` {
+		t.Errorf("wire form %s", got)
 	}
 }
 
