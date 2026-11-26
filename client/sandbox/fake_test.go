@@ -163,6 +163,18 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.onSandbox(w, r, sb, parts[2:])
 	case parts[0] == "secrets":
 		f.bucketSecrets(w, r, parts[1:])
+	case parts[0] == "usage" && len(parts) == 2 && parts[1] == "summary":
+		f.usageSummary(w, r)
+	case parts[0] == "egress" && len(parts) == 2 && parts[1] == "summary":
+		f.egressSummary(w, r)
+	case parts[0] == "limits" && len(parts) == 1:
+		active := 0
+		for _, sb := range f.sandboxes {
+			if !ended(sb) {
+				active++
+			}
+		}
+		reply(w, 200, map[string]any{"bucket": 4116, "max_active_sandboxes": 20, "active_sandboxes": active})
 	case parts[0] == "usage" && len(parts) == 2:
 		reply(w, 200, f.page(r, f.records, func(rec map[string]any) bool {
 			id, _ := rec["sandbox_id"].(string)
@@ -796,6 +808,105 @@ func (f *fake) hooks(w http.ResponseWriter, r *http.Request, rest []string) {
 	default:
 		apiError(w, 405, "method_not_allowed", r.Method)
 	}
+}
+
+// usageSummary serves GET /v1/usage/summary: the records summed per
+// sandbox of the bucket whose labels match, newest first and paged, and in
+// all.
+func (f *fake) usageSummary(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	sum := func(into map[string]any, rec map[string]any) {
+		into["records"] = into["records"].(float64) + 1
+		for _, k := range []string{"wall_s", "cpu_s", "billed_cpu_s", "billed_ram_gib_s"} {
+			v, _ := rec[k].(float64)
+			into[k] = into[k].(float64) + v
+		}
+	}
+	zero := func() map[string]any {
+		return map[string]any{"records": 0.0, "wall_s": 0.0, "cpu_s": 0.0, "billed_cpu_s": 0.0, "billed_ram_gib_s": 0.0}
+	}
+	totals := zero()
+	totals["sandboxes"] = 0
+	var rows []map[string]any
+	for _, id := range f.order {
+		sb := f.sandboxes[id]
+		if (q.Get("sandbox_id") != "" && q.Get("sandbox_id") != id) || !f.labelsMatch(sb, q["label"]) {
+			continue
+		}
+		row := zero()
+		for _, rec := range f.records {
+			if rec["sandbox_id"] == id {
+				sum(row, rec)
+				sum(totals, rec)
+			}
+		}
+		if row["records"].(float64) == 0 {
+			continue
+		}
+		totals["sandboxes"] = totals["sandboxes"].(int) + 1
+		row["sandbox_id"], row["labels"], row["status"] = id, sb["labels"], sb["status"]
+		row["cpu_avg"] = row["cpu_s"].(float64) / row["wall_s"].(float64)
+		rows = append(rows, row)
+	}
+	page := f.page(r, rows, func(map[string]any) bool { return true })
+	reply(w, 200, map[string]any{"totals": totals, "sandboxes": page["items"], "next_cursor": page["next_cursor"]})
+}
+
+// egressSummary serves GET /v1/egress/summary: a sandbox's egress log
+// counted.
+func (f *fake) egressSummary(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("sandbox_id")
+	if f.sandboxes[id] == nil {
+		apiError(w, 404, "not_found", "no such sandbox")
+		return
+	}
+	out := map[string]any{"sandbox_id": id, "requests": 0, "allowed": 0, "denied": 0, "error": 0, "policy": 0,
+		"bytes_up": 0, "bytes_down": 0}
+	hosts, creds := map[string]map[string]any{}, map[string]map[string]any{}
+	var hostOrder, credOrder []string
+	inc := func(m map[string]any, k string, n int) { m[k] = m[k].(int) + n }
+	for _, e := range f.egressLog {
+		if e["sandbox_id"] != id {
+			continue
+		}
+		d := e["decision"].(string)
+		if d == "policy" {
+			inc(out, "policy", 1)
+			continue
+		}
+		up, _ := e["bytes_up"].(int)
+		down, _ := e["bytes_down"].(int)
+		inc(out, "requests", 1)
+		inc(out, d, 1)
+		inc(out, "bytes_up", up)
+		inc(out, "bytes_down", down)
+		host := e["host"].(string)
+		if hosts[host] == nil {
+			hosts[host] = map[string]any{"host": host, "requests": 0, "allowed": 0, "denied": 0, "error": 0, "bytes_up": 0, "bytes_down": 0}
+			hostOrder = append(hostOrder, host)
+		}
+		inc(hosts[host], "requests", 1)
+		inc(hosts[host], d, 1)
+		inc(hosts[host], "bytes_up", up)
+		inc(hosts[host], "bytes_down", down)
+		if cred, _ := e["credential"].(string); cred != "" {
+			if creds[cred] == nil {
+				creds[cred] = map[string]any{"credential": cred, "requests": 0, "allowed": 0, "denied": 0, "error": 0}
+				credOrder = append(credOrder, cred)
+			}
+			inc(creds[cred], "requests", 1)
+			inc(creds[cred], d, 1)
+		}
+	}
+	byHost, byCred := []any{}, []any{}
+	for _, h := range hostOrder {
+		byHost = append(byHost, hosts[h])
+	}
+	for _, c := range credOrder {
+		byCred = append(byCred, creds[c])
+	}
+	out["by_host"], out["by_credential"] = byHost, byCred
+	reply(w, 200, out)
 }
 
 func (f *fake) bucketSecrets(w http.ResponseWriter, r *http.Request, rest []string) {

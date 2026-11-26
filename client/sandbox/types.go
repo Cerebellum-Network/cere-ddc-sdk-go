@@ -447,14 +447,16 @@ type Usage struct {
 // ends), as its node wrote it. CPUUnits and RAMUnits (decimal strings) are the
 // billed amounts × 1e11, what the DAC record carries.
 type UsageRecord struct {
-	RecordID    string    `json:"record_id"`
-	SandboxID   string    `json:"sandbox_id"`
-	Node        string    `json:"node"`
-	Bucket      uint64    `json:"bucket"`
-	PeriodStart time.Time `json:"period_start"`
-	PeriodEnd   time.Time `json:"period_end"`
-	Final       bool      `json:"final"`
-	ExitReason  string    `json:"exit_reason"`
+	RecordID  string `json:"record_id"`
+	SandboxID string `json:"sandbox_id"`
+	// Labels are the sandbox's labels.
+	Labels      map[string]string `json:"labels"`
+	Node        string            `json:"node"`
+	Bucket      uint64            `json:"bucket"`
+	PeriodStart time.Time         `json:"period_start"`
+	PeriodEnd   time.Time         `json:"period_end"`
+	Final       bool              `json:"final"`
+	ExitReason  string            `json:"exit_reason"`
 
 	CPUSeconds      float64 `json:"cpu_s"`
 	RAMGiBSeconds   float64 `json:"ram_gib_s"`

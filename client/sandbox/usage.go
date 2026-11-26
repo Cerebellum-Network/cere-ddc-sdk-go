@@ -3,6 +3,8 @@ package sandbox
 import (
 	"context"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/client"
@@ -56,16 +58,9 @@ type LabelUsage struct {
 // under "". q.Labels narrows to sandboxes that also carry those labels (for
 // example {"cere.agent": "research"}). The bucket is billed; splitting the
 // bill among an application's own users is the application's, on labels it
-// sets on each sandbox.
+// sets on each sandbox. To sum the sandboxes of one label value, UsageSummary
+// asks the API instead.
 func (s *Service) UsageByLabel(ctx context.Context, key string, q UsageQuery) (map[string]LabelUsage, error) {
-	sandboxes, err := s.List(ctx, ListOptions{Labels: q.Labels, Limit: -1})
-	if err != nil {
-		return nil, err
-	}
-	value := make(map[string]string, len(sandboxes))
-	for _, sb := range sandboxes {
-		value[sb.ID] = sb.Labels[key]
-	}
 	n := q.Limit
 	if n < 0 {
 		n = 0
@@ -77,7 +72,7 @@ func (s *Service) UsageByLabel(ctx context.Context, key string, q UsageQuery) (m
 	out := map[string]LabelUsage{}
 	seen := map[string]map[string]bool{}
 	for _, r := range records {
-		v := value[r.SandboxID]
+		v := r.Labels[key]
 		u := out[v]
 		if seen[v] == nil {
 			seen[v] = map[string]bool{}
@@ -94,6 +89,141 @@ func (s *Service) UsageByLabel(ctx context.Context, key string, q UsageQuery) (m
 		out[v] = u
 	}
 	return out, nil
+}
+
+// UsageSummaryQuery selects the sandboxes whose usage records
+// UsageSummary sums; every field is optional.
+type UsageSummaryQuery struct {
+	// Labels must all match the sandbox's labels, for example
+	// {"task": "t-81"}.
+	Labels map[string]string
+	// SandboxID narrows to one sandbox.
+	SandboxID string
+	// Since and Until bound the records' period end: [Since, Until).
+	Since, Until time.Time
+	// Limit is the most sandboxes listed: 0 is 100, a negative value all.
+	// Totals covers every matching sandbox whatever the limit.
+	Limit int
+}
+
+// UsageSums is usage summed over usage records: measured (CPUSeconds,
+// RAMGiBSeconds, network), billed (BilledCPUSeconds, BilledRAMGiBSeconds),
+// the request's floor (Reserved*) and what was billed above it (Burst*),
+// with the highest CPU and memory use of any record.
+type UsageSums struct {
+	Records               int     `json:"records"`
+	WallSeconds           float64 `json:"wall_s"`
+	CPUSeconds            float64 `json:"cpu_s"`
+	RAMGiBSeconds         float64 `json:"ram_gib_s"`
+	BilledCPUSeconds      float64 `json:"billed_cpu_s"`
+	BilledRAMGiBSeconds   float64 `json:"billed_ram_gib_s"`
+	ReservedCPUSeconds    float64 `json:"reserved_cpu_s"`
+	ReservedRAMGiBSeconds float64 `json:"reserved_ram_gib_s"`
+	BurstCPUSeconds       float64 `json:"burst_cpu_s"`
+	BurstRAMGiBSeconds    float64 `json:"burst_ram_gib_s"`
+	NetEgressBytes        int64   `json:"net_egress_bytes"`
+	NetIngressBytes       int64   `json:"net_ingress_bytes"`
+	CPUPeak               float64 `json:"cpu_peak"`
+	MemoryPeakMiB         float64 `json:"memory_peak_mib"`
+}
+
+// UsageTotals is the usage of every sandbox a summary matched.
+type UsageTotals struct {
+	Sandboxes int `json:"sandboxes"`
+	UsageSums
+}
+
+// SandboxUsage is one sandbox's usage in a summary.
+type SandboxUsage struct {
+	SandboxID string            `json:"sandbox_id"`
+	Labels    map[string]string `json:"labels"`
+	Status    string            `json:"status"`
+	StartedAt *time.Time        `json:"started_at"`
+	EndedAt   *time.Time        `json:"ended_at"`
+	UsageSums
+	// CPUAvg is CPUSeconds / WallSeconds: the cores used on average.
+	CPUAvg float64 `json:"cpu_avg"`
+}
+
+// UsageSummary is the bucket's usage summed per sandbox, for the sandboxes
+// a query matched, and in all.
+type UsageSummary struct {
+	Totals UsageTotals `json:"totals"`
+	// Sandboxes are newest first, at most the query's Limit.
+	Sandboxes []SandboxUsage `json:"sandboxes"`
+}
+
+// UsageSummary sums the bucket's usage records per sandbox, for the
+// sandboxes whose labels match q.Labels (for example everything one task
+// ran), and in all: the API does the sums.
+func (s *Service) UsageSummary(ctx context.Context, q UsageSummaryQuery) (*UsageSummary, error) {
+	v := labelQuery(q.Labels)
+	if q.SandboxID != "" {
+		v.Set("sandbox_id", q.SandboxID)
+	}
+	if !q.Since.IsZero() {
+		v.Set("since", rfc3339(q.Since))
+	}
+	if !q.Until.IsZero() {
+		v.Set("until", rfc3339(q.Until))
+	}
+	n := limit(q.Limit)
+	var out *UsageSummary
+	for {
+		want := client.MaxPageSize
+		if n > 0 {
+			want = min(want, n-len(sandboxesOf(out)))
+		}
+		page := url.Values{}
+		for k, vs := range v {
+			page[k] = vs
+		}
+		page.Set("limit", strconv.Itoa(want))
+		var res struct {
+			UsageSummary
+			NextCursor *string `json:"next_cursor"`
+		}
+		if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/usage/summary", Query: page}, &res); err != nil {
+			return nil, err
+		}
+		if out == nil {
+			out = &UsageSummary{Totals: res.Totals, Sandboxes: []SandboxUsage{}}
+		}
+		out.Sandboxes = append(out.Sandboxes, res.Sandboxes...)
+		if res.NextCursor == nil || *res.NextCursor == "" || len(res.Sandboxes) == 0 || (n > 0 && len(out.Sandboxes) >= n) {
+			if n > 0 && len(out.Sandboxes) > n {
+				out.Sandboxes = out.Sandboxes[:n]
+			}
+			return out, nil
+		}
+		v.Set("cursor", *res.NextCursor)
+	}
+}
+
+func sandboxesOf(s *UsageSummary) []SandboxUsage {
+	if s == nil {
+		return nil
+	}
+	return s.Sandboxes
+}
+
+// Limits is how many sandboxes the bucket may have active (starting,
+// running or unknown) at once, and how many it has. One more create answers
+// CodeLimitActiveSandboxes; the cluster's operator can raise the limit for
+// a bucket.
+type Limits struct {
+	Bucket             uint64 `json:"bucket"`
+	MaxActiveSandboxes int    `json:"max_active_sandboxes"`
+	ActiveSandboxes    int    `json:"active_sandboxes"`
+}
+
+// Limits reads the bucket's sandbox limits.
+func (s *Service) Limits(ctx context.Context) (*Limits, error) {
+	var out Limits
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/limits"}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // Billing states of a usage record, from its DACStatus.

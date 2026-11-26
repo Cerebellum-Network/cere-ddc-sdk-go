@@ -323,6 +323,63 @@ func (s *Service) EgressLog(ctx context.Context, q EgressLogQuery) ([]EgressEntr
 		client.Request{Method: http.MethodGet, Path: "/v1/egress/log", Query: v}, limit(q.Limit))
 }
 
+// EgressCounts counts egress log entries: Requests is Allowed + Denied (by
+// the egress proxy) + Errors.
+type EgressCounts struct {
+	Requests int64 `json:"requests"`
+	Allowed  int64 `json:"allowed"`
+	Denied   int64 `json:"denied"`
+	Errors   int64 `json:"error"`
+}
+
+// EgressSummary counts a sandbox's egress log: its requests in all, per host
+// and per credential (a request that used two counts for each), and Policy,
+// its rule changes, which are not requests.
+type EgressSummary struct {
+	SandboxID string `json:"sandbox_id"`
+	EgressCounts
+	Policy       int64              `json:"policy"`
+	BytesUp      int64              `json:"bytes_up"`
+	BytesDown    int64              `json:"bytes_down"`
+	ByHost       []HostEgress       `json:"by_host"`
+	ByCredential []CredentialEgress `json:"by_credential"`
+}
+
+// HostEgress is a sandbox's requests to one host.
+type HostEgress struct {
+	Host string `json:"host"`
+	EgressCounts
+	BytesUp   int64 `json:"bytes_up"`
+	BytesDown int64 `json:"bytes_down"`
+}
+
+// CredentialEgress is a sandbox's requests that used one credential.
+type CredentialEgress struct {
+	Credential string `json:"credential"`
+	EgressCounts
+}
+
+// EgressSummary counts a sandbox's egress log between since and until
+// (either zero for no bound). A sandbox of another bucket answers
+// client.CodeNotFound.
+func (s *Service) EgressSummary(ctx context.Context, sandboxID string, since, until time.Time) (*EgressSummary, error) {
+	if sandboxID == "" {
+		return nil, errors.New("sandbox: EgressSummary needs a sandbox ID")
+	}
+	v := url.Values{"sandbox_id": {sandboxID}}
+	if !since.IsZero() {
+		v.Set("since", rfc3339(since))
+	}
+	if !until.IsZero() {
+		v.Set("until", rfc3339(until))
+	}
+	var out EgressSummary
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/egress/summary", Query: v}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func rfc3339(t time.Time) string { return t.UTC().Format(time.RFC3339) }
 
 // limit maps a query's Limit to client.List's: 0 is 100, negative is all.
