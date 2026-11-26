@@ -33,6 +33,9 @@ type fake struct {
 	keys      map[string]string      // Idempotency-Key -> sandbox id
 	keyBodies map[string]string      // Idempotency-Key -> the create body, secret values left out
 	detached  map[string][]*fakeExec // sandbox id -> its detached execs, newest first
+	feed      []map[string]any       // the bucket's events, oldest first; an event's id is its index + 1
+	webhooks  []map[string]any
+	delivered map[string][]map[string]any // webhook id -> its delivery attempts, newest first
 
 	// What the tests check.
 	creates    []map[string]any // create bodies as sent
@@ -46,6 +49,13 @@ type fake struct {
 	maxRead    int              // bytes of each stream one output read returns (0: 1 MiB)
 	dropOutput []int            // per output stream connection, in turn: drop it after this many chunks
 	outputs    []string         // the query of each output request
+	pruned     int              // event ids below this are no longer kept (cursor_expired)
+	sseBatch   int              // new events sent per event stream connection before the server ends it (0: all)
+	sseRepeat  bool             // a reconnect is first sent the event its Last-Event-ID names again
+	onSSE      func(n int)      // called, with the lock held, at the n-th event stream connection
+	sseConns   []string         // "after=<after> last=<Last-Event-ID>" of each event stream connection
+	polls      []string         // the query of each events poll
+	hookBodies []map[string]any // webhook create bodies as sent
 }
 
 // fakeExec is a detached exec: the Exec as JSON, its body (for its key) and
@@ -57,18 +67,48 @@ type fakeExec struct {
 	reads          int
 }
 
-func (e *fakeExec) exit(code any, errMsg any) {
+// exitExec ends a detached exec of sandbox id and publishes exec.exited.
+func (f *fake) exitExec(id string, e *fakeExec, code any, errMsg any) {
 	if e.m["status"] == sandbox.ExecStatusExited {
 		return
 	}
 	e.m["status"], e.m["exit_code"], e.m["error"] = sandbox.ExecStatusExited, code, errMsg
 	e.m["ended_at"], e.m["duration_ms"] = time.Now().UTC().Format(time.RFC3339), 1200
+	ev := map[string]any{}
+	for _, k := range []string{"exec_id", "status", "exit_code", "timed_out", "duration_ms", "stdout_bytes", "stderr_bytes", "idempotency_key", "error"} {
+		ev[k] = e.m[k]
+	}
+	f.publish(f.sandboxes[id], sandbox.EventExecExited, ev)
+}
+
+// publish appends an event of sb to the feed.
+func (f *fake) publish(sb map[string]any, typ string, fields map[string]any) {
+	ev := map[string]any{"id": strconv.Itoa(len(f.feed) + 1), "type": typ, "at": time.Now().UTC().Format(time.RFC3339Nano),
+		"sandbox_id": sb["id"], "bucket": sb["bucket"], "labels": sb["labels"]}
+	for k, v := range fields {
+		ev[k] = v
+	}
+	f.feed = append(f.feed, ev)
+}
+
+func (f *fake) publishRunning(sb map[string]any) {
+	f.publish(sb, sandbox.EventSandboxRunning, map[string]any{"status": "running", "started_at": sb["started_at"],
+		"ready_at": sb["ready_at"], "startup_ms": 900, "image": sb["image"]})
+}
+
+func (f *fake) publishExited(sb map[string]any) {
+	ev := map[string]any{}
+	for _, k := range []string{"status", "exit_reason", "exit_kind", "exit_code", "ended_at", "retained", "not_retained", "retained_until", "usage"} {
+		ev[k] = sb[k]
+	}
+	f.publish(sb, sandbox.EventSandboxExited, ev)
 }
 
 func newFake(t *testing.T) (*fake, *sandbox.Service) {
 	f := &fake{t: t, sandboxes: map[string]map[string]any{}, files: map[string]map[string][]byte{},
 		secrets: map[string]map[string]any{}, runSecret: map[string]map[string]string{}, startAs: sandbox.StatusRunning,
-		keys: map[string]string{}, keyBodies: map[string]string{}, detached: map[string][]*fakeExec{}}
+		keys: map[string]string{}, keyBodies: map[string]string{}, detached: map[string][]*fakeExec{},
+		delivered: map[string][]map[string]any{}}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 	c, err := client.New(client.WithBaseURL(srv.URL), client.WithToken("tok"),
@@ -129,6 +169,10 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return (r.URL.Query().Get("sandbox_id") == "" || r.URL.Query().Get("sandbox_id") == id) &&
 				f.labelsMatch(f.sandboxes[id], r.URL.Query()["label"])
 		}))
+	case parts[0] == "events" && len(parts) == 1 && r.Method == http.MethodGet:
+		f.events(w, r)
+	case parts[0] == "webhooks":
+		f.hooks(w, r, parts[1:])
 	case parts[0] == "egress" && len(parts) == 2:
 		reply(w, 200, f.page(r, f.egressLog, func(e map[string]any) bool {
 			return r.URL.Query().Get("sandbox_id") == "" || r.URL.Query().Get("sandbox_id") == e["sandbox_id"]
@@ -204,6 +248,7 @@ func (f *fake) create(w http.ResponseWriter, r *http.Request) {
 	}
 	if f.startAs == sandbox.StatusRunning {
 		sb["started_at"], sb["ready_at"] = now, now
+		f.publishRunning(sb)
 	}
 	if f.failStart {
 		sb["status"] = sandbox.StatusStarting
@@ -305,7 +350,7 @@ func (f *fake) end(sb map[string]any, kind, reason string, code any, extra []str
 		}
 	}
 	for _, ex := range f.detached[id] {
-		ex.exit(nil, "the sandbox ended while the command ran")
+		f.exitExec(id, ex, nil, "the sandbox ended while the command ran")
 	}
 	sb["status"], sb["exit_kind"], sb["exit_reason"], sb["exit_code"] = "terminated", kind, reason, code
 	sb["ended_at"], sb["retained"], sb["not_retained"] = now.Format(time.RFC3339), kept, missing
@@ -313,6 +358,7 @@ func (f *fake) end(sb map[string]any, kind, reason string, code any, extra []str
 		sb["retained_until"] = now.Add(time.Duration(ttl) * time.Second).Format(time.RFC3339)
 	}
 	sb["usage"] = map[string]any{"wall_s": 12.5, "billing_basis": "request_or_usage", "billed_cpu_s": 3.2, "cpu_avg": 0.04}
+	f.publishExited(sb)
 	f.records = append(f.records, map[string]any{"record_id": "r-" + id, "sandbox_id": id, "final": true,
 		"labels": sb["labels"], "billed_cpu_s": 3.2, "billed_ram_gib_s": 1.5, "cpu_s": 0.5, "wall_s": 12.5,
 		"memory_limit": 1024, "dac_status": "pushed"})
@@ -387,9 +433,11 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 		if sb["status"] == sandbox.StatusStarting {
 			if f.failStart {
 				sb["status"], sb["exit_reason"], sb["exit_kind"] = "failed", "failed: image pull no such image", "failed"
+				f.publishExited(sb)
 			} else {
 				now := time.Now().UTC().Format(time.RFC3339)
 				sb["status"], sb["started_at"], sb["ready_at"] = "running", now, now
+				f.publishRunning(sb)
 			}
 		}
 		reply(w, 200, sb)
@@ -573,7 +621,7 @@ func (f *fake) readExec(w http.ResponseWriter, r *http.Request, id string, rest 
 	}
 	if len(rest) == 1 {
 		if e.reads++; e.reads >= 2 {
-			e.exit(0, nil)
+			f.exitExec(id, e, 0, nil)
 		}
 		reply(w, 200, e.m)
 		return
@@ -624,9 +672,130 @@ func (f *fake) readExec(w http.ResponseWriter, r *http.Request, id string, rest 
 			at, sent = end, sent+1
 		}
 	}
-	e.exit(0, nil)
+	f.exitExec(id, e, 0, nil)
 	fmt.Fprintf(w, "event: exit\ndata: %s\n\n", mustJSON(map[string]any{"exit_code": e.m["exit_code"],
 		"duration_ms": e.m["duration_ms"], "timed_out": false, "error": e.m["error"]}))
+}
+
+// events serves GET /v1/events: a long-poll, or an event stream that sends
+// what it has (sseBatch new events at most) and ends.
+func (f *fake) events(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	cursor, last := q.Get("after"), r.Header.Get("Last-Event-ID")
+	if last != "" {
+		cursor = last
+	}
+	start := len(f.feed) // after absent: from now on
+	if cursor != "" {
+		start, _ = strconv.Atoi(cursor)
+		if start < f.pruned {
+			apiError(w, 410, "cursor_expired", "the cursor is older than the events kept")
+			return
+		}
+	}
+	var types []string
+	if t := q.Get("types"); t != "" {
+		types = strings.Split(t, ",")
+	}
+	match := func(ev map[string]any) bool {
+		sb := f.sandboxes[ev["sandbox_id"].(string)]
+		return (len(types) == 0 || slices.Contains(types, ev["type"].(string))) &&
+			(q.Get("sandbox_id") == "" || q.Get("sandbox_id") == ev["sandbox_id"]) && f.labelsMatch(sb, q["label"])
+	}
+	var out []map[string]any
+	for _, ev := range f.feed[min(start, len(f.feed)):] {
+		if match(ev) {
+			out = append(out, ev)
+		}
+	}
+	if !strings.HasPrefix(r.Header.Get("Accept"), "text/event-stream") {
+		f.polls = append(f.polls, r.URL.RawQuery)
+		limit, _ := strconv.Atoi(q.Get("limit"))
+		if limit == 0 {
+			limit = 100
+		}
+		out = out[:min(limit, len(out))]
+		next := cursor
+		switch {
+		case len(out) > 0:
+			next = out[len(out)-1]["id"].(string)
+		case cursor == "":
+			next = strconv.Itoa(len(f.feed))
+		}
+		if out == nil {
+			out = []map[string]any{}
+		}
+		reply(w, 200, map[string]any{"events": out, "next": next})
+		return
+	}
+	f.sseConns = append(f.sseConns, fmt.Sprintf("after=%s last=%s", q.Get("after"), last))
+	if f.onSSE != nil {
+		f.onSSE(len(f.sseConns))
+		out = nil
+		for _, ev := range f.feed[min(start, len(f.feed)):] {
+			if match(ev) {
+				out = append(out, ev)
+			}
+		}
+	}
+	if f.sseBatch > 0 {
+		out = out[:min(f.sseBatch, len(out))]
+	}
+	if n, _ := strconv.Atoi(last); f.sseRepeat && n > 0 && match(f.feed[n-1]) {
+		out = append([]map[string]any{f.feed[n-1]}, out...) // at least once
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	_, _ = io.WriteString(w, ": ping\n\n")
+	for _, ev := range out {
+		fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", ev["id"], ev["type"], mustJSON(ev))
+	}
+}
+
+// hooks serves /v1/webhooks.
+func (f *fake) hooks(w http.ResponseWriter, r *http.Request, rest []string) {
+	find := func(id string) int {
+		return slices.IndexFunc(f.webhooks, func(h map[string]any) bool { return h["id"] == id })
+	}
+	switch {
+	case r.Method == http.MethodPost && len(rest) == 0:
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		f.hookBodies = append(f.hookBodies, body)
+		if len(f.webhooks) >= sandbox.MaxWebhooks {
+			apiError(w, 409, "limit_webhooks", "the bucket has its 10 webhooks")
+			return
+		}
+		types := body["types"]
+		if types == nil {
+			types = []any{}
+		}
+		h := map[string]any{"id": fmt.Sprintf("wh-%d", len(f.hookBodies)), "url": body["url"], "types": types,
+			"label": body["label"], "created_at": time.Now().UTC().Format(time.RFC3339)}
+		f.webhooks = append(f.webhooks, h)
+		reply(w, 201, h)
+	case r.Method == http.MethodGet && len(rest) == 0:
+		reply(w, 200, map[string]any{"items": f.webhooks})
+	case r.Method == http.MethodDelete && len(rest) == 1:
+		i := find(rest[0])
+		if i < 0 {
+			apiError(w, 404, "not_found", "no webhook "+rest[0])
+			return
+		}
+		f.webhooks = slices.Delete(f.webhooks, i, i+1)
+		w.WriteHeader(204)
+	case r.Method == http.MethodGet && len(rest) == 2 && rest[1] == "deliveries":
+		if find(rest[0]) < 0 {
+			apiError(w, 404, "not_found", "no webhook "+rest[0])
+			return
+		}
+		items := f.delivered[rest[0]]
+		if n, _ := strconv.Atoi(r.URL.Query().Get("limit")); n > 0 {
+			items = items[:min(n, len(items))]
+		}
+		reply(w, 200, map[string]any{"items": items})
+	default:
+		apiError(w, 405, "method_not_allowed", r.Method)
+	}
 }
 
 func (f *fake) bucketSecrets(w http.ResponseWriter, r *http.Request, rest []string) {
