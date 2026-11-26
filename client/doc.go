@@ -29,10 +29,12 @@
 //     (NewGrant); the service then mints a short token beneath it for each call,
 //     and one for each sandbox that lives exactly as long as the sandbox needs.
 //
-// A sandbox ends 60 s before the token it was created with expires, so a create
-// asks the source for a token that outlives the sandbox (LifetimeTokenSource).
-// A Delegation mints one; a StaticToken that would expire first is refused
-// before the call, rather than ending the sandbox early.
+// A sandbox create needs a token that is valid when the node checks it; the
+// owner's balance, not the token, bounds the sandbox's life. Clusters before
+// the lifetime change of 26 Nov 2026 also end a sandbox 60 s before its create
+// token expires, so a create asks the source for a token that outlives the
+// sandbox (LifetimeTokenSource): a Delegation mints one. A StaticToken is sent
+// as it is.
 //
 // # Errors and retries
 //

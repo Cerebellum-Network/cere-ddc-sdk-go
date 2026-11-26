@@ -33,6 +33,7 @@ type fake struct {
 
 	// What the tests check.
 	creates    []map[string]any // create bodies as sent
+	execs      []string         // exec bodies as sent
 	tokens     []string         // the token of each request, in order
 	createFail []int            // statuses to answer the next creates with
 	startAs    string           // the status a create answers (default running)
@@ -261,7 +262,9 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 			Stdin    *string  `json:"stdin"`
 			TimeoutS int      `json:"timeout_s"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		raw, _ := io.ReadAll(r.Body)
+		f.execs = append(f.execs, string(raw))
+		_ = json.Unmarshal(raw, &req)
 		out := strings.Join(req.Command, " ")
 		if req.Stdin != nil {
 			out += " <" + *req.Stdin

@@ -67,6 +67,41 @@ func TestCreateSendsTheAPIsBody(t *testing.T) {
 	}
 }
 
+func TestTimeouts(t *testing.T) {
+	f, sbx := newFake(t)
+	for _, tc := range []struct {
+		timeout time.Duration
+		want    string
+	}{{0, "absent"}, {sandbox.NoTimeout, "0"}, {90 * time.Second, "90"}, {1500 * time.Millisecond, "2"}} {
+		sb, err := sbx.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: tc.timeout})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := "absent"
+		if v, ok := f.creates[len(f.creates)-1]["timeout_s"]; ok {
+			got = fmt.Sprint(v)
+		}
+		if got != tc.want {
+			t.Errorf("create Timeout %s: timeout_s %s, want %s", tc.timeout, got, tc.want)
+		}
+		if _, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"true"}, Timeout: tc.timeout}); err != nil {
+			t.Fatal(err)
+		}
+		var body map[string]any
+		_ = json.Unmarshal([]byte(f.execs[len(f.execs)-1]), &body)
+		got = "absent"
+		if v, ok := body["timeout_s"]; ok {
+			got = fmt.Sprint(v)
+		}
+		if got != tc.want {
+			t.Errorf("exec Timeout %s: timeout_s %s, want %s", tc.timeout, got, tc.want)
+		}
+	}
+	if _, err := sbx.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: -2 * time.Second}); err == nil {
+		t.Error("a negative timeout other than NoTimeout: no error")
+	}
+}
+
 func TestCreateChecksBeforeSending(t *testing.T) {
 	f, sbx := newFake(t)
 	for name, req := range map[string]sandbox.CreateRequest{
@@ -125,20 +160,18 @@ func TestCreateRetriesNoCapacityOnly(t *testing.T) {
 	}
 }
 
-func TestCreateTokenOutlivesTheSandbox(t *testing.T) {
+func TestCreateTokens(t *testing.T) {
 	f, sbx := newFake(t)
 	_, owner, _ := ed25519.GenerateKey(rand.Reader)
 	_, svcKey, _ := ed25519.GenerateKey(rand.Reader)
 
-	// A static token that expires before the sandbox would end is refused here.
+	// A static token is sent as it is, even one that expires before the
+	// sandbox would end: the token only has to be valid at create.
 	short := ownerToken(t, owner, time.Now().Add(5*time.Minute))
 	static := sandbox.New(sbx.Client().WithToken(short))
-	_, err := static.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: 10 * time.Minute})
-	if !errors.Is(err, client.ErrTokenExpiresTooSoon) || len(f.creates) != 0 {
+	if _, err := static.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: time.Hour}); err != nil || len(f.creates) != 1 ||
+		f.tokens[len(f.tokens)-1] != short {
 		t.Fatalf("%v, %d creates", err, len(f.creates))
-	}
-	if _, err := static.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: 3 * time.Minute}); err != nil {
-		t.Fatalf("3 min + 60 s within a 5 min token: %v", err)
 	}
 
 	// A delegation mints the create's token for the sandbox's timeout + 60 s
@@ -164,6 +197,16 @@ func TestCreateTokenOutlivesTheSandbox(t *testing.T) {
 	callExp, _ := client.StaticToken(f.tokens[len(f.tokens)-1]).ExpiresAt()
 	if d := time.Until(createExp); d < time.Hour+2*time.Minute || d > time.Hour+4*time.Minute {
 		t.Errorf("the create's token lives %s, want 1 h + 60 s + 2 min", d)
+	}
+	// No timeout, or the default: minted for the default, which a cluster
+	// before the lifetime change applies to both.
+	f.tokens = nil
+	if _, err := delegated.Create(ctx, sandbox.CreateRequest{Image: "alpine", Timeout: sandbox.NoTimeout}); err != nil {
+		t.Fatal(err)
+	}
+	createExp, _ = client.StaticToken(f.tokens[0]).ExpiresAt()
+	if d := time.Until(createExp); d < 12*time.Minute || d > 14*time.Minute {
+		t.Errorf("a no-timeout create's token lives %s, want 10 min + 60 s + 2 min", d)
 	}
 	if d := time.Until(callExp); d > client.DefaultCallTTL {
 		t.Errorf("an exec's token lives %s, want at most %s", d, client.DefaultCallTTL)

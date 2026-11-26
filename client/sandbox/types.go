@@ -58,9 +58,18 @@ const (
 	DefaultTimeout = 10 * time.Minute
 	// DefaultExecTimeout is how long an exec waits for its command when the
 	// request names no timeout.
-	DefaultExecTimeout = 10 * time.Minute
-	// TokenExpiryMargin: a sandbox ends this long before the token it was
-	// created with expires (exit reason token_expiry).
+	DefaultExecTimeout = time.Hour
+	// NoTimeout, as the Timeout of a CreateRequest or an ExecRequest, asks for
+	// none: the sandbox runs until its command exits, it is terminated, its
+	// idle timeout or a limit ends it, or its bucket's owner runs out of
+	// balance; a command runs until it finishes or the sandbox ends. Clusters
+	// before the lifetime change of 26 Nov 2026 read it as their default (a
+	// sandbox) or their maximum (an exec).
+	NoTimeout time.Duration = -1
+	// TokenExpiryMargin: on clusters before the lifetime change of 26 Nov
+	// 2026, a sandbox ends this long before the token it was created with
+	// expires (exit reason token_expiry). Since then the token only has to be
+	// valid at create.
 	TokenExpiryMargin = 60 * time.Second
 	// MaxFileBytes is the largest file WriteFile sends and a retained file.
 	MaxFileBytes = 16 << 20
@@ -140,9 +149,8 @@ type CreateRequest struct {
 	Workdir string
 	// Resources is the request and limits; zero fields take the defaults.
 	Resources Resources
-	// Timeout is how long the sandbox may run (default DefaultTimeout),
-	// rounded up to whole seconds. The create's token must outlive it (see
-	// Service.Create).
+	// Timeout is how long the sandbox may run, rounded up to whole seconds:
+	// zero for DefaultTimeout, NoTimeout for none.
 	Timeout time.Duration
 	// IdleTimeout ends the sandbox after this long with no exec and no file
 	// call in flight (0: never).
@@ -175,7 +183,7 @@ func (r CreateRequest) MarshalJSON() ([]byte, error) {
 		Runtime      string            `json:"runtime"`
 		Workdir      string            `json:"workdir,omitempty"`
 		Resources    *Resources        `json:"resources,omitempty"`
-		TimeoutS     int64             `json:"timeout_s,omitempty"`
+		TimeoutS     *int64            `json:"timeout_s,omitempty"`
 		IdleTimeoutS int64             `json:"idle_timeout_s,omitempty"`
 		Env          map[string]string `json:"env,omitempty"`
 		Egress       *egress           `json:"egress,omitempty"`
@@ -183,7 +191,7 @@ func (r CreateRequest) MarshalJSON() ([]byte, error) {
 		Secrets      []Secret          `json:"secrets,omitempty"`
 	}{
 		Image: r.Image, Command: r.Command, Runtime: "gvisor", Workdir: r.Workdir,
-		TimeoutS: seconds(r.Timeout), IdleTimeoutS: seconds(r.IdleTimeout),
+		TimeoutS: timeoutSeconds(r.Timeout), IdleTimeoutS: seconds(r.IdleTimeout),
 		Env: r.Env, Labels: r.Labels, Secrets: r.Secrets,
 	}
 	if r.Resources != (Resources{}) {
@@ -204,8 +212,8 @@ func (r CreateRequest) validate() error {
 	if r.Image == "" {
 		return errors.New(`sandbox: an image is required, for example Image: "python:3.12-slim"`)
 	}
-	if r.Timeout < 0 || r.IdleTimeout < 0 {
-		return errors.New("sandbox: timeouts must not be negative")
+	if (r.Timeout < 0 && r.Timeout != NoTimeout) || r.IdleTimeout < 0 {
+		return errors.New("sandbox: timeouts must not be negative (NoTimeout asks for none)")
 	}
 	if err := r.Resources.validate(); err != nil {
 		return err
@@ -221,6 +229,20 @@ func (r CreateRequest) validate() error {
 		}
 	}
 	return nil
+}
+
+// timeoutSeconds is a timeout as the API takes it: nil (absent) for the
+// default, 0 for NoTimeout, else d rounded up to whole seconds.
+func timeoutSeconds(d time.Duration) *int64 {
+	switch d {
+	case 0:
+		return nil
+	case NoTimeout:
+		zero := int64(0)
+		return &zero
+	}
+	s := seconds(d)
+	return &s
 }
 
 // seconds rounds d up to whole seconds.

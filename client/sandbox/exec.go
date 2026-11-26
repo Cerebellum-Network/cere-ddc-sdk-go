@@ -23,9 +23,9 @@ type ExecRequest struct {
 	Command []string
 	// Stdin is written to the command's standard input.
 	Stdin string
-	// Timeout is how long to wait for the command (default
-	// DefaultExecTimeout), rounded up to whole seconds. After it the call
-	// ends with TimedOut set; the command may still run in the sandbox.
+	// Timeout is how long to wait for the command, rounded up to whole
+	// seconds: zero for DefaultExecTimeout, NoTimeout for none. After it the
+	// call ends with TimedOut set; the command may still run in the sandbox.
 	Timeout time.Duration
 	// Workdir is the command's working directory.
 	Workdir string
@@ -33,25 +33,33 @@ type ExecRequest struct {
 	Env map[string]string
 }
 
-func (r ExecRequest) timeout() time.Duration {
-	if r.Timeout > 0 {
-		return r.Timeout
+// httpTimeout bounds a synchronous exec's HTTP call: the command's timeout
+// and some slack, or none for NoTimeout.
+func (r ExecRequest) httpTimeout() time.Duration {
+	switch {
+	case r.Timeout == NoTimeout:
+		return -1
+	case r.Timeout > 0:
+		return r.Timeout + execSlack
 	}
-	return DefaultExecTimeout
+	return DefaultExecTimeout + execSlack
 }
 
 func (r ExecRequest) body() (any, error) {
 	if len(r.Command) == 0 {
 		return nil, errors.New("sandbox: exec needs a command")
 	}
+	if r.Timeout < 0 && r.Timeout != NoTimeout {
+		return nil, errors.New("sandbox: an exec timeout must not be negative (NoTimeout asks for none)")
+	}
 	type wire struct {
 		Command  []string          `json:"command"`
 		Stdin    *string           `json:"stdin"`
-		TimeoutS int64             `json:"timeout_s"`
+		TimeoutS *int64            `json:"timeout_s,omitempty"`
 		Workdir  string            `json:"workdir,omitempty"`
 		Env      map[string]string `json:"env,omitempty"`
 	}
-	w := wire{Command: r.Command, TimeoutS: seconds(r.timeout()), Workdir: r.Workdir, Env: r.Env}
+	w := wire{Command: r.Command, TimeoutS: timeoutSeconds(r.Timeout), Workdir: r.Workdir, Env: r.Env}
 	if r.Stdin != "" {
 		stdin := r.Stdin
 		w.Stdin = &stdin
@@ -93,7 +101,7 @@ func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	var res ExecResult
 	err = sb.svc.c.Do(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), JSON: body,
-		Timeout: req.timeout() + execSlack, MaxResponse: 3 * MaxExecOutputBytes,
+		Timeout: req.httpTimeout(), MaxResponse: 3 * MaxExecOutputBytes,
 	}, &res)
 	if err != nil {
 		return nil, err
@@ -104,7 +112,10 @@ func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 // ExecStream runs a command and writes its output to stdout and stderr
 // (either may be nil; one writer for both keeps the order) as the sandbox
 // produces it, then returns how it ended. Writes happen on the caller's
-// goroutine; a writer's error ends the call.
+// goroutine; a writer's error ends the call. The command may run for as long
+// as its Timeout allows; the stream is given up only if it sends nothing, not
+// even the API's keep-alive (every 15 s), for 2 minutes. A dropped stream
+// cannot be reattached.
 func (sb *Sandbox) ExecStream(ctx context.Context, req ExecRequest, stdout, stderr io.Writer) (*ExitStatus, error) {
 	body, err := req.body()
 	if err != nil {
@@ -113,7 +124,7 @@ func (sb *Sandbox) ExecStream(ctx context.Context, req ExecRequest, stdout, stde
 	var exit *ExitStatus
 	err = sb.svc.c.Stream(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), Query: url.Values{"stream": {"1"}}, JSON: body,
-	}, req.timeout()+execSlack, func(ev client.Event) error {
+	}, streamIdle, func(ev client.Event) error {
 		switch ev.Name {
 		case "stdout", "stderr":
 			return writeChunk(ev, stdout, stderr)

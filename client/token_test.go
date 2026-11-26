@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -51,15 +50,14 @@ func TestStaticToken(t *testing.T) {
 	if err != nil || time.Until(exp) < 29*time.Minute || time.Until(exp) > 31*time.Minute {
 		t.Fatalf("ExpiresAt %s %v", exp, err)
 	}
-	if got, err := tok.TokenFor(context.Background(), 20*time.Minute); err != nil || got != string(tok) {
-		t.Fatalf("20 min of a 30 min token: %v", err)
+	if got, err := tok.Token(context.Background()); err != nil || got != string(tok) {
+		t.Fatalf("Token: %v", err)
 	}
-	if _, err := tok.TokenFor(context.Background(), 40*time.Minute); !errors.Is(err, client.ErrTokenExpiresTooSoon) {
-		t.Fatalf("40 min of a 30 min token: %v", err)
+	if got, err := tok.TokenFor(context.Background(), 40*time.Minute); err != nil || got != string(tok) {
+		t.Fatalf("TokenFor past the token's expiry returns it as it is: %v", err)
 	}
-	// A token whose expiry cannot be read is the API's to judge.
-	if got, err := client.StaticToken("not-a-ddc-token").TokenFor(context.Background(), time.Hour); err != nil || got != "not-a-ddc-token" {
-		t.Fatalf("opaque token: %q %v", got, err)
+	if _, err := client.StaticToken("not-a-ddc-token").ExpiresAt(); err == nil {
+		t.Error("ExpiresAt of an opaque token: no error")
 	}
 	for _, s := range []string{fmt.Sprint(tok), fmt.Sprintf("%v %+v %#v %s", tok, tok, tok, tok)} {
 		if strings.Contains(s, string(tok)) {
@@ -149,8 +147,13 @@ func TestDelegation(t *testing.T) {
 	if d := time.Until(exp); d < 21*time.Minute || d > 22*time.Minute {
 		t.Errorf("a 20 min token lives %s, want 22 min", d)
 	}
-	if _, err := d.TokenFor(context.Background(), 3*time.Hour); !errors.Is(err, client.ErrTokenExpiresTooSoon) {
-		t.Errorf("a token past the grant: %v", err)
+	// Asked for more than the grant has left, it mints up to the grant.
+	upto, err := d.TokenFor(context.Background(), 3*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exp, _ = client.StaticToken(upto).ExpiresAt(); exp.Unix() != grantEnd.Unix() {
+		t.Errorf("a token past the grant expires %s, want the grant's %s", exp, grantEnd)
 	}
 	clamped, cexp, err := d.Mint(5*time.Hour, nil)
 	if err != nil || cexp.Unix() != grantEnd.Unix() {

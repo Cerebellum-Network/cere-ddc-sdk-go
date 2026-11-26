@@ -50,7 +50,7 @@ Every call carries a DDC access token (see the `auth` module) with `COMPUTE` on 
 | A static token | `client.WithToken(tok)`, or `client.NewFromEnv()` for what `cere login` saved or `CERE_TOKEN` | a person, CI, a script. A token from the developer console lives 1, 7 or 30 days and cannot be revoked |
 | A delegation | the bucket owner signs a grant to the service's key once (`client.NewGrant`, or their wallet); the service uses `client.ParseDelegation(grant, auth.NewEd25519Signer(key))` as the token source | a service acting for a bucket it does not own. The owner's key never reaches the service; each call gets a token minted for 10 minutes |
 
-A sandbox ends 60 s before the token it was created with expires (exit reason `token_expiry`). So `Create` asks the token source for a token that outlives the sandbox's `Timeout` and that margin: a delegation mints one, and a static token that would expire first is refused before the call (`client.ErrTokenExpiresTooSoon`) instead of ending the sandbox early. A service that acts for many buckets makes one client and calls `c.WithToken(runToken)` (or `WithTokenSource`) per run.
+A create needs a token that is valid when the node checks it; after that the sandbox runs until its `Timeout` (none with `sandbox.NoTimeout`) or another end, and the bucket owner's balance, not the token, stops it early. Clusters before the lifetime change of 26 Nov 2026 also end a sandbox 60 s before its create token expires (exit reason `token_expiry`), so `Create` asks the token source for a token that outlives the sandbox's `Timeout` and that margin: a delegation mints one (harmless where the token no longer bounds the sandbox); a static token is sent as it is. A service that acts for many buckets makes one client and calls `c.WithToken(runToken)` (or `WithTokenSource`) per run.
 
 ```go
 d, err := client.ParseDelegation(grant, auth.NewEd25519Signer(serviceKey),
@@ -62,9 +62,9 @@ c, err := client.New(client.WithTokenSource(d))
 
 | Do | Call |
 |---|---|
-| create, wait until it runs | `sbx.Create(ctx, req)`; `sandbox.NoWait()` to return at `starting` |
+| create, wait until it runs | `sbx.Create(ctx, req)`; `sandbox.NoWait()` to return at `starting`; `Timeout` zero is the default (10 min), `sandbox.NoTimeout` none |
 | find | `sbx.Get(ctx, id)`, `sbx.List(ctx, sandbox.ListOptions{Labels: ..., Status: ...})` |
-| run a command | `sb.Exec(ctx, req)` (output whole, each stream up to 16 MiB), `sb.ExecStream(ctx, req, stdout, stderr)` |
+| run a command | `sb.Exec(ctx, req)` (output whole, each stream up to 16 MiB), `sb.ExecStream(ctx, req, stdout, stderr)`; `Timeout` zero is the API's default (1 h), `sandbox.NoTimeout` none |
 | files | `sb.WriteFile`, `sb.ReadFile` (up to 16 MiB) |
 | the main process's output | `sb.Logs(ctx, stdout, stderr)` |
 | egress | `sb.EgressRules`, `sb.SetEgress` (replace all), `sb.Allow` (add), `sb.RemoveEgress`; `sbx.EgressLog` |

@@ -25,10 +25,13 @@ const (
 	// defaultWaitRunning bounds the wait for a sandbox to run when the
 	// context has no deadline.
 	defaultWaitRunning = 10 * time.Minute
-	// execSlack is added to an exec's own timeout before the client gives up.
+	// execSlack is added to an exec's own timeout before the client gives up
+	// on a synchronous exec.
 	execSlack = 30 * time.Second
-	// logsIdle is the longest silence of a log stream (the API pings every 15 s).
-	logsIdle = time.Hour
+	// streamIdle is the longest silence of an exec or log stream: the API
+	// sends a keep-alive every 15 s, so a stream silent for longer has lost
+	// its connection. A command may run far longer.
+	streamIdle = 2 * time.Minute
 )
 
 // Service is the sandbox API of the developer platform.
@@ -77,8 +80,9 @@ type Sandbox struct {
 	StartupMS int64 `json:"startup_ms"`
 	// ExitReason says why it ended: "terminated by API[: reason]", "timeout
 	// (Ns)", "idle_timeout (Ns)", "oom_killed", "memory_reclaimed",
-	// "disk_limit (...)", "exited with code N", "failed: ...", "lost: ...",
-	// "token_expiry". Empty while it runs.
+	// "disk_limit (...)", "insufficient_balance", "exited with code N",
+	// "failed: ...", "lost: ...", or "token_expiry" (clusters before the
+	// lifetime change of 26 Nov 2026). Empty while it runs.
 	ExitReason string `json:"exit_reason"`
 	// ExitCode is the main process's exit code, when it has one.
 	ExitCode *int `json:"exit_code"`
@@ -127,12 +131,14 @@ func NoWait() CreateOption { return func(o *createOptions) { o.noWait = true } }
 // Create creates a sandbox and waits until it runs (see NoWait). A sandbox
 // that fails to start is returned with a *StartError.
 //
-// A sandbox ends 60 s before the token it was created with expires, so the
-// create asks the client's token source for a token that lasts the sandbox's
-// Timeout and that margin: a client.Delegation mints one, and a
-// client.StaticToken that would expire first is refused here, with an error
-// wrapping client.ErrTokenExpiresTooSoon, instead of ending the sandbox early.
-// Later calls (exec, files, terminate) take any valid token for the bucket.
+// The create's token must be valid when the node checks it; the sandbox then
+// runs until its Timeout or another end, and stops early only if its bucket's
+// owner runs out of balance. Clusters before the lifetime change of 26 Nov
+// 2026 also end a sandbox 60 s before its create token expires, so the create
+// asks the client's token source for a token that lasts the sandbox's Timeout
+// (DefaultTimeout for none) and that margin: a client.Delegation mints one,
+// which is harmless where the token no longer bounds the sandbox. A static
+// token is sent as it is. Later calls take any valid token for the bucket.
 //
 // A create that no node has room for (CodeNoCapacity) did nothing and is
 // retried under the client's retry policy; a bucket at its most sandboxes
@@ -146,7 +152,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest, opts ...CreateO
 		return nil, err
 	}
 	life := req.Timeout
-	if life <= 0 {
+	if life <= 0 { // the default, or none: a cluster before the change reads both as its default
 		life = DefaultTimeout
 	}
 	life += TokenExpiryMargin
@@ -307,7 +313,7 @@ func (sb *Sandbox) ReadFile(ctx context.Context, path string) ([]byte, error) {
 // nil) until it ends. Logs are kept 10 minutes after the sandbox ends, then
 // answer CodeLogsGone.
 func (sb *Sandbox) Logs(ctx context.Context, stdout, stderr io.Writer) error {
-	return sb.svc.c.Stream(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/logs")}, logsIdle,
+	return sb.svc.c.Stream(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/logs")}, streamIdle,
 		func(ev client.Event) error {
 			switch ev.Name {
 			case "stdout", "stderr":

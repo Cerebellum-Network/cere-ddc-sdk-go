@@ -173,14 +173,9 @@ func (d *Delegation) Token(context.Context) (string, error) {
 	return tok, nil
 }
 
-// TokenFor mints a token valid for life and two minutes more. It returns an
-// error wrapping ErrTokenExpiresTooSoon when the grant ends before life has
-// passed.
+// TokenFor mints a token valid for life and two minutes more, but never past
+// the grant.
 func (d *Delegation) TokenFor(_ context.Context, life time.Duration) (string, error) {
-	if end := d.ExpiresAt(); end.Before(d.now().Add(life)) {
-		return "", fmt.Errorf("cere: %w: the grant expires at %s, before %s: the bucket owner must sign a new one",
-			ErrTokenExpiresTooSoon, end.UTC().Format(time.RFC3339), d.now().Add(life).UTC().Format(time.RFC3339))
-	}
 	tok, _, err := d.Mint(life+lifetimeSlack, d.subject)
 	return tok, err
 }

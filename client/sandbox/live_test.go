@@ -20,7 +20,6 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -356,9 +355,18 @@ func TestLiveDelegation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("terminated: %s", sb.ExitReason)
-	// A sandbox that would outlive the grant is refused before the call.
-	tooLong := time.Until(d.ExpiresAt()) + time.Hour
-	if _, err := sbx.Create(ctx, sandbox.CreateRequest{Image: "python:3.12-slim", Timeout: tooLong}); !errors.Is(err, client.ErrTokenExpiresTooSoon) {
-		t.Errorf("a sandbox that would outlive the grant: %v", err)
+	// No timeout: 0 after the lifetime change of 26 Nov 2026, the default
+	// (600) on a cluster before it.
+	sb, err = sbx.Create(ctx, sandbox.CreateRequest{Image: "python:3.12-slim", Timeout: sandbox.NoTimeout,
+		Labels: map[string]string{"purpose": "cere-sdk-go-live", "auth": "delegation"}})
+	if err != nil {
+		t.Fatalf("create with NoTimeout: %v", err)
+	}
+	t.Logf("created %s with NoTimeout: timeout_s %d", sb.ID, sb.TimeoutS)
+	if sb.TimeoutS != 0 && sb.TimeoutS != int64(sandbox.DefaultTimeout/time.Second) {
+		t.Errorf("NoTimeout resolved to %d", sb.TimeoutS)
+	}
+	if err := sb.Terminate(ctx, sandbox.TerminateOptions{Reason: "go sdk live no timeout"}); err != nil {
+		t.Fatal(err)
 	}
 }
