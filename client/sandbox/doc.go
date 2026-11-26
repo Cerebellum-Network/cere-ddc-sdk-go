@@ -12,8 +12,9 @@
 //		Resources: sandbox.Resources{CPU: 0.5, Memory: 512, MemoryLimit: 1024},
 //		Egress:    []sandbox.Allow{sandbox.MustParseAllow("pypi.org:GET:/simple/")},
 //		Labels:    map[string]string{"user": "fred"},
+//		Retain:    &sandbox.Retain{Paths: []string{"/workspace/out.json"}},
 //	})
-//	defer sb.Terminate(ctx, sandbox.TerminateOptions{Retain: []string{"/workspace/out.json"}})
+//	defer sb.Terminate(ctx, sandbox.TerminateOptions{})
 //
 //	res, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"python", "-c", "print(1)"}})
 //	fmt.Print(res.Stdout)
@@ -28,16 +29,34 @@
 //     allows; the sandbox never sees the value.
 //   - Secrets in three scopes: the sandbox's own (CreateRequest.Secrets,
 //     replaced mid-run with Sandbox.SetSecret), an agent's
-//     (Service.SetAgentSecret) and the bucket's (Service.SetSecret).
-//   - Labels, to list its sandboxes and split usage (Service.UsageByLabel).
+//     (Service.SetAgentSecret) and the bucket's (Service.SetSecret). A
+//     registry secret (RegistrySecret) pulls a private image
+//     (CreateRequest.RegistryCredential).
+//   - Labels, to list its sandboxes, filter their events and split usage
+//     (Service.UsageByLabel, Service.UsageSummary).
+//
+// A create with an IdempotencyKey is safe to repeat: a repeat answers the
+// sandbox the first one made (Sandbox.Replayed). CreateRequest.Retain keeps
+// files whatever ends the sandbox, its command exiting or a timeout included;
+// after the end Sandbox.Retained lists them and ReadFile reads them until
+// RetainedUntil.
 //
 // Exec runs a command and returns its output; ExecStream writes it as it
-// comes. WriteFile and ReadFile move files (up to 16 MiB); Terminate with
-// Retain keeps files readable for 24 hours after the end. CurrentUsage and
-// UsageRecords say what was measured and billed; EgressLog lists every request
-// the egress proxy allowed or refused.
+// comes. ExecDetach starts one that outlives its caller: Exec.Output,
+// Exec.Stream and Exec.Follow read its output from byte offsets, resuming
+// where a dropped connection or a restarted caller left off. WriteFile and
+// ReadFile move files (up to 16 MiB).
+//
+// Service.Events and Service.StreamEvents read the bucket's lifecycle events
+// (sandbox.running, sandbox.exited, exec.exited) after a cursor; a webhook
+// (Service.CreateWebhook) gets them pushed, signed (VerifyWebhook).
+// CurrentUsage, UsageRecords and UsageSummary say what was measured and
+// billed; EgressLog lists every request the egress proxy allowed or refused,
+// and EgressSummary counts them. Limits reads how many sandboxes the bucket
+// may have active.
 //
 // The HTTP contract is the compute gateway's sandbox API (/v1/sandboxes,
-// /v1/secrets, /v1/egress/log, /v1/usage/records). Errors are *client.Error
-// with the API's codes (CodeNotRunning, CodeNoCapacity, ...).
+// /v1/secrets, /v1/events, /v1/webhooks, /v1/egress, /v1/usage, /v1/limits).
+// Errors are *client.Error with the API's codes (CodeNotRunning,
+// CodeNoCapacity, ...).
 package sandbox

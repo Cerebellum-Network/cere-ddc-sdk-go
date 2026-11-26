@@ -13,8 +13,9 @@
 //
 // Services:
 //
-//   - client/sandbox: gVisor sandboxes (create, exec, files, logs, egress,
-//     secrets, usage). Available.
+//   - client/sandbox: gVisor sandboxes (create, exec and detached exec, files
+//     and files kept after the end, logs, egress, secrets, lifecycle events
+//     and webhooks, usage, limits). Available.
 //   - client/storage, client/cdn, client/functions (the V8 engine),
 //     client/inference: later, as packages beside sandbox on the same Client.
 //
