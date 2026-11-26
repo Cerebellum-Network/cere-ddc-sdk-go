@@ -1,0 +1,443 @@
+package client
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"runtime/debug"
+	"strings"
+	"sync/atomic"
+	"time"
+)
+
+// DefaultBaseURL is the API of the devnet cluster (Dragon 1 devnet), the
+// cluster that serves sandboxes today. The `cere` CLI and Python SDK use the
+// same default.
+const DefaultBaseURL = "https://agent-gateway.compute.dev.ddcdragon.com"
+
+// DefaultTimeout bounds one try of an ordinary call. Calls that take longer
+// by nature (a sandbox create, an exec, a stream) set their own.
+const DefaultTimeout = 60 * time.Second
+
+// Response size caps: a larger answer is an error, not unbounded memory use.
+const (
+	// DefaultMaxResponse caps a JSON answer unless the request sets its own.
+	DefaultMaxResponse = 32 << 20
+	// maxEventBytes caps one event of a stream.
+	maxEventBytes = 32 << 20
+)
+
+// Client calls the developer platform's API. It is safe for concurrent use;
+// WithToken and WithTokenSource return copies that share the HTTP client.
+type Client struct {
+	baseURL   string
+	tokens    TokenSource
+	http      *http.Client
+	timeout   time.Duration
+	retry     RetryPolicy
+	userAgent string
+}
+
+// Option configures a Client.
+type Option func(*Client)
+
+// WithBaseURL sets the API's base URL, without /v1 (default DefaultBaseURL).
+func WithBaseURL(u string) Option { return func(c *Client) { c.baseURL = u } }
+
+// WithToken authorizes every call with one encoded access token.
+func WithToken(encoded string) Option {
+	return func(c *Client) {
+		if encoded = strings.TrimSpace(encoded); encoded == "" {
+			c.tokens = nil
+		} else {
+			c.tokens = StaticToken(encoded)
+		}
+	}
+}
+
+// WithTokenSource authorizes each call with the token ts gives at call time,
+// for example a *Delegation.
+func WithTokenSource(ts TokenSource) Option { return func(c *Client) { c.tokens = ts } }
+
+// WithHTTPClient sends the calls through h (default: a new http.Client with no
+// overall timeout; the Client bounds each call itself).
+func WithHTTPClient(h *http.Client) Option { return func(c *Client) { c.http = h } }
+
+// WithTimeout bounds one try of an ordinary call (default DefaultTimeout).
+func WithTimeout(d time.Duration) Option { return func(c *Client) { c.timeout = d } }
+
+// WithRetry sets the retry policy (default DefaultRetryPolicy; NoRetry turns
+// retries off).
+func WithRetry(p RetryPolicy) Option { return func(c *Client) { c.retry = p } }
+
+// WithUserAgent puts product (for example "my-service/1.2") before the SDK's
+// own User-Agent.
+func WithUserAgent(product string) Option {
+	return func(c *Client) { c.userAgent = strings.TrimSpace(product + " " + sdkUserAgent()) }
+}
+
+// New returns a Client. It needs no token to be made: a service that acts for
+// many buckets makes one Client and calls WithToken for each.
+func New(opts ...Option) (*Client, error) {
+	c := &Client{
+		baseURL:   DefaultBaseURL,
+		timeout:   DefaultTimeout,
+		retry:     DefaultRetryPolicy,
+		userAgent: sdkUserAgent(),
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	c.baseURL = strings.TrimRight(strings.TrimSpace(c.baseURL), "/")
+	u, err := url.Parse(c.baseURL)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return nil, fmt.Errorf("cere: base URL %q: want https://host[:port][/path]", c.baseURL)
+	}
+	if strings.HasSuffix(u.Path, "/v1") {
+		return nil, fmt.Errorf("cere: base URL %q: give it without /v1", c.baseURL)
+	}
+	if c.http == nil {
+		c.http = &http.Client{}
+	}
+	if c.timeout <= 0 {
+		c.timeout = DefaultTimeout
+	}
+	if c.retry.MaxAttempts < 1 {
+		c.retry.MaxAttempts = 1
+	}
+	return c, nil
+}
+
+// BaseURL is the API's base URL.
+func (c *Client) BaseURL() string { return c.baseURL }
+
+// TokenSource is the client's token source; nil when it has none.
+func (c *Client) TokenSource() TokenSource { return c.tokens }
+
+// WithToken returns a copy of c that authorizes its calls with encoded, for
+// example the token of one run.
+func (c *Client) WithToken(encoded string) *Client {
+	cp := *c
+	WithToken(encoded)(&cp)
+	return &cp
+}
+
+// WithTokenSource returns a copy of c that authorizes its calls with ts.
+func (c *Client) WithTokenSource(ts TokenSource) *Client {
+	cp := *c
+	cp.tokens = ts
+	return &cp
+}
+
+// Request is one call, as a service package describes it.
+type Request struct {
+	// Method and Path ("/v1/sandboxes") name the route.
+	Method, Path string
+	// Query is the query string.
+	Query url.Values
+	// JSON, when not nil, is sent as the JSON body.
+	JSON any
+	// Body, when not nil and JSON is nil, is sent as it is, with ContentType
+	// (default application/octet-stream).
+	Body        []byte
+	ContentType string
+	// Accept is the Accept header (default application/json).
+	Accept string
+	// Timeout bounds one try, reading the answer included: 0 is the client's
+	// timeout, a negative value none (the context still applies).
+	Timeout time.Duration
+	// TokenLife, when positive, asks the token source for a token that stays
+	// valid this long (LifetimeTokenSource). A source that cannot say is used
+	// as it is.
+	TokenLife time.Duration
+	// RetryOn lists codes that mean the API did nothing, so even a POST may be
+	// sent again (for a sandbox create, "no_capacity").
+	RetryOn []string
+	// MaxResponse caps the answer's size in bytes (default DefaultMaxResponse).
+	MaxResponse int64
+}
+
+// Do sends r and decodes a JSON answer into out (unless out is nil).
+func (c *Client) Do(ctx context.Context, r *Request, out any) error {
+	return c.roundTrip(ctx, r, func(resp *http.Response) error {
+		raw, err := readCapped(resp.Body, r.maxResponse())
+		if err != nil {
+			return err
+		}
+		if out == nil || len(bytes.TrimSpace(raw)) == 0 {
+			return nil
+		}
+		if err := json.Unmarshal(raw, out); err != nil {
+			return wrapf("%s %s: decode the answer: %w", r.Method, r.Path, err)
+		}
+		return nil
+	})
+}
+
+// Bytes sends r and returns the answer's body as it is.
+func (c *Client) Bytes(ctx context.Context, r *Request) ([]byte, error) {
+	var body []byte
+	err := c.roundTrip(ctx, r, func(resp *http.Response) error {
+		var err error
+		body, err = readCapped(resp.Body, r.maxResponse())
+		return err
+	})
+	return body, err
+}
+
+// Event is one event of a text/event-stream answer.
+type Event struct {
+	// Name is the event's name ("message" when the stream names none).
+	Name string
+	// Data is the event's data: JSON on every stream of the API.
+	Data json.RawMessage
+}
+
+// ErrStreamIdle is returned (wrapped) when a stream sends nothing, not even
+// its keep-alive, for longer than the caller allows.
+var ErrStreamIdle = errors.New("the stream went silent")
+
+// Stream sends r, whose answer is an event stream, and calls fn with each
+// event until the stream ends, fn returns an error (io.EOF ends the stream
+// without one), or nothing arrives for idle (0: no limit). An "error" event
+// becomes an *Error with status 502. Only the opening of the stream is
+// retried, never a stream that has started.
+func (c *Client) Stream(ctx context.Context, r *Request, idle time.Duration, fn func(Event) error) error {
+	rr := *r
+	if rr.Accept == "" {
+		rr.Accept = "text/event-stream"
+	}
+	if rr.Timeout == 0 {
+		rr.Timeout = -1 // a stream lasts as long as it lasts; idle bounds the silence
+	}
+	return c.roundTrip(ctx, &rr, func(resp *http.Response) error {
+		if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+			return &Error{Status: http.StatusBadGateway, Method: rr.Method, Path: rr.Path,
+				Message: fmt.Sprintf("expected text/event-stream, got %q", ct)}
+		}
+		body := io.Reader(resp.Body)
+		var silent atomic.Bool
+		var timer *time.Timer
+		if idle > 0 {
+			timer = time.AfterFunc(idle, func() {
+				silent.Store(true)
+				_ = resp.Body.Close()
+			})
+			body = &idleReader{r: resp.Body, t: timer, d: idle}
+		}
+		err := readEvents(body, func(ev Event) error {
+			if ev.Name == "error" {
+				return streamError(&rr, ev.Data)
+			}
+			return fn(ev)
+		})
+		if timer != nil {
+			timer.Stop()
+		}
+		if err != nil && silent.Load() {
+			return wrapf("%s %s: %w for %s", rr.Method, rr.Path, ErrStreamIdle, idle)
+		}
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return err
+	})
+}
+
+func streamError(r *Request, data json.RawMessage) *Error {
+	e := &Error{Status: http.StatusBadGateway, Method: r.Method, Path: r.Path}
+	var body struct {
+		Error string `json:"error"`
+		Code  string `json:"code"`
+	}
+	if json.Unmarshal(data, &body) == nil && body.Error != "" {
+		e.Message, e.Code = body.Error, body.Code
+	} else {
+		e.Message = strings.TrimSpace(string(data))
+	}
+	return e
+}
+
+// idleReader resets its timer whenever bytes arrive.
+type idleReader struct {
+	r io.Reader
+	t *time.Timer
+	d time.Duration
+}
+
+func (i *idleReader) Read(p []byte) (int, error) {
+	n, err := i.r.Read(p)
+	if n > 0 {
+		i.t.Reset(i.d)
+	}
+	return n, err
+}
+
+func (r *Request) maxResponse() int64 {
+	if r.MaxResponse > 0 {
+		return r.MaxResponse
+	}
+	return DefaultMaxResponse
+}
+
+// roundTrip sends r, with retries, and hands a 2xx answer to read. A read
+// that has started is never repeated for a stream; for other calls the retry
+// rules decide (see RetryPolicy).
+func (c *Client) roundTrip(ctx context.Context, r *Request, read func(*http.Response) error) error {
+	var body []byte
+	contentType := ""
+	switch {
+	case r.JSON != nil:
+		b, err := json.Marshal(r.JSON)
+		if err != nil {
+			return wrapf("%s %s: encode the request: %w", r.Method, r.Path, err)
+		}
+		body, contentType = b, "application/json"
+	case r.Body != nil:
+		body, contentType = r.Body, r.ContentType
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+	}
+	for attempt := 1; ; attempt++ {
+		started, err := c.try(ctx, r, body, contentType, read)
+		if err == nil {
+			return nil
+		}
+		if started || attempt >= c.retry.MaxAttempts || ctx.Err() != nil || !shouldRetry(r.Method, r.RetryOn, err) {
+			return err
+		}
+		if sleep(ctx, c.retry.backoff(attempt, err)) != nil {
+			return err
+		}
+	}
+}
+
+// try sends r once. started is true once a stream's events have begun, which
+// makes the call impossible to repeat.
+func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType string,
+	read func(*http.Response) error) (started bool, err error) {
+	token, err := c.token(ctx, r.TokenLife)
+	if err != nil {
+		return false, err
+	}
+	timeout := r.Timeout
+	if timeout == 0 {
+		timeout = c.timeout
+	}
+	tctx := ctx
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		tctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	u := c.baseURL + r.Path
+	if len(r.Query) > 0 {
+		u += "?" + r.Query.Encode()
+	}
+	var rd io.Reader
+	if body != nil {
+		rd = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(tctx, r.Method, u, rd)
+	if err != nil {
+		return false, wrapf("%s %s: %w", r.Method, r.Path, err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	accept := r.Accept
+	if accept == "" {
+		accept = "application/json"
+	}
+	req.Header.Set("Accept", accept)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("User-Agent", c.userAgent)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return false, wrapf("%s %s: %w", r.Method, r.Path, ctx.Err())
+		}
+		return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err), unsent: unsent(err)}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBody))
+		return false, errorFrom(resp, raw)
+	}
+	if err := read(resp); err != nil {
+		// A stream the API accepted is never sent again: an exec's command
+		// has started.
+		started := r.Accept == "text/event-stream"
+		if ctx.Err() != nil {
+			return started, wrapf("%s %s: %w", r.Method, r.Path, ctx.Err())
+		}
+		var te *transportError
+		if errors.As(err, &te) {
+			te.err = wrapf("%s %s: %w", r.Method, r.Path, te.err)
+		}
+		return started, err
+	}
+	return false, nil
+}
+
+// token picks the token for one try.
+func (c *Client) token(ctx context.Context, life time.Duration) (string, error) {
+	if c.tokens == nil {
+		return "", ErrNoToken
+	}
+	var tok string
+	var err error
+	if lts, ok := c.tokens.(LifetimeTokenSource); ok && life > 0 {
+		tok, err = lts.TokenFor(ctx, life)
+	} else {
+		tok, err = c.tokens.Token(ctx)
+	}
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "cere: ") {
+			return "", err
+		}
+		return "", wrapf("access token: %w", err)
+	}
+	if tok = strings.TrimSpace(tok); tok == "" {
+		return "", ErrNoToken
+	}
+	return tok, nil
+}
+
+// readCapped reads at most limit bytes; a failure to read is a transport
+// error.
+func readCapped(r io.Reader, limit int64) ([]byte, error) {
+	b, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, &transportError{err: fmt.Errorf("read the answer: %w", err)}
+	}
+	if int64(len(b)) > limit {
+		return nil, wrapf("the answer is larger than %d bytes", limit)
+	}
+	return b, nil
+}
+
+// modulePath is this module's path, to find its version in the build.
+const modulePath = "github.com/cerebellum-network/cere-ddc-sdk-go/client"
+
+// sdkUserAgent is "cere-sdk-go/<module version>".
+func sdkUserAgent() string {
+	version := "devel"
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, m := range bi.Deps {
+			if m.Path == modulePath {
+				version = strings.TrimPrefix(m.Version, "v")
+				if m.Replace != nil {
+					version = "devel"
+				}
+			}
+		}
+	}
+	return "cere-sdk-go/" + version
+}
