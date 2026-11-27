@@ -159,7 +159,10 @@ func (s *Service) Events(ctx context.Context, q EventQuery) ([]Event, string, er
 // ctx ends. q.Limit and q.WaitS do not apply.
 //
 // The API ends a stream now and then, and a connection may drop: StreamEvents
-// reconnects with the last event's ID (Last-Event-ID) and misses nothing.
+// reconnects with the last event's ID (Last-Event-ID) and misses nothing. It
+// keeps reconnecting, with backoff (see client.Client.Follow), for as long
+// as ctx lives: an outage of the API, a deploy say, delays it but does not
+// end it. Bound it with ctx.
 // With an empty After it first takes the feed's current position, so that
 // "from now on" holds across reconnects too. An event delivered twice is
 // passed to fn once. A caller that must not miss events across its own

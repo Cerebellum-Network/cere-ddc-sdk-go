@@ -50,5 +50,5 @@
 // Stream reads one event stream. Follow reads one that can be resumed (an
 // event feed with Last-Event-ID, a command's output from byte offsets): it
 // opens it again, from where its caller got to, whenever a connection ends,
-// drops or goes silent.
+// drops or goes silent, with backoff and for as long as the context lives.
 package client

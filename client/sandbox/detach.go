@@ -259,7 +259,9 @@ type OutputEvent struct {
 // Follow streams the exec's output from the offsets in from, calling fn with
 // each event, as the command writes it, until the exec ends: it returns how.
 // A connection that drops or ends early is opened again from the last
-// offsets received, so fn sees each byte once. fn runs on the caller's
+// offsets received, so fn sees each byte once; it is reopened, with backoff,
+// for as long as ctx lives (an outage of the API delays it but does not end
+// it), so bound it with ctx. fn runs on the caller's
 // goroutine; its error ends the call, and io.EOF ends it early without one
 // (Follow then returns a nil ExecExit).
 func (e *Exec) Follow(ctx context.Context, from OutputQuery, fn func(OutputEvent) error) (*ExecExit, error) {

@@ -446,13 +446,15 @@ func TestFollowStops(t *testing.T) {
 	if !client.IsCode(err, "cursor_expired") || calls.Load() != 1 {
 		t.Fatalf("%v after %d calls", err, calls.Load())
 	}
-	// Five failed connections in a row without an event.
+	// Failed connections, however many in a row, only delay it (an API
+	// deploy): statusSeq answers {} after them, which is not a stream either,
+	// so that last refusal ends it.
 	calls.Store(0)
-	c = newClient(t, statusSeq(&calls, nil, 502, 502, 502, 502, 502, 502),
+	c = newClient(t, statusSeq(&calls, nil, 502, 502, 502, 502, 502, 502, 502, 502),
 		client.WithRetry(client.RetryPolicy{MaxAttempts: 1, MinBackoff: time.Millisecond, MaxBackoff: time.Millisecond}))
 	err = c.Follow(context.Background(), open, 0, func(client.Event) error { return nil })
-	if client.StatusOf(err) != 502 || calls.Load() != 5 {
-		t.Fatalf("%v after %d calls", err, calls.Load())
+	if client.StatusOf(err) != 502 || calls.Load() != 9 {
+		t.Fatalf("%v after %d calls; want 9: eight 502s, then the answer that is not a stream", err, calls.Load())
 	}
 	// fn's error is returned as it is.
 	boom := errors.New("boom")
@@ -539,5 +541,30 @@ func TestStreamIdleCoversTheWaitForTheHeaders(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("Stream waited for the headers past its idle limit")
+	}
+}
+
+func TestFollowWaitsAfterAConnectionThatDeliveredEvents(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		lines []string
+	}{
+		{"an event, then the end", []string{"data: {}", ""}},
+		{"an event, then an error event", []string{"data: {}", "", "event: error", `data: {"error":"node lost"}`, ""}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				sse(w, tc.lines...)
+			}), client.WithRetry(client.RetryPolicy{MaxAttempts: 1, MinBackoff: 50 * time.Millisecond, MaxBackoff: time.Second}))
+			ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+			defer cancel()
+			err := c.Follow(ctx, func() *client.Request { return &client.Request{Method: http.MethodGet, Path: "/v1/s"} },
+				0, func(client.Event) error { return nil })
+			if !errors.Is(err, context.DeadlineExceeded) || calls.Load() > 8 {
+				t.Fatalf("%v after %d connections in 300 ms; want at most 8 (50 ms apart at least)", err, calls.Load())
+			}
+		})
 	}
 }

@@ -269,7 +269,7 @@ func (c *Client) Stream(ctx context.Context, r *Request, idle time.Duration, fn 
 	return c.roundTrip(ctx, &rr, func(resp *http.Response) error {
 		if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 			return &Error{Status: http.StatusBadGateway, Method: rr.Method, Path: rr.Path,
-				Message: fmt.Sprintf("expected text/event-stream, got %q", ct)}
+				Message: fmt.Sprintf("expected text/event-stream, got %q", ct), notStream: true}
 		}
 		body := io.Reader(resp.Body)
 		var silent atomic.Bool

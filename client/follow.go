@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-// followFailures is how many connections in a row Follow lets fail without
-// an event before it gives up. Each is itself tried as the retry policy says.
-const followFailures = 5
-
 // fnError carries the error of Follow's caller through Stream. It has no
 // Unwrap, so that Stream does not take an io.EOF in it for the end of the
 // stream.
@@ -23,15 +19,26 @@ func (e *fnError) Error() string { return e.err.Error() }
 // detached command's output, for as long as it lasts. open gives the request
 // of each connection, the first one included, from what fn has seen so far
 // (a Last-Event-ID, offsets). When a connection ends, drops, sends nothing
-// for idle (0: no limit), or cannot be opened for a reason that may pass
-// (429, 502, 503, 504, a transport error), Follow opens the stream again,
-// at once after a connection that sent events and with backoff otherwise.
+// for idle (0: no limit, the wait for the answer's headers included), or
+// cannot be opened for a reason that may pass (429, 502, 503, 504, an error
+// event of the stream, a transport error), Follow opens the stream again.
 //
-// It returns when fn returns an error (io.EOF ends it without one), the API
-// refuses the stream for another reason, connections fail 5 times in a row
-// without an event, or ctx ends.
+// It waits between two connections: at least the retry policy's MinBackoff,
+// growing as the policy's backoff does (up to MaxBackoff) while connections
+// fail or end without an event, and back to MinBackoff after one that
+// delivered an event. It never gives up on a failure that may pass: an
+// outage of the API (a deploy) only delays it, and the caller's place is
+// kept. It returns when fn returns an error (io.EOF ends it without one),
+// the API refuses the stream for another reason, or ctx ends; bound it with
+// ctx.
 func (c *Client) Follow(ctx context.Context, open func() *Request, idle time.Duration, fn func(Event) error) error {
-	failures := 0
+	floor := c.retry.MinBackoff
+	if floor <= 0 {
+		floor = DefaultRetryPolicy.MinBackoff
+	}
+	// fruitless counts the connections since the last one that delivered an
+	// event, this one included.
+	fruitless := 0
 	for {
 		r := open()
 		got := false
@@ -58,24 +65,15 @@ func (c *Client) Follow(ctx context.Context, open func() *Request, idle time.Dur
 		if err != nil && !resumable(err) {
 			return err
 		}
-		var wait time.Duration
-		switch {
-		case got:
-			failures = 0
-		case err == nil:
-			// The server ended a stream that had nothing to send: not a
-			// failure, but no reason to reconnect in a tight loop either.
-			wait = c.retry.backoff(1, nil)
-		default:
-			if failures++; failures >= followFailures {
-				return err
-			}
-			wait = c.retry.backoff(failures, err)
+		if got {
+			fruitless = 0
 		}
-		if wait > 0 {
-			if err := sleep(ctx, wait); err != nil {
-				return wrapf("%s %s: %w", r.Method, r.Path, err)
-			}
+		fruitless++
+		// A floor under every wait: a server that sends an event and then
+		// ends, or answers an error event, is not reopened in a tight loop.
+		wait := max(c.retry.backoff(fruitless, err), floor)
+		if err := sleep(ctx, wait); err != nil {
+			return wrapf("%s %s: %w", r.Method, r.Path, err)
 		}
 	}
 }
@@ -92,7 +90,7 @@ func resumable(err error) bool {
 		return true
 	}
 	var e *Error
-	if errors.As(err, &e) {
+	if errors.As(err, &e) && !e.notStream {
 		switch e.Status {
 		case http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 			return true

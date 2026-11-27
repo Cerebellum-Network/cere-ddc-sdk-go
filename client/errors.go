@@ -55,6 +55,10 @@ type Error struct {
 	Method, Path string
 	// RetryAfter is the server's Retry-After, when it sent one.
 	RetryAfter time.Duration
+
+	// notStream marks a 2xx answer to a stream request that was not an event
+	// stream: a wrong base URL or route, which reconnecting will not mend.
+	notStream bool
 }
 
 func (e *Error) Error() string {

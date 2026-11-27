@@ -75,7 +75,7 @@ c, err := client.New(client.WithTokenSource(d))
 | egress | `sb.EgressRules`, `sb.SetEgress` (replace all), `sb.Allow` (add), `sb.RemoveEgress`; `sbx.EgressLog`, `sbx.EgressSummary` (counts per host and credential) |
 | secrets | the sandbox's own: `CreateRequest.Secrets`, `sb.SetSecret` mid-run; an agent's: `sbx.SetAgentSecret`; the bucket's: `sbx.SetSecret`; `sbx.ListSecrets`, `sbx.DeleteSecret` |
 | end it | `sb.Terminate(ctx, sandbox.TerminateOptions{Retain: [...], Reason: ...})`; `Retain` adds to the create's; `sb.ExitKind` classes the end (`sandbox.ExitKindMainExited`, `ExitKindTimeout`, `ExitKindOOM`, ...) |
-| learn what happened | `sbx.Events(ctx, q)` (long-poll; returns the cursor to poll from next), `sbx.StreamEvents(ctx, q, fn)` (reconnects with `Last-Event-ID`); `sandbox.running`, `sandbox.exited`, `exec.exited` |
+| learn what happened | `sbx.Events(ctx, q)` (long-poll; returns the cursor to poll from next), `sbx.StreamEvents(ctx, q, fn)` (reconnects with `Last-Event-ID`, with backoff, for as long as `ctx` lives); `sandbox.running`, `sandbox.exited`, `exec.exited` |
 | have it pushed | `sbx.CreateWebhook`, `sbx.ListWebhooks`, `sbx.DeleteWebhook`, `sbx.WebhookDeliveries`; `sandbox.VerifyWebhook` in the receiving handler |
 | usage | `sb.CurrentUsage`, `sb.Usage` (last reported, final after the end), `sbx.UsageRecords` (each with its sandbox's labels), `sbx.UsageSummary(ctx, q)` (summed by the API for a label), `sbx.UsageByLabel(ctx, "user", q)`, `sandbox.BillingState` |
 | limits | `sbx.Limits(ctx)`: the most sandboxes the bucket may have active, and how many it has |
