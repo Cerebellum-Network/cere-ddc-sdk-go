@@ -1,10 +1,12 @@
 package sandbox_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,7 +28,8 @@ func TestUsageSummary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sum.Totals.Sandboxes != 3 || sum.Totals.Records != 3 || fmt.Sprintf("%.1f", sum.Totals.BilledCPUSeconds) != "9.6" || len(sum.Sandboxes) != 3 {
+	if sum.Totals.Sandboxes != 3 || sum.Totals.Records != 3 || fmt.Sprintf("%.1f", sum.Totals.BilledCPUSeconds) != "9.6" ||
+		sum.Totals.CPUAvg != 0.04 || len(sum.Sandboxes) != 3 {
 		t.Fatalf("%+v", sum)
 	}
 	first := sum.Sandboxes[0]
@@ -52,6 +55,16 @@ func TestUsageSummary(t *testing.T) {
 	by, err := sbx.UsageByLabel(ctx, "task", sandbox.UsageQuery{Labels: map[string]string{"app": "demo"}})
 	if err != nil || by["t-81"].Sandboxes != 3 || by["t-82"].Records != 1 || len(by) != 2 {
 		t.Fatalf("%+v %v", by, err)
+	}
+	if raw, _ := json.Marshal(by["t-82"]); !strings.Contains(string(raw), `"billed_cpu_s":3.2`) {
+		t.Errorf("LabelUsage as JSON: %s", raw)
+	}
+	// The billing state filter is sent as dac_status.
+	if pushed, err := sbx.UsageRecords(ctx, sandbox.UsageQuery{DACStatus: "pushed"}); err != nil || len(pushed) != 4 {
+		t.Fatalf("pushed: %d %v", len(pushed), err)
+	}
+	if failed, err := sbx.UsageRecords(ctx, sandbox.UsageQuery{DACStatus: "failed"}); err != nil || len(failed) != 0 {
+		t.Fatalf("failed: %d %v", len(failed), err)
 	}
 }
 

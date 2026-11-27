@@ -185,8 +185,9 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case parts[0] == "usage" && len(parts) == 2:
 		reply(w, 200, f.page(r, f.records, func(rec map[string]any) bool {
 			id, _ := rec["sandbox_id"].(string)
+			dac := r.URL.Query().Get("dac_status")
 			return (r.URL.Query().Get("sandbox_id") == "" || r.URL.Query().Get("sandbox_id") == id) &&
-				f.labelsMatch(f.sandboxes[id], r.URL.Query()["label"])
+				(dac == "" || dac == rec["dac_status"]) && f.labelsMatch(f.sandboxes[id], r.URL.Query()["label"])
 		}))
 	case parts[0] == "events" && len(parts) == 1 && r.Method == http.MethodGet:
 		f.events(w, r)
@@ -870,6 +871,7 @@ func (f *fake) usageSummary(w http.ResponseWriter, r *http.Request) {
 		row["cpu_avg"] = row["cpu_s"].(float64) / row["wall_s"].(float64)
 		rows = append(rows, row)
 	}
+	totals["cpu_avg"] = totals["cpu_s"].(float64) / totals["wall_s"].(float64)
 	page := f.page(r, rows, func(map[string]any) bool { return true })
 	reply(w, 200, map[string]any{"totals": totals, "sandboxes": page["items"], "next_cursor": page["next_cursor"]})
 }

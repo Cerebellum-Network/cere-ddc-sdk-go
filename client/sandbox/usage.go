@@ -20,6 +20,9 @@ type UsageQuery struct {
 	Labels map[string]string
 	// Since bounds the records' time.
 	Since time.Time
+	// DACStatus selects the records in one billing state: "pushed",
+	// "pending" or "failed" (see BillingState).
+	DACStatus string
 	// Limit is the most records returned: 0 is 100 for UsageRecords and all
 	// for UsageByLabel, a negative value all.
 	Limit int
@@ -39,6 +42,9 @@ func (s *Service) usageRecords(ctx context.Context, q UsageQuery, n int) ([]Usag
 	if !q.Since.IsZero() {
 		v.Set("since", rfc3339(q.Since))
 	}
+	if q.DACStatus != "" {
+		v.Set("dac_status", q.DACStatus)
+	}
 	return client.List[UsageRecord](ctx, s.c,
 		client.Request{Method: http.MethodGet, Path: "/v1/usage/records", Query: v}, n)
 }
@@ -46,12 +52,12 @@ func (s *Service) usageRecords(ctx context.Context, q UsageQuery, n int) ([]Usag
 // LabelUsage is the billed and measured usage of the sandboxes that share one
 // value of a label.
 type LabelUsage struct {
-	Sandboxes           int
-	Records             int
-	BilledCPUSeconds    float64
-	BilledRAMGiBSeconds float64
-	CPUSeconds          float64
-	RAMGiBSeconds       float64
+	Sandboxes           int     `json:"sandboxes"`
+	Records             int     `json:"records"`
+	BilledCPUSeconds    float64 `json:"billed_cpu_s"`
+	BilledRAMGiBSeconds float64 `json:"billed_ram_gib_s"`
+	CPUSeconds          float64 `json:"cpu_s"`
+	RAMGiBSeconds       float64 `json:"ram_gib_s"`
 }
 
 // UsageByLabel sums the bucket's usage records per value of the label key:
@@ -110,7 +116,8 @@ type UsageSummaryQuery struct {
 // UsageSums is usage summed over usage records: measured (CPUSeconds,
 // RAMGiBSeconds, network), billed (BilledCPUSeconds, BilledRAMGiBSeconds),
 // the request's floor (Reserved*) and what was billed above it (Burst*),
-// with the highest CPU and memory use of any record.
+// the cores used on average, and the highest CPU and memory use of any
+// record.
 type UsageSums struct {
 	Records               int     `json:"records"`
 	WallSeconds           float64 `json:"wall_s"`
@@ -124,8 +131,10 @@ type UsageSums struct {
 	BurstRAMGiBSeconds    float64 `json:"burst_ram_gib_s"`
 	NetEgressBytes        int64   `json:"net_egress_bytes"`
 	NetIngressBytes       int64   `json:"net_ingress_bytes"`
-	CPUPeak               float64 `json:"cpu_peak"`
-	MemoryPeakMiB         float64 `json:"memory_peak_mib"`
+	// CPUAvg is CPUSeconds / WallSeconds: the cores used on average.
+	CPUAvg        float64 `json:"cpu_avg"`
+	CPUPeak       float64 `json:"cpu_peak"`
+	MemoryPeakMiB float64 `json:"memory_peak_mib"`
 }
 
 // UsageTotals is the usage of every sandbox a summary matched.
@@ -142,8 +151,6 @@ type SandboxUsage struct {
 	StartedAt *time.Time        `json:"started_at"`
 	EndedAt   *time.Time        `json:"ended_at"`
 	UsageSums
-	// CPUAvg is CPUSeconds / WallSeconds: the cores used on average.
-	CPUAvg float64 `json:"cpu_avg"`
 }
 
 // UsageSummary is the bucket's usage summed per sandbox, for the sandboxes
