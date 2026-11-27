@@ -220,7 +220,7 @@ func TestCancelStopsRetries(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/x"}, nil)
-	if client.StatusOf(err) != 503 || calls.Load() != 1 {
+	if !errors.Is(err, context.DeadlineExceeded) || client.StatusOf(err) != 503 || calls.Load() != 1 {
 		t.Fatalf("%v, %d calls", err, calls.Load())
 	}
 }

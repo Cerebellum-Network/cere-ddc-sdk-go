@@ -363,8 +363,9 @@ func (c *Client) roundTrip(ctx context.Context, r *Request, read func(*http.Resp
 		if started || attempt >= c.retry.MaxAttempts || ctx.Err() != nil || !shouldRetry(r, err) {
 			return err
 		}
-		if sleep(ctx, c.retry.backoff(attempt, err)) != nil {
-			return err
+		if serr := sleep(ctx, c.retry.backoff(attempt, err)); serr != nil {
+			// Both: the context's end, and what the last try answered.
+			return fmt.Errorf("cere: %s %s: %w; the last try: %w", r.Method, r.Path, serr, err)
 		}
 	}
 }
