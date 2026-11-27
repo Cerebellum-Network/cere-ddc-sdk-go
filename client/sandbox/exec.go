@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"unicode/utf8"
 
 	"github.com/cerebellum-network/cere-ddc-sdk-go/client"
 )
@@ -26,7 +27,9 @@ const maxExecAnswer = 2*6*MaxExecOutputBytes + 64<<10
 type ExecRequest struct {
 	// Command is the program and its arguments. Required.
 	Command []string
-	// Stdin is written to the command's standard input.
+	// Stdin is written to the command's standard input. The API takes it as
+	// JSON text, so it must be valid UTF-8; send binary input as a file
+	// (WriteFile) instead.
 	Stdin string
 	// Timeout is how long to wait for the command, rounded up to whole
 	// seconds: zero for DefaultExecTimeout, NoTimeout for none. After it the
@@ -61,6 +64,9 @@ func (r ExecRequest) body(detach bool) (any, error) {
 	}
 	if r.Timeout < 0 && r.Timeout != NoTimeout {
 		return nil, errors.New("sandbox: an exec timeout must not be negative (NoTimeout asks for none)")
+	}
+	if !utf8.ValidString(r.Stdin) {
+		return nil, errors.New("sandbox: an exec's Stdin must be valid UTF-8 (send binary input as a file with WriteFile)")
 	}
 	if r.IdempotencyKey != "" {
 		if !detach {

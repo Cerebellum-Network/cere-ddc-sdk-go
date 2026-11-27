@@ -292,6 +292,11 @@ func TestExec(t *testing.T) {
 	if _, err := sb.Exec(ctx, sandbox.ExecRequest{}); err == nil {
 		t.Error("no command: no error")
 	}
+	// Stdin that JSON would rewrite to U+FFFD is refused before any call.
+	sent := len(f.execs)
+	if _, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"cat"}, Stdin: "\xff\xfe"}); err == nil || len(f.execs) != sent {
+		t.Errorf("stdin that is not UTF-8: %v, %d calls", err, len(f.execs)-sent)
+	}
 	n := len(f.tokens)
 	_ = sb.Terminate(ctx, sandbox.TerminateOptions{})
 	if _, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"true"}}); !client.IsCode(err, sandbox.CodeNotRunning) {
