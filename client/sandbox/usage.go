@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -169,6 +170,7 @@ func (s *Service) UsageSummary(ctx context.Context, q UsageSummaryQuery) (*Usage
 	}
 	n := limit(q.Limit)
 	var out *UsageSummary
+	seen := map[string]bool{}
 	for {
 		want := client.MaxPageSize
 		if n > 0 {
@@ -196,6 +198,10 @@ func (s *Service) UsageSummary(ctx context.Context, q UsageSummaryQuery) (*Usage
 			}
 			return out, nil
 		}
+		if seen[*res.NextCursor] {
+			return nil, fmt.Errorf("sandbox: usage summary: the API gave cursor %q a second time", *res.NextCursor)
+		}
+		seen[*res.NextCursor] = true
 		v.Set("cursor", *res.NextCursor)
 	}
 }

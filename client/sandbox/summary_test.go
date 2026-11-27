@@ -2,6 +2,10 @@ package sandbox_test
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -88,5 +92,25 @@ func TestEgressSummaryAndLimits(t *testing.T) {
 	l, err := sbx.Limits(ctx)
 	if err != nil || *l != (sandbox.Limits{Bucket: 4116, MaxActiveSandboxes: 20, ActiveSandboxes: 1}) {
 		t.Fatalf("%+v %v", l, err)
+	}
+}
+
+func TestUsageSummaryStopsOnARepeatedCursor(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) > 10 {
+			_, _ = io.WriteString(w, `{"totals":{},"sandboxes":[],"next_cursor":null}`) // a guard for the test itself
+			return
+		}
+		_, _ = io.WriteString(w, `{"totals":{"sandboxes":9},"sandboxes":[{"sandbox_id":"sb-1"}],"next_cursor":"a"}`)
+	}))
+	t.Cleanup(srv.Close)
+	c, err := client.New(client.WithBaseURL(srv.URL), client.WithToken("tok"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = sandbox.New(c).UsageSummary(ctx, sandbox.UsageSummaryQuery{Limit: -1})
+	if err == nil || calls.Load() != 2 {
+		t.Fatalf("%v after %d calls; want an error after 2", err, calls.Load())
 	}
 }

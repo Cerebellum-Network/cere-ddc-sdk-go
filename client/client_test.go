@@ -613,3 +613,22 @@ func TestAStreamThatStartedIsNotReopenedWhateverItsAccept(t *testing.T) {
 		t.Fatalf("%v after %d calls and %d events; want one call, one event", err, calls.Load(), n)
 	}
 }
+
+func TestListStopsOnARepeatedCursor(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) > 10 {
+			_, _ = io.WriteString(w, `{"items":[],"next_cursor":null}`) // a guard for the test itself
+			return
+		}
+		if r.URL.Query().Get("cursor") == "" {
+			_, _ = io.WriteString(w, `{"items":[1],"next_cursor":"a"}`)
+			return
+		}
+		_, _ = io.WriteString(w, `{"items":[2],"next_cursor":"a"}`) // the same cursor again
+	}))
+	_, err := client.List[int](context.Background(), c, client.Request{Method: http.MethodGet, Path: "/v1/l"}, 0)
+	if err == nil || calls.Load() != 2 {
+		t.Fatalf("%v after %d calls; want an error after 2", err, calls.Load())
+	}
+}
