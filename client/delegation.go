@@ -17,8 +17,8 @@ const (
 	// DefaultCallTTL is how long the tokens a Delegation mints for ordinary
 	// calls live. Each is reused until half of it has passed.
 	DefaultCallTTL = 10 * time.Minute
-	// lifetimeSlack is added to what a create asks for, so the token covers
-	// the time the create itself takes and clock skew.
+	// lifetimeSlack is added to the life TokenFor is asked for, so the
+	// token covers the time it takes to hand it over and clock skew.
 	lifetimeSlack = 2 * time.Minute
 )
 

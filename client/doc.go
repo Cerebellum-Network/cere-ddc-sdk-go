@@ -27,11 +27,13 @@
 //   - StaticToken: one token, for example from the developer console's Access
 //     tokens page or what `cere login` saved (LoadConfig, NewFromEnv).
 //   - Delegation: the bucket owner signs a grant to the service's own key once
-//     (NewGrant); the service then mints a short token beneath it for each call,
-//     and one for each sandbox that lives exactly as long as the sandbox needs.
+//     (NewGrant); the service then mints a short token beneath it for each
+//     call, and with TokenFor one that lives as long as it asks, to hand to a
+//     sandbox for its run (for example as a model key).
 //
-// A sandbox create needs a token that is valid when the node checks it; the
-// owner's balance, not the token, bounds the sandbox's life.
+// A sandbox create sends the client's token as it is, like any call: it only
+// needs to be valid when the node checks it. The sandbox's Timeout and the
+// owner's balance, not the token, bound the sandbox's life.
 //
 // # Errors and retries
 //
