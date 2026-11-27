@@ -55,8 +55,8 @@
 // and EgressSummary counts them. Limits reads how many sandboxes the bucket
 // may have active.
 //
-// The HTTP contract is the compute gateway's sandbox API (/v1/sandboxes,
-// /v1/secrets, /v1/events, /v1/webhooks, /v1/egress, /v1/usage, /v1/limits).
+// The HTTP contract is the compute gateway's sandbox API (/v1/sandboxes, with
+// its events, webhooks, egress, usage and limits under it, and /v1/secrets).
 // Errors are *client.Error with the API's codes (CodeNotRunning,
 // CodeNoCapacity, ...).
 package sandbox

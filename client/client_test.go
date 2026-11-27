@@ -422,7 +422,7 @@ func TestFollowResumes(t *testing.T) {
 	last := ""
 	var got []string
 	err := c.Follow(context.Background(), func() *client.Request {
-		r := &client.Request{Method: http.MethodGet, Path: "/v1/events"}
+		r := &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/events"}
 		if last != "" {
 			r.Header = http.Header{client.HeaderLastEventID: {last}}
 		}
@@ -444,7 +444,7 @@ func TestFollowStops(t *testing.T) {
 	// A refusal that will not pass ends it at once.
 	var calls atomic.Int32
 	c := newClient(t, statusSeq(&calls, []string{"cursor_expired"}, 410), client.WithRetry(client.NoRetry))
-	open := func() *client.Request { return &client.Request{Method: http.MethodGet, Path: "/v1/events"} }
+	open := func() *client.Request { return &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/events"} }
 	err := c.Follow(context.Background(), open, 0, func(client.Event) error { return nil })
 	if !client.IsCode(err, "cursor_expired") || calls.Load() != 1 {
 		t.Fatalf("%v after %d calls", err, calls.Load())
@@ -504,7 +504,7 @@ func TestFollowReconnectsAfterAStreamCutMidEvent(t *testing.T) {
 	}))
 	var got []string
 	err := c.Follow(context.Background(), func() *client.Request {
-		return &client.Request{Method: http.MethodGet, Path: "/v1/events"}
+		return &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/events"}
 	}, time.Second, func(ev client.Event) error {
 		var v struct{ N int }
 		if err := json.Unmarshal(ev.Data, &v); err != nil {

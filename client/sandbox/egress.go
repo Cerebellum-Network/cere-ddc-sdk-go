@@ -337,7 +337,7 @@ func (s *Service) EgressLog(ctx context.Context, q EgressLogQuery) ([]EgressEntr
 		v.Set("decision", q.Decision)
 	}
 	return client.List[EgressEntry](ctx, s.c,
-		client.Request{Method: http.MethodGet, Path: "/v1/egress/log", Query: v}, limit(q.Limit))
+		client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/egress/log", Query: v}, limit(q.Limit))
 }
 
 // EgressCounts counts egress log entries: Requests is Allowed + Denied (by
@@ -391,7 +391,7 @@ func (s *Service) EgressSummary(ctx context.Context, sandboxID string, since, un
 		v.Set("until", rfc3339(until))
 	}
 	var out EgressSummary
-	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/egress/summary", Query: v}, &out); err != nil {
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/egress/summary", Query: v}, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

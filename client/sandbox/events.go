@@ -145,7 +145,7 @@ func (s *Service) Events(ctx context.Context, q EventQuery) ([]Event, string, er
 		Events []Event `json:"events"`
 		Next   string  `json:"next"`
 	}
-	err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/events", Query: v,
+	err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/events", Query: v,
 		Timeout: client.DefaultTimeout + time.Duration(q.WaitS)*time.Second}, &out)
 	if err != nil {
 		return nil, "", err
@@ -187,7 +187,7 @@ func (s *Service) StreamEvents(ctx context.Context, q EventQuery, fn func(Event)
 	base := q.values()
 	seen := "" // the ID of the last event received: what a reconnect sends as Last-Event-ID
 	return s.c.Follow(ctx, func() *client.Request {
-		r := &client.Request{Method: http.MethodGet, Path: "/v1/events", Query: base}
+		r := &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/events", Query: base}
 		if last != "" {
 			v := url.Values{}
 			for k, vs := range base {

@@ -27,6 +27,10 @@ Fixes from review: streams that are cut, stall or keep ending; tokens that print
 
 ### Changed
 
+- The bucket-wide sandbox routes moved under `/v1/sandboxes/`, as the gateway serves them now: `Events`,
+  `StreamEvents`, the webhook calls, `UsageRecords`, `UsageSummary`, `Limits`, `EgressLog` and `EgressSummary` call
+  `/v1/sandboxes/events`, `/v1/sandboxes/webhooks...`, `/v1/sandboxes/usage/...`, `/v1/sandboxes/limits` and
+  `/v1/sandboxes/egress/...`. alpha.5 and earlier get 404 from these calls. Secrets stay at `/v1/secrets`.
 - `Follow` reconnects for as long as `ctx` lives, with backoff capped at `MaxBackoff`; it gave up after five
   failed connections (about 15 s of API outage). `StreamEvents` and `Exec.Follow` say so; bound them with `ctx`.
   An answer that is not an event stream at all is not reconnected to.

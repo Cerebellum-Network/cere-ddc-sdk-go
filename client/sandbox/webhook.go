@@ -130,7 +130,7 @@ func (s *Service) CreateWebhook(ctx context.Context, req WebhookRequest) (*Webho
 		Secret string   `json:"secret"`
 	}{URL: req.URL, Types: req.Types, Label: req.Label, Secret: req.Secret}
 	var out Webhook
-	if err := s.c.Do(ctx, &client.Request{Method: http.MethodPost, Path: "/v1/webhooks", JSON: body}, &out); err != nil {
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodPost, Path: "/v1/sandboxes/webhooks", JSON: body}, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -139,7 +139,7 @@ func (s *Service) CreateWebhook(ctx context.Context, req WebhookRequest) (*Webho
 // ListWebhooks lists the bucket's webhooks.
 func (s *Service) ListWebhooks(ctx context.Context) ([]Webhook, error) {
 	var page client.Page[Webhook]
-	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/webhooks"}, &page); err != nil {
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/webhooks"}, &page); err != nil {
 		return nil, err
 	}
 	return page.Items, nil
@@ -150,7 +150,7 @@ func (s *Service) DeleteWebhook(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("sandbox: DeleteWebhook needs an ID")
 	}
-	return s.c.Do(ctx, &client.Request{Method: http.MethodDelete, Path: "/v1/webhooks/" + url.PathEscape(id)}, nil)
+	return s.c.Do(ctx, &client.Request{Method: http.MethodDelete, Path: "/v1/sandboxes/webhooks/" + url.PathEscape(id)}, nil)
 }
 
 // WebhookDeliveries lists a webhook's latest delivery attempts, newest
@@ -165,7 +165,7 @@ func (s *Service) WebhookDeliveries(ctx context.Context, id string, limit int) (
 	}
 	var page client.Page[WebhookDelivery]
 	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet,
-		Path: "/v1/webhooks/" + url.PathEscape(id) + "/deliveries", Query: q}, &page); err != nil {
+		Path: "/v1/sandboxes/webhooks/" + url.PathEscape(id) + "/deliveries", Query: q}, &page); err != nil {
 		return nil, err
 	}
 	return page.Items, nil

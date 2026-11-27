@@ -156,6 +156,15 @@ func (f *fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
+	// The bucket-wide routes live under /v1/sandboxes/ (their names are never
+	// sandbox IDs) and nowhere else.
+	switch {
+	case bucketRoute[parts[0]]:
+		apiError(w, 404, "not_found", r.Method+" "+r.URL.Path+" is not a route of this API")
+		return
+	case parts[0] == "sandboxes" && len(parts) >= 2 && bucketRoute[parts[1]]:
+		parts = parts[1:]
+	}
 	switch {
 	case parts[0] == "sandboxes" && len(parts) == 1 && r.Method == http.MethodPost:
 		f.create(w, r)
@@ -712,7 +721,7 @@ func (f *fake) readExec(w http.ResponseWriter, r *http.Request, id string, rest 
 		"duration_ms": e.m["duration_ms"], "timed_out": false, "error": e.m["error"]}))
 }
 
-// events serves GET /v1/events: a long-poll, or an event stream that sends
+// events serves GET /v1/sandboxes/events: a long-poll, or an event stream that sends
 // what it has (sseBatch new events at most) and ends.
 func (f *fake) events(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -786,7 +795,7 @@ func (f *fake) events(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// hooks serves /v1/webhooks.
+// hooks serves /v1/sandboxes/webhooks.
 func (f *fake) hooks(w http.ResponseWriter, r *http.Request, rest []string) {
 	find := func(id string) int {
 		return slices.IndexFunc(f.webhooks, func(h map[string]any) bool { return h["id"] == id })
@@ -833,7 +842,7 @@ func (f *fake) hooks(w http.ResponseWriter, r *http.Request, rest []string) {
 	}
 }
 
-// usageSummary serves GET /v1/usage/summary: the records summed per
+// usageSummary serves GET /v1/sandboxes/usage/summary: the records summed per
 // sandbox of the bucket whose labels match, newest first and paged, and in
 // all.
 func (f *fake) usageSummary(w http.ResponseWriter, r *http.Request) {
@@ -876,7 +885,7 @@ func (f *fake) usageSummary(w http.ResponseWriter, r *http.Request) {
 	reply(w, 200, map[string]any{"totals": totals, "sandboxes": page["items"], "next_cursor": page["next_cursor"]})
 }
 
-// egressSummary serves GET /v1/egress/summary: a sandbox's egress log
+// egressSummary serves GET /v1/sandboxes/egress/summary: a sandbox's egress log
 // counted.
 func (f *fake) egressSummary(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("sandbox_id")
@@ -985,3 +994,6 @@ func mustJSON(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
 }
+
+// bucketRoute names the bucket-wide routes under /v1/sandboxes/.
+var bucketRoute = map[string]bool{"events": true, "webhooks": true, "usage": true, "limits": true, "egress": true}

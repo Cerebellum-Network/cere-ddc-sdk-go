@@ -46,7 +46,7 @@ func (s *Service) usageRecords(ctx context.Context, q UsageQuery, n int) ([]Usag
 		v.Set("dac_status", q.DACStatus)
 	}
 	return client.List[UsageRecord](ctx, s.c,
-		client.Request{Method: http.MethodGet, Path: "/v1/usage/records", Query: v}, n)
+		client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/usage/records", Query: v}, n)
 }
 
 // LabelUsage is the billed and measured usage of the sandboxes that share one
@@ -192,7 +192,7 @@ func (s *Service) UsageSummary(ctx context.Context, q UsageSummaryQuery) (*Usage
 			UsageSummary
 			NextCursor *string `json:"next_cursor"`
 		}
-		if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/usage/summary", Query: page}, &res); err != nil {
+		if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/usage/summary", Query: page}, &res); err != nil {
 			return nil, err
 		}
 		if out == nil {
@@ -233,7 +233,7 @@ type Limits struct {
 // Limits reads the bucket's sandbox limits.
 func (s *Service) Limits(ctx context.Context) (*Limits, error) {
 	var out Limits
-	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/limits"}, &out); err != nil {
+	if err := s.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: "/v1/sandboxes/limits"}, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
