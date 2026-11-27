@@ -41,7 +41,7 @@ func liveClient(t *testing.T) *client.Client {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := cfg.Token
+	token := string(cfg.Token)
 	if f := os.Getenv("CERE_TOKEN_FILE"); f != "" {
 		b, err := os.ReadFile(f)
 		if err != nil {

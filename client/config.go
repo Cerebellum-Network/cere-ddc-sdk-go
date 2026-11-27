@@ -27,7 +27,9 @@ type Config struct {
 	BaseURL string
 	// Token is the access token: after `cere login` in the browser, the
 	// bucket owner's grant to the CLI's key with the level that key signed.
-	Token string
+	// Empty when none is configured. It never prints (see StaticToken);
+	// string(Token) is the token itself.
+	Token StaticToken
 	// TokenFrom says where Token came from: the file's path or EnvToken.
 	TokenFrom string
 }
@@ -70,13 +72,13 @@ func LoadConfig() (Config, error) {
 		if err := json.Unmarshal(raw, &file); err != nil {
 			return cfg, fmt.Errorf("cere: config: %s is not valid JSON: %w", path, err)
 		}
-		cfg.BaseURL, cfg.Token = file.APIURL, strings.TrimSpace(file.Token)
+		cfg.BaseURL, cfg.Token = file.APIURL, StaticToken(strings.TrimSpace(file.Token))
 		if cfg.Token != "" {
 			cfg.TokenFrom = path
 		}
 	}
 	if t := strings.TrimSpace(os.Getenv(EnvToken)); t != "" {
-		cfg.Token, cfg.TokenFrom = t, EnvToken
+		cfg.Token, cfg.TokenFrom = StaticToken(t), EnvToken
 	}
 	if u := os.Getenv(EnvAPIURL); u != "" {
 		cfg.BaseURL = u
@@ -99,5 +101,5 @@ func NewFromEnv(opts ...Option) (*Client, error) {
 		return nil, errors.New("cere: not logged in: run `cere login`, or set CERE_TOKEN to an access token " +
 			"from the developer console")
 	}
-	return New(append([]Option{WithBaseURL(cfg.BaseURL), WithToken(cfg.Token)}, opts...)...)
+	return New(append([]Option{WithBaseURL(cfg.BaseURL), WithToken(string(cfg.Token))}, opts...)...)
 }

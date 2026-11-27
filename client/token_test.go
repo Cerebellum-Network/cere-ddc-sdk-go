@@ -1,10 +1,13 @@
 package client_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -178,5 +181,33 @@ func TestNewDelegationChecks(t *testing.T) {
 	}
 	if _, err := client.NewGrant(auth.NewEd25519Signer(owner), nil, bucket, time.Now().Add(time.Hour)); err == nil {
 		t.Error("a grant with no subject: no error")
+	}
+}
+
+func TestStaticTokenNeverPrints(t *testing.T) {
+	const secret = "secret-token-value"
+	tok := client.StaticToken(secret)
+	cfg := client.Config{BaseURL: "https://api.example", Token: tok, TokenFrom: client.EnvToken}
+	var logged bytes.Buffer
+	slog.New(slog.NewJSONHandler(&logged, nil)).Info("config", "token", tok, "cfg", cfg)
+	slog.New(slog.NewTextHandler(&logged, nil)).Info("config", "token", tok)
+	asJSON, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{
+		fmt.Sprintf("%v %+v %#v %s %q %x %X %d %10s %-10v", tok, tok, tok, tok, tok, tok, tok, tok, tok, tok),
+		fmt.Sprintf("%v %+v %#v %s", cfg, cfg, cfg, cfg),
+		fmt.Sprint(&cfg), string(asJSON), logged.String(),
+	} {
+		if strings.Contains(s, secret) || strings.Contains(s, fmt.Sprintf("%x", secret)) {
+			t.Fatalf("the token printed: %s", s)
+		}
+	}
+	if !strings.Contains(string(asJSON), client.StaticTokenRedacted) {
+		t.Errorf("JSON %s: want the placeholder", asJSON)
+	}
+	if got, _ := tok.Token(context.Background()); got != secret || string(cfg.Token) != secret {
+		t.Error("the token itself is lost")
 	}
 }
