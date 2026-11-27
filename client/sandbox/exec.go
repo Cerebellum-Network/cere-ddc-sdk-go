@@ -17,6 +17,11 @@ import (
 // exec keeps; use ExecStream for more.
 const MaxExecOutputBytes = 16 << 20
 
+// maxExecAnswer caps a synchronous exec's JSON answer: both streams at
+// MaxExecOutputBytes, each byte of which may take six bytes as JSON text (a
+// control character is sent as \u00XX), and room for the rest.
+const maxExecAnswer = 2*6*MaxExecOutputBytes + 64<<10
+
 // ExecRequest is a command to run in a sandbox.
 type ExecRequest struct {
 	// Command is the program and its arguments. Required.
@@ -119,7 +124,7 @@ func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	var res ExecResult
 	err = sb.svc.c.Do(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), JSON: body,
-		Timeout: req.httpTimeout(), MaxResponse: 3 * MaxExecOutputBytes,
+		Timeout: req.httpTimeout(), MaxResponse: maxExecAnswer,
 	}, &res)
 	if err != nil {
 		return nil, err

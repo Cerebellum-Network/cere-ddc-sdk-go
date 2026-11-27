@@ -269,6 +269,11 @@ func TestExec(t *testing.T) {
 	if err != nil || res.ExitCode != 0 || res.Stdout != "cat <in\n" || res.DurationMS != 4 {
 		t.Fatalf("%+v %v", res, err)
 	}
+	// Output under the cap is read whole, however long its JSON.
+	big, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"flood"}})
+	if err != nil || len(big.Stdout) != 9<<20 {
+		t.Fatalf("output under the cap: %v", err)
+	}
 	var both bytes.Buffer
 	var errs bytes.Buffer
 	st, err := sb.ExecStream(ctx, sandbox.ExecRequest{Command: []string{"echo", "hi"}, Timeout: 42 * time.Second}, &both, &errs)

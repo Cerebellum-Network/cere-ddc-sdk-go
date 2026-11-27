@@ -514,6 +514,13 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 				[2]string{"exit", fmt.Sprintf(`{"exit_code":%d,"duration_ms":5,"timed_out":false}`, req.TimeoutS)})
 			return
 		}
+		if len(req.Command) > 0 && req.Command[0] == "flood" {
+			// 9 MiB of output, under the API's 16 MiB cap, whose JSON is six
+			// times as long (54 MiB): each control character is sent as \u00XX.
+			reply(w, 200, map[string]any{"exit_code": 0, "stdout": strings.Repeat("\x01", 9<<20), "stderr": "",
+				"duration_ms": 4, "timed_out": false})
+			return
+		}
 		reply(w, 200, map[string]any{"exit_code": 0, "stdout": out + "\n", "stderr": "", "duration_ms": 4,
 			"timed_out": false})
 	case route == "PUT files":
