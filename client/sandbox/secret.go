@@ -279,6 +279,10 @@ func (sb *Sandbox) SetSecret(ctx context.Context, name, value string) error {
 	if err := checkValue(value); err != nil {
 		return fmt.Errorf("sandbox: secret %s: %w", name, err)
 	}
-	return sb.svc.c.Do(ctx, &client.Request{Method: http.MethodPut, Path: sb.path("/secrets/" + url.PathEscape(name)),
+	c, err := sb.api()
+	if err != nil {
+		return err
+	}
+	return c.Do(ctx, &client.Request{Method: http.MethodPut, Path: sb.path("/secrets/" + url.PathEscape(name)),
 		JSON: map[string]string{"value": value}}, nil)
 }

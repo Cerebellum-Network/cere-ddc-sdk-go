@@ -83,6 +83,14 @@ func (e *Exec) Running() bool { return e.Status == ExecStatusRunning }
 // rather than starting one.
 func (e *Exec) Replayed() bool { return e.replayed }
 
+// api is the client the exec's calls go through.
+func (e *Exec) api() (*client.Client, error) {
+	if e == nil || e.svc == nil || e.svc.c == nil {
+		return nil, ErrNoService
+	}
+	return e.svc.c, nil
+}
+
 func (e *Exec) path(rest string) string {
 	return "/v1/sandboxes/" + url.PathEscape(e.SandboxID) + "/exec/" + url.PathEscape(e.ExecID) + rest
 }
@@ -110,8 +118,12 @@ func (sb *Sandbox) ExecDetach(ctx context.Context, req ExecRequest) (*Exec, erro
 	if err != nil {
 		return nil, err
 	}
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	ex := &Exec{SandboxID: sb.ID, svc: sb.svc}
-	res, err := sb.svc.c.DoResponse(ctx, &client.Request{
+	res, err := c.DoResponse(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), JSON: body, IdempotencyKey: req.IdempotencyKey,
 	}, ex)
 	if err != nil {
@@ -126,8 +138,12 @@ func (sb *Sandbox) ExecDetach(ctx context.Context, req ExecRequest) (*Exec, erro
 
 // Execs lists the sandbox's detached execs, newest first.
 func (sb *Sandbox) Execs(ctx context.Context) ([]*Exec, error) {
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	var page client.Page[*Exec]
-	if err := sb.svc.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/exec")}, &page); err != nil {
+	if err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/exec")}, &page); err != nil {
 		return nil, err
 	}
 	for _, ex := range page.Items {
@@ -142,6 +158,9 @@ func (sb *Sandbox) GetExec(ctx context.Context, execID string) (*Exec, error) {
 	if execID == "" {
 		return nil, errors.New("sandbox: GetExec needs an exec ID")
 	}
+	if _, err := sb.api(); err != nil {
+		return nil, err
+	}
 	ex := &Exec{ExecID: execID, SandboxID: sb.ID, svc: sb.svc}
 	if err := ex.Refresh(ctx); err != nil {
 		return nil, err
@@ -151,8 +170,12 @@ func (sb *Sandbox) GetExec(ctx context.Context, execID string) (*Exec, error) {
 
 // Refresh reads the exec again.
 func (e *Exec) Refresh(ctx context.Context) error {
+	c, err := e.api()
+	if err != nil {
+		return err
+	}
 	var out Exec
-	if err := e.svc.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: e.path("")}, &out); err != nil {
+	if err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: e.path("")}, &out); err != nil {
 		return err
 	}
 	e.update(&out)
@@ -220,8 +243,12 @@ func (o *ExecOutput) Next() OutputQuery {
 // most MaxExecOutputRead of each stream: call again from o.Next() for more.
 // It returns at once, whether the exec runs or has ended.
 func (e *Exec) Output(ctx context.Context, from OutputQuery) (*ExecOutput, error) {
+	c, err := e.api()
+	if err != nil {
+		return nil, err
+	}
 	var out ExecOutput
-	if err := e.svc.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: e.path("/output"),
+	if err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: e.path("/output"),
 		Query: from.values()}, &out); err != nil {
 		return nil, err
 	}
@@ -265,9 +292,13 @@ type OutputEvent struct {
 // goroutine; its error ends the call, and io.EOF ends it early without one
 // (Follow then returns a nil ExecExit).
 func (e *Exec) Follow(ctx context.Context, from OutputQuery, fn func(OutputEvent) error) (*ExecExit, error) {
+	c, err := e.api()
+	if err != nil {
+		return nil, err
+	}
 	at := from
 	var exit *ExecExit
-	err := e.svc.c.Follow(ctx, func() *client.Request {
+	err = c.Follow(ctx, func() *client.Request {
 		q := at.values()
 		q.Set("stream", "1")
 		return &client.Request{Method: http.MethodGet, Path: e.path("/output"), Query: q}

@@ -127,8 +127,12 @@ func (sb *Sandbox) Exec(ctx context.Context, req ExecRequest) (*ExecResult, erro
 	if err != nil {
 		return nil, err
 	}
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	var res ExecResult
-	err = sb.svc.c.Do(ctx, &client.Request{
+	err = c.Do(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), JSON: body,
 		Timeout: req.httpTimeout(), MaxResponse: maxExecAnswer,
 	}, &res)
@@ -151,8 +155,12 @@ func (sb *Sandbox) ExecStream(ctx context.Context, req ExecRequest, stdout, stde
 	if err != nil {
 		return nil, err
 	}
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	var exit *ExitStatus
-	err = sb.svc.c.Stream(ctx, &client.Request{
+	err = c.Stream(ctx, &client.Request{
 		Method: http.MethodPost, Path: sb.path("/exec"), Query: url.Values{"stream": {"1"}}, JSON: body,
 	}, streamIdle, func(ev client.Event) error {
 		switch ev.Name {

@@ -243,8 +243,12 @@ func (sb *Sandbox) SetEgress(ctx context.Context, rules []Allow) ([]Allow, error
 		}
 		body.Allow = append(body.Allow, r.normalize())
 	}
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	var out Sandbox
-	err := sb.svc.c.Do(ctx, &client.Request{Method: http.MethodPut, Path: sb.path("/egress"), JSON: body}, &out)
+	err = c.Do(ctx, &client.Request{Method: http.MethodPut, Path: sb.path("/egress"), JSON: body}, &out)
 	if err != nil {
 		return nil, err
 	}

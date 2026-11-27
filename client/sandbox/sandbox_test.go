@@ -576,3 +576,29 @@ func TestSandboxDecodesTheAPIsShape(t *testing.T) {
 		t.Fatalf("%+v %v", sb.Image, err)
 	}
 }
+
+func TestADecodedSandboxOrExecHasNoService(t *testing.T) {
+	var sb sandbox.Sandbox
+	var ex sandbox.Exec
+	if err := json.Unmarshal([]byte(`{"id":"sb-1","status":"running"}`), &sb); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(`{"exec_id":"ex-1","status":"running"}`), &ex); err != nil {
+		t.Fatal(err)
+	}
+	if err := sb.Refresh(ctx); !errors.Is(err, sandbox.ErrNoService) {
+		t.Errorf("Refresh: %v", err)
+	}
+	if _, err := sb.Exec(ctx, sandbox.ExecRequest{Command: []string{"true"}}); !errors.Is(err, sandbox.ErrNoService) {
+		t.Errorf("Exec: %v", err)
+	}
+	if _, err := sb.Wait(ctx); !errors.Is(err, sandbox.ErrNoService) {
+		t.Errorf("Wait: %v", err)
+	}
+	if _, err := ex.Wait(ctx); !errors.Is(err, sandbox.ErrNoService) {
+		t.Errorf("Exec.Wait: %v", err)
+	}
+	if _, err := ex.Follow(ctx, sandbox.OutputQuery{}, func(sandbox.OutputEvent) error { return nil }); !errors.Is(err, sandbox.ErrNoService) {
+		t.Errorf("Exec.Follow: %v", err)
+	}
+}

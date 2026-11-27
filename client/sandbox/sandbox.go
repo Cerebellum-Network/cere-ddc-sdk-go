@@ -119,6 +119,20 @@ func (sb *Sandbox) Running() bool { return sb.Status == StatusRunning }
 // last read. An ended sandbox never changes again.
 func (sb *Sandbox) Ended() bool { return sb.Status == StatusTerminated || sb.Status == StatusFailed }
 
+// ErrNoService is returned by the calls of a Sandbox or an Exec that no
+// Service returned, such as one decoded from JSON: read it again with
+// Service.Get or Sandbox.GetExec.
+var ErrNoService = errors.New("sandbox: this Sandbox or Exec was not returned by a Service (decoded from JSON?): " +
+	"read it again with Service.Get or Sandbox.GetExec")
+
+// api is the client the sandbox's calls go through.
+func (sb *Sandbox) api() (*client.Client, error) {
+	if sb == nil || sb.svc == nil || sb.svc.c == nil {
+		return nil, ErrNoService
+	}
+	return sb.svc.c, nil
+}
+
 func (sb *Sandbox) path(rest string) string { return "/v1/sandboxes/" + url.PathEscape(sb.ID) + rest }
 
 // Replayed reports whether Create found the sandbox an earlier create with
@@ -247,8 +261,12 @@ func labelQuery(labels map[string]string) url.Values {
 
 // Refresh reads the sandbox again; Usage is live while it runs.
 func (sb *Sandbox) Refresh(ctx context.Context) error {
+	c, err := sb.api()
+	if err != nil {
+		return err
+	}
 	var out Sandbox
-	if err := sb.svc.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("")}, &out); err != nil {
+	if err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("")}, &out); err != nil {
 		return err
 	}
 	sb.update(&out)
@@ -311,10 +329,14 @@ func (sb *Sandbox) WriteFile(ctx context.Context, path string, data []byte) erro
 		return &client.Error{Status: http.StatusRequestEntityTooLarge, Code: client.CodeTooLarge,
 			Message: fmt.Sprintf("the file is %d bytes, at most %d (16 MiB)", len(data), MaxFileBytes)}
 	}
+	c, err := sb.api()
+	if err != nil {
+		return err
+	}
 	if data == nil {
 		data = []byte{}
 	}
-	return sb.svc.c.Do(ctx, &client.Request{
+	return c.Do(ctx, &client.Request{
 		Method: http.MethodPut, Path: sb.path("/files"), Query: url.Values{"path": {path}}, Body: data,
 		Timeout: client.DefaultTimeout + time.Duration(len(data)>>20)*time.Second,
 	}, nil)
@@ -325,7 +347,11 @@ func (sb *Sandbox) WriteFile(ctx context.Context, path string, data []byte) erro
 // CodeFileNotFound; a file of an ended sandbox that was not retained, or no
 // longer is, CodeFileGone.
 func (sb *Sandbox) ReadFile(ctx context.Context, path string) ([]byte, error) {
-	return sb.svc.c.Bytes(ctx, &client.Request{
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
+	return c.Bytes(ctx, &client.Request{
 		Method: http.MethodGet, Path: sb.path("/files"), Query: url.Values{"path": {path}}, Accept: "*/*",
 		Timeout: client.DefaultTimeout + 16*time.Second, MaxResponse: MaxFileBytes + 1<<10,
 	})
@@ -335,7 +361,11 @@ func (sb *Sandbox) ReadFile(ctx context.Context, path string) ([]byte, error) {
 // nil) until it ends. Logs are kept 10 minutes after the sandbox ends, then
 // answer CodeLogsGone.
 func (sb *Sandbox) Logs(ctx context.Context, stdout, stderr io.Writer) error {
-	return sb.svc.c.Stream(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/logs")}, streamIdle,
+	c, err := sb.api()
+	if err != nil {
+		return err
+	}
+	return c.Stream(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/logs")}, streamIdle,
 		func(ev client.Event) error {
 			switch ev.Name {
 			case "stdout", "stderr":
@@ -368,8 +398,12 @@ func writeChunk(ev client.Event, stdout, stderr io.Writer) error {
 
 // CurrentUsage reads what the sandbox has used so far: live while it runs.
 func (sb *Sandbox) CurrentUsage(ctx context.Context) (*Usage, error) {
+	c, err := sb.api()
+	if err != nil {
+		return nil, err
+	}
 	var u Usage
-	if err := sb.svc.c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/usage")}, &u); err != nil {
+	if err := c.Do(ctx, &client.Request{Method: http.MethodGet, Path: sb.path("/usage")}, &u); err != nil {
 		return nil, err
 	}
 	return &u, nil
@@ -403,8 +437,12 @@ func (sb *Sandbox) Terminate(ctx context.Context, o TerminateOptions) error {
 	if o.Reason != "" {
 		q.Set("reason", o.Reason)
 	}
+	c, err := sb.api()
+	if err != nil {
+		return err
+	}
 	var out Sandbox
-	err := sb.svc.c.Do(ctx, &client.Request{Method: http.MethodDelete, Path: sb.path(""), Query: q,
+	err = c.Do(ctx, &client.Request{Method: http.MethodDelete, Path: sb.path(""), Query: q,
 		Timeout: client.DefaultTimeout + time.Duration(16*len(o.Retain))*time.Second}, &out)
 	if err != nil {
 		return err
