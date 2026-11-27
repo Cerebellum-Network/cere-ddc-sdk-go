@@ -177,15 +177,15 @@ func (s *Service) WebhookDeliveries(ctx context.Context, id string, limit int) (
 // keyed with secret's bytes, and webhook-timestamp must be within tolerance
 // of now (0 for DefaultWebhookTolerance), which turns a replayed old
 // delivery away. body is the request's body as received; decode it into an
-// Event once it verifies. Several space-separated signatures may be sent;
-// one that matches is enough.
+// Event once it verifies. Several signatures may be sent, space-separated
+// in one header line or over several lines; one that matches is enough.
 func VerifyWebhook(secret string, header http.Header, body []byte, tolerance time.Duration) error {
 	if secret == "" {
 		return errors.New("sandbox: webhook: no secret to verify with")
 	}
-	id, ts, sigs := headerValue(header, HeaderWebhookID), headerValue(header, HeaderWebhookTimestamp),
-		headerValue(header, HeaderWebhookSignature)
-	if id == "" || ts == "" || sigs == "" {
+	id, ts := headerValue(header, HeaderWebhookID), headerValue(header, HeaderWebhookTimestamp)
+	sigs := strings.Join(headerValues(header, HeaderWebhookSignature), " ")
+	if id == "" || ts == "" || strings.TrimSpace(sigs) == "" {
 		return errors.New("sandbox: webhook: the webhook-id, webhook-timestamp and webhook-signature headers are required")
 	}
 	sec, err := strconv.ParseInt(ts, 10, 64)
@@ -226,4 +226,15 @@ func headerValue(h http.Header, name string) string {
 		}
 	}
 	return ""
+}
+
+// headerValues is every value of h for name, whatever the case of h's keys.
+func headerValues(h http.Header, name string) []string {
+	var out []string
+	for k, vs := range h {
+		if strings.EqualFold(k, name) {
+			out = append(out, vs...)
+		}
+	}
+	return out
 }

@@ -120,6 +120,12 @@ func TestVerifyWebhookVector(t *testing.T) {
 	if err := sandbox.VerifyWebhook(vectorSecret, webhookHeader(vectorID, vectorTS, "v2,abc v1,AAAA "+vectorSig), []byte(vectorBody), decade); err != nil {
 		t.Fatalf("among several: %v", err)
 	}
+	// The signatures split over several header lines.
+	split := webhookHeader(vectorID, vectorTS, "v2,abc")
+	split.Add("webhook-signature", vectorSig)
+	if err := sandbox.VerifyWebhook(vectorSecret, split, []byte(vectorBody), decade); err != nil {
+		t.Fatalf("over several header lines: %v", err)
+	}
 	for name, tc := range map[string]struct {
 		secret, id, ts, sig, body string
 		tolerance                 time.Duration
