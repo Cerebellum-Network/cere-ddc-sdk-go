@@ -515,3 +515,29 @@ func TestFollowReconnectsAfterAStreamCutMidEvent(t *testing.T) {
 		t.Fatalf("%v: events %q after %d connections", err, got, calls.Load())
 	}
 }
+
+func TestStreamIdleCoversTheWaitForTheHeaders(t *testing.T) {
+	var calls atomic.Int32
+	release := make(chan struct{})
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		select { // the API stalls before it answers
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}), client.WithRetry(client.NoRetry))
+	t.Cleanup(func() { close(release) }) // runs before the server closes
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Stream(context.Background(), &client.Request{Method: http.MethodGet, Path: "/v1/s"},
+			100*time.Millisecond, func(client.Event) error { return nil })
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, client.ErrStreamIdle) || calls.Load() != 1 {
+			t.Fatalf("%v after %d calls", err, calls.Load())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Stream waited for the headers past its idle limit")
+	}
+}

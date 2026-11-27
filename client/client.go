@@ -164,6 +164,9 @@ type Request struct {
 	RetryOn []string
 	// MaxResponse caps the answer's size in bytes (default DefaultMaxResponse).
 	MaxResponse int64
+
+	// headerIdle, set by Stream, bounds the wait for the answer's headers.
+	headerIdle time.Duration
 }
 
 // Headers of the API's idempotent calls and resumable streams.
@@ -250,9 +253,10 @@ var ErrStreamIdle = errors.New("the stream went silent")
 
 // Stream sends r, whose answer is an event stream, and calls fn with each
 // event until the stream ends, fn returns an error (io.EOF ends the stream
-// without one), or nothing arrives for idle (0: no limit). An "error" event
-// becomes an *Error with status 502. Only the opening of the stream is
-// retried, never a stream that has started.
+// without one), or nothing arrives for idle (0: no limit), the wait for the
+// answer's headers included. An "error" event becomes an *Error with status
+// 502. Only the opening of the stream is retried, never a stream that has
+// started.
 func (c *Client) Stream(ctx context.Context, r *Request, idle time.Duration, fn func(Event) error) error {
 	rr := *r
 	if rr.Accept == "" {
@@ -261,6 +265,7 @@ func (c *Client) Stream(ctx context.Context, r *Request, idle time.Duration, fn 
 	if rr.Timeout == 0 {
 		rr.Timeout = -1 // a stream lasts as long as it lasts; idle bounds the silence
 	}
+	rr.headerIdle = idle
 	return c.roundTrip(ctx, &rr, func(resp *http.Response) error {
 		if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 			return &Error{Status: http.StatusBadGateway, Method: rr.Method, Path: rr.Path,
@@ -412,10 +417,13 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("User-Agent", c.userAgent)
-	resp, err := c.http.Do(req)
+	resp, err := c.send(req, r.headerIdle)
 	if err != nil {
 		if ctx.Err() != nil {
 			return false, wrapf("%s %s: %w", r.Method, r.Path, ctx.Err())
+		}
+		if errors.Is(err, ErrStreamIdle) {
+			return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err)}
 		}
 		return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err), unsent: unsent(err)}
 	}
@@ -438,6 +446,48 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 		return started, err
 	}
 	return false, nil
+}
+
+// send sends req. A headerIdle above zero bounds the wait for the answer's
+// headers: the request is cancelled after it, and the error wraps
+// ErrStreamIdle.
+func (c *Client) send(req *http.Request, headerIdle time.Duration) (*http.Response, error) {
+	if headerIdle <= 0 {
+		return c.http.Do(req)
+	}
+	ctx, cancel := context.WithCancelCause(req.Context())
+	timer := time.AfterFunc(headerIdle, func() {
+		cancel(fmt.Errorf("%w for %s before the answer's headers", ErrStreamIdle, headerIdle))
+	})
+	resp, err := c.http.Do(req.WithContext(ctx))
+	if !timer.Stop() {
+		// The limit passed: the request is cancelled, even if the headers
+		// had just arrived.
+		if err == nil {
+			_ = resp.Body.Close()
+		}
+		return nil, context.Cause(ctx)
+	}
+	if err != nil {
+		cancel(nil)
+		return nil, err
+	}
+	// The headers arrived: the stream's own idle limit takes over. The body
+	// is read under ctx, which is cancelled when the body is closed.
+	resp.Body = &cancelOnClose{ReadCloser: resp.Body, cancel: func() { cancel(nil) }}
+	return resp, nil
+}
+
+// cancelOnClose cancels a request's context when its body is closed.
+type cancelOnClose struct {
+	io.ReadCloser
+	cancel func()
+}
+
+func (b *cancelOnClose) Close() error {
+	err := b.ReadCloser.Close()
+	b.cancel()
+	return err
 }
 
 // token picks the token for one try.
