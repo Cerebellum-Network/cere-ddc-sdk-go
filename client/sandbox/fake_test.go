@@ -503,6 +503,11 @@ func (f *fake) onSandbox(w http.ResponseWriter, r *http.Request, sb map[string]a
 		if req.Stdin != nil {
 			out += " <" + *req.Stdin
 		}
+		if r.URL.Query().Get("stream") == "1" && len(req.Command) > 0 && req.Command[0] == "no-such-program" {
+			events(w, [2]string{"exit", `{"exit_code":-1,"duration_ms":0,"timed_out":false,` +
+				`"error":"exec: \"no-such-program\": executable file not found in $PATH"}`})
+			return
+		}
 		if r.URL.Query().Get("stream") == "1" {
 			events(w, [2]string{"stdout", `{"data":"out:"}`}, [2]string{"stderr", `{"data":"err\n"}`},
 				[2]string{"stdout", mustJSON(map[string]string{"data": out + "\n"})},

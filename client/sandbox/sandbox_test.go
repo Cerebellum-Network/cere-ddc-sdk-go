@@ -279,6 +279,11 @@ func TestExec(t *testing.T) {
 	if _, err := sb.ExecStream(ctx, sandbox.ExecRequest{Command: []string{"x"}}, nil, nil); err != nil {
 		t.Fatalf("nil writers: %v", err)
 	}
+	// A command that failed to run: exit code -1, and the API's reason.
+	st, err = sb.ExecStream(ctx, sandbox.ExecRequest{Command: []string{"no-such-program"}}, nil, nil)
+	if err != nil || st.ExitCode != -1 || !strings.Contains(st.Error, "executable file not found") {
+		t.Fatalf("a command that failed to run: %+v %v", st, err)
+	}
 	if _, err := sb.Exec(ctx, sandbox.ExecRequest{}); err == nil {
 		t.Error("no command: no error")
 	}

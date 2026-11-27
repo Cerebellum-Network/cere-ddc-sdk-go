@@ -83,13 +83,17 @@ func (r ExecRequest) body(detach bool) (any, error) {
 
 // ExitStatus is how a command ended.
 type ExitStatus struct {
-	// ExitCode is the command's exit code; -1 when it was not waited for
-	// (TimedOut or Truncated).
+	// ExitCode is the command's exit code: 124 when its timeout passed
+	// (TimedOut), and -1 when it was not waited for (Truncated) or failed to
+	// run (Error says why).
 	ExitCode   int   `json:"exit_code"`
 	DurationMS int64 `json:"duration_ms"`
 	// TimedOut is set when the exec's timeout passed first: the command may
 	// still be running in the sandbox (terminate it to end it).
 	TimedOut bool `json:"timed_out"`
+	// Error is set when the command failed to run (ExitCode -1), for example
+	// a program that is not in the image.
+	Error string `json:"error"`
 }
 
 // ExecResult is the answer of a synchronous exec.
