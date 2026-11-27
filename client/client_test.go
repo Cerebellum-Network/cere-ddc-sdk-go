@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -630,5 +631,36 @@ func TestListStopsOnARepeatedCursor(t *testing.T) {
 	_, err := client.List[int](context.Background(), c, client.Request{Method: http.MethodGet, Path: "/v1/l"}, 0)
 	if err == nil || calls.Load() != 2 {
 		t.Fatalf("%v after %d calls; want an error after 2", err, calls.Load())
+	}
+}
+
+func TestWhatCountsAsNeverSent(t *testing.T) {
+	// A proxy that refuses the connection: the request reached no server, so
+	// even a POST is tried again.
+	proxy := httptest.NewServer(http.NotFoundHandler())
+	proxyURL, _ := url.Parse(proxy.URL)
+	proxy.Close()
+	var tries atomic.Int32
+	c, err := client.New(client.WithBaseURL("http://api.example"), client.WithRetry(fastRetry),
+		client.WithHTTPClient(&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}),
+		client.WithTokenSource(client.TokenFunc(func(context.Context) (string, error) { tries.Add(1); return "tok", nil })))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = c.Do(context.Background(), &client.Request{Method: http.MethodPost, Path: "/v1/x"}, nil)
+	if err == nil || tries.Load() != 3 {
+		t.Fatalf("a refused proxy: %v after %d tries; want 3", err, tries.Load())
+	}
+
+	// A name that does not resolve on a redirect's next hop: the first server
+	// had the POST, so it is not sent again.
+	var calls atomic.Int32
+	c = newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		http.Redirect(w, r, "http://no-such-host.invalid/v1/x", http.StatusTemporaryRedirect)
+	}))
+	err = c.Do(context.Background(), &client.Request{Method: http.MethodPost, Path: "/v1/x", JSON: map[string]int{}}, nil)
+	if err == nil || calls.Load() != 1 {
+		t.Fatalf("a redirect to a name that does not resolve: %v after %d calls; want 1", err, calls.Load())
 	}
 }

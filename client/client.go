@@ -429,7 +429,7 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 		if errors.Is(err, ErrStreamIdle) {
 			return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err)}
 		}
-		return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err), unsent: unsent(err)}
+		return false, &transportError{err: wrapf("%s %s: %w", r.Method, r.Path, err), unsent: unsent(req, err)}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
