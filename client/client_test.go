@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -470,5 +471,47 @@ func TestFollowStops(t *testing.T) {
 	})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("%v", err)
+	}
+}
+
+func TestStreamCutMidLineDropsTheEvent(t *testing.T) {
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sse(w, "event: stdout", `data: {"data":"a"}`, "")
+		_, _ = io.WriteString(w, "event: exit\ndata: {\"exit_co") // the connection is cut here
+	}))
+	var got []string
+	err := c.Stream(context.Background(), &client.Request{Method: http.MethodGet, Path: "/v1/s"}, 0,
+		func(ev client.Event) error { got = append(got, ev.Name+" "+string(ev.Data)); return nil })
+	if err == nil || strings.Join(got, "|") != `stdout {"data":"a"}` {
+		t.Fatalf("%v, events %q; want an error and only the complete event", err, got)
+	}
+}
+
+func TestFollowReconnectsAfterAStreamCutMidEvent(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			sse(w, "id: 1", `data: {"n":1}`, "")
+			_, _ = io.WriteString(w, "id: 2\ndata: {\"n\"") // cut mid-event
+			return
+		}
+		sse(w, "id: 2", `data: {"n":2}`, "")
+	}))
+	var got []string
+	err := c.Follow(context.Background(), func() *client.Request {
+		return &client.Request{Method: http.MethodGet, Path: "/v1/events"}
+	}, time.Second, func(ev client.Event) error {
+		var v struct{ N int }
+		if err := json.Unmarshal(ev.Data, &v); err != nil {
+			return err
+		}
+		got = append(got, ev.ID)
+		if v.N == 2 {
+			return io.EOF
+		}
+		return nil
+	})
+	if err != nil || strings.Join(got, ",") != "1,2" || calls.Load() != 2 {
+		t.Fatalf("%v: events %q after %d connections", err, got, calls.Load())
 	}
 }

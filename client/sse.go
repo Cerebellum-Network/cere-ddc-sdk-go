@@ -14,7 +14,9 @@ import (
 // event and of the ones after it, until the next id line (as the stream's
 // last event id). Comments (": ping") and the retry field are skipped. It
 // returns fn's first error, a read error (as a transport error), or nil at
-// the end of the stream.
+// the end of the stream. A stream that ends in the middle of a line was cut:
+// the event that line belongs to is incomplete, so it is dropped and the cut
+// is a transport error (Follow opens the stream again).
 func readEvents(r io.Reader, fn func(Event) error) error {
 	br := bufio.NewReaderSize(r, 64<<10)
 	var name, lastID string
@@ -36,14 +38,15 @@ func readEvents(r io.Reader, fn func(Event) error) error {
 	for {
 		line, err := readLine(br)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				// A stream may end without a final blank line.
-				if len(line) == 0 {
-					return dispatch()
-				}
-			} else {
+			if !errors.Is(err, io.EOF) {
 				return &transportError{err: fmt.Errorf("read the stream: %w", err)}
 			}
+			if len(line) > 0 {
+				return &transportError{err: errors.New("read the stream: it ended in the middle of a line")}
+			}
+			// A stream may end without a final blank line after its last
+			// complete line.
+			return dispatch()
 		}
 		switch {
 		case len(line) == 0:
@@ -72,9 +75,6 @@ func readEvents(r io.Reader, fn func(Event) error) error {
 				data.Write(value)
 				hasData = true
 			}
-		}
-		if errors.Is(err, io.EOF) {
-			return dispatch()
 		}
 	}
 }
