@@ -94,6 +94,8 @@ func TestErrors(t *testing.T) {
 		{409, `{"error":"sandbox is terminated","code":"not_running"}`, "not_running", "sandbox is terminated", "", 0},
 		{404, `{"message":"not found"}`, "", "not found", "", 0},
 		{400, `{"error":{"message":"bad field","code":"invalid_request"}}`, "invalid_request", "bad field", "", 0},
+		{403, `{"error":"bucket owner has insufficient balance","code":"insufficient_balance"}`,
+			client.CodeInsufficientBalance, "bucket owner has insufficient balance", "", 0},
 		{502, "upstream exploded", "", "upstream exploded", "", 0},
 		{503, "", "", "Service Unavailable", "7", 7},
 	}

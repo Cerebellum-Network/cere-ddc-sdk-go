@@ -19,8 +19,12 @@ const (
 	CodeBadRequest = "BAD_REQUEST"
 	// CodeUnauthorized: no token, a token that does not verify, or a grant presented alone (401).
 	CodeUnauthorized = "UNAUTHORIZED"
-	// CodeForbidden: the token is not for this bucket, or its owner has no balance (403).
+	// CodeForbidden: the token is not for this bucket (403).
 	CodeForbidden = "FORBIDDEN"
+	// CodeInsufficientBalance: the bucket's owner has no balance left for a call
+	// that costs money (a sandbox create, an exec, a file upload); a top-up is
+	// needed (403).
+	CodeInsufficientBalance = "insufficient_balance"
 	// CodeNotFound: no such resource or route (404).
 	CodeNotFound = "not_found"
 	// CodeMethodNotAllowed: the route does not take the method (405).

@@ -121,7 +121,8 @@ if client.IsCode(err, sandbox.CodeNotRunning) { ... }  // 409: the sandbox has e
 if client.IsCode(err, sandbox.CodeFileGone) { ... }    // 410: not retained, or no longer kept
 if client.IsCode(err, sandbox.CodeCursorExpired) { ... } // 410: an events cursor older than 72 hours
 if client.IsCode(err, sandbox.CodeIdempotencyConflict) { ... } // 409: the key was used with another body
-if client.StatusOf(err) == http.StatusForbidden { ... } // not this bucket's token, or no balance
+if client.IsCode(err, client.CodeInsufficientBalance) { ... } // the bucket's owner must top up
+if client.StatusOf(err) == http.StatusForbidden { ... }          // otherwise: not this bucket's token
 ```
 
 A call is retried (3 tries, backoff with jitter, `Retry-After` honoured) only when that cannot make it take effect twice: reads and replacements (GET, PUT, DELETE), and a create or detached exec with an `IdempotencyKey`, on 429, 502, 503, 504 and transport errors; any call on 429, 503 `AUTH_UNAVAILABLE`, or a connection that was never made; a create also on 503 `no_capacity`, which creates nothing. An exec without a key is never repeated. `client.WithRetry(client.NoRetry)` turns retries off.
