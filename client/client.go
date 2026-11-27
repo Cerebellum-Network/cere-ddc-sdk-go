@@ -165,6 +165,9 @@ type Request struct {
 	// MaxResponse caps the answer's size in bytes (default DefaultMaxResponse).
 	MaxResponse int64
 
+	// stream, set by Stream, marks a call whose answer is an event stream:
+	// once it has been read from, it is never sent again.
+	stream bool
 	// headerIdle, set by Stream, bounds the wait for the answer's headers.
 	headerIdle time.Duration
 }
@@ -265,7 +268,7 @@ func (c *Client) Stream(ctx context.Context, r *Request, idle time.Duration, fn 
 	if rr.Timeout == 0 {
 		rr.Timeout = -1 // a stream lasts as long as it lasts; idle bounds the silence
 	}
-	rr.headerIdle = idle
+	rr.stream, rr.headerIdle = true, idle
 	return c.roundTrip(ctx, &rr, func(resp *http.Response) error {
 		if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 			return &Error{Status: http.StatusBadGateway, Method: rr.Method, Path: rr.Path,
@@ -436,7 +439,7 @@ func (c *Client) try(ctx context.Context, r *Request, body []byte, contentType s
 	if err := read(resp); err != nil {
 		// A stream the API accepted is never sent again: an exec's command
 		// has started.
-		started := r.Accept == "text/event-stream"
+		started := r.stream
 		if ctx.Err() != nil {
 			return started, wrapf("%s %s: %w", r.Method, r.Path, ctx.Err())
 		}

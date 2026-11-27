@@ -598,3 +598,18 @@ func TestAPostWhoseAnswerIsLostIsNotSentAgain(t *testing.T) {
 		})
 	}
 }
+
+func TestAStreamThatStartedIsNotReopenedWhateverItsAccept(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		sse(w, "data: {}", "")
+		panic(http.ErrAbortHandler) // the connection drops after an event
+	}))
+	n := 0
+	err := c.Stream(context.Background(), &client.Request{Method: http.MethodGet, Path: "/v1/s",
+		Accept: "text/event-stream, application/json;q=0.5"}, 0, func(client.Event) error { n++; return nil })
+	if err == nil || calls.Load() != 1 || n != 1 {
+		t.Fatalf("%v after %d calls and %d events; want one call, one event", err, calls.Load(), n)
+	}
+}
