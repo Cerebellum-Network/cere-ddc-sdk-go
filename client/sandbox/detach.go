@@ -184,11 +184,17 @@ func (e *Exec) Refresh(ctx context.Context) error {
 
 // Wait polls (every second) until the exec has exited and returns its exit
 // code: -1 when it has none, because the sandbox ended while it ran (Error
-// says so).
+// says so). As Sandbox.Wait, it polls through answers of 500 and above and
+// returns when the exec exits, on another error, or when ctx ends; bound it
+// with ctx.
 func (e *Exec) Wait(ctx context.Context) (int, error) {
+	var last error
 	for {
-		if err := e.Refresh(ctx); err != nil && client.StatusOf(err) < 500 {
-			return 0, err
+		if err := e.Refresh(ctx); err != nil {
+			if client.StatusOf(err) < 500 {
+				return 0, err
+			}
+			last = err
 		}
 		if e.Status == ExecStatusExited {
 			if e.ExitCode != nil {
@@ -197,7 +203,7 @@ func (e *Exec) Wait(ctx context.Context) (int, error) {
 			return -1, nil
 		}
 		if err := pause(ctx, time.Second); err != nil {
-			return 0, err
+			return 0, waitEnded("sandbox: exec "+e.ExecID+" still "+e.Status, err, last)
 		}
 	}
 }

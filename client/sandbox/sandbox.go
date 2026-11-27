@@ -276,13 +276,23 @@ func (sb *Sandbox) Refresh(ctx context.Context) error {
 // WaitRunning polls until the sandbox leaves starting (and unknown). It
 // returns nil once it runs or has run (a sandbox whose command already
 // exited), and a *StartError if it ended without starting.
+//
+// An answer of 500 or above is taken as the API's passing trouble, not the
+// sandbox's: polling goes on, as the sandbox goes on on its node. So
+// WaitRunning, like Wait, returns only on the sandbox's state, another
+// error, or ctx's end (with the last such answer in the error); bound it
+// with ctx.
 func (sb *Sandbox) WaitRunning(ctx context.Context) error {
+	var last error
 	for sb.Status == StatusStarting || sb.Status == StatusUnknown || sb.Status == "" {
 		if err := pause(ctx, pollInterval); err != nil {
-			return fmt.Errorf("sandbox: %s still %s: %w", sb.ID, sb.Status, err)
+			return waitEnded(fmt.Sprintf("sandbox: %s still %s", sb.ID, sb.Status), err, last)
 		}
-		if err := sb.Refresh(ctx); err != nil && client.StatusOf(err) < 500 {
-			return err
+		if err := sb.Refresh(ctx); err != nil {
+			if client.StatusOf(err) < 500 {
+				return err
+			}
+			last = err
 		}
 	}
 	if sb.Status != StatusRunning && (!sb.Ended() || sb.StartedAt == nil) {
@@ -293,10 +303,19 @@ func (sb *Sandbox) WaitRunning(ctx context.Context) error {
 
 // Wait polls (every second) until the sandbox ends, by its command exiting, a
 // timeout or Terminate, and returns its exit code (-1 when it has none).
+//
+// Answers of 500 and above do not end it (see WaitRunning): a sandbox with
+// NoTimeout may run for days, through API deploys. It returns when the
+// sandbox ends, on another error, or when ctx ends (with the last such
+// answer in the error); bound it with ctx.
 func (sb *Sandbox) Wait(ctx context.Context) (int, error) {
+	var last error
 	for {
-		if err := sb.Refresh(ctx); err != nil && client.StatusOf(err) < 500 {
-			return 0, err
+		if err := sb.Refresh(ctx); err != nil {
+			if client.StatusOf(err) < 500 {
+				return 0, err
+			}
+			last = err
 		}
 		if sb.Ended() {
 			if sb.ExitCode != nil {
@@ -305,9 +324,18 @@ func (sb *Sandbox) Wait(ctx context.Context) (int, error) {
 			return -1, nil
 		}
 		if err := pause(ctx, time.Second); err != nil {
-			return 0, err
+			return 0, waitEnded("sandbox: "+sb.ID+" still "+sb.Status, err, last)
 		}
 	}
+}
+
+// waitEnded is the error of a wait whose context ended: the context's error,
+// and the last answer of 500 or above it polled through, if any.
+func waitEnded(what string, ctxErr, last error) error {
+	if last == nil {
+		return fmt.Errorf("%s: %w", what, ctxErr)
+	}
+	return fmt.Errorf("%s: %w; the last answer: %w", what, ctxErr, last)
 }
 
 func pause(ctx context.Context, d time.Duration) error {

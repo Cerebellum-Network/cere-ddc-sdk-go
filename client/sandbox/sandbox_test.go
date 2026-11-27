@@ -8,8 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -600,5 +604,32 @@ func TestADecodedSandboxOrExecHasNoService(t *testing.T) {
 	}
 	if _, err := ex.Follow(ctx, sandbox.OutputQuery{}, func(sandbox.OutputEvent) error { return nil }); !errors.Is(err, sandbox.ErrNoService) {
 		t.Errorf("Exec.Follow: %v", err)
+	}
+}
+
+func TestWaitPollsThroughServerErrorsUntilCtxEnds(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			_, _ = io.WriteString(w, `{"id":"sb-1","status":"running"}`)
+			return
+		}
+		w.WriteHeader(http.StatusBadGateway) // the API is being deployed
+		_, _ = io.WriteString(w, `{"error":"no upstream","code":"upstream_error"}`)
+	}))
+	t.Cleanup(srv.Close)
+	c, err := client.New(client.WithBaseURL(srv.URL), client.WithToken("tok"), client.WithRetry(client.NoRetry))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sb, err := sandbox.New(c).Get(ctx, "sb-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wctx, cancel := context.WithTimeout(ctx, 1500*time.Millisecond)
+	defer cancel()
+	_, err = sb.Wait(wctx)
+	if !errors.Is(err, context.DeadlineExceeded) || client.StatusOf(err) != http.StatusBadGateway || calls.Load() < 3 {
+		t.Fatalf("%v after %d calls; want the deadline and the last 502", err, calls.Load())
 	}
 }
