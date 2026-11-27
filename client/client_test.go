@@ -570,3 +570,31 @@ func TestFollowWaitsAfterAConnectionThatDeliveredEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestAPostWhoseAnswerIsLostIsNotSentAgain(t *testing.T) {
+	cases := []struct {
+		name      string
+		method    string
+		key       string
+		wantCalls int32
+	}{
+		{"post without a key", http.MethodPost, "", 1},
+		{"post with a key", http.MethodPost, "k-1", 3},
+		{"get", http.MethodGet, "", 3},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls atomic.Int32
+			c := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				_, _ = io.ReadAll(r.Body)   // the request arrived whole...
+				panic(http.ErrAbortHandler) // ...and its answer is lost
+			}))
+			err := c.Do(context.Background(), &client.Request{Method: tc.method, Path: "/v1/x", JSON: map[string]int{"a": 1},
+				IdempotencyKey: tc.key}, nil)
+			if err == nil || calls.Load() != tc.wantCalls {
+				t.Fatalf("%v after %d requests; want %d", err, calls.Load(), tc.wantCalls)
+			}
+		})
+	}
+}
