@@ -3,6 +3,46 @@
 Releases are tagged `client/vX.Y.Z`. Nothing has shipped widely yet, so a release may rename or remove what an earlier
 one had, as the sandbox API does.
 
+## client/v0.1.0-alpha.6
+
+Fixes from review: streams that are cut, stall or keep ending; tokens that print; the API's codes and fields.
+
+### Fixed
+
+- A stream cut in the middle of a line drops the incomplete event and is a transport error, so `Follow`,
+  `StreamEvents` and `Exec.Follow` reconnect from the last complete event; it was handed over as partial JSON.
+- A stream's idle limit covers the wait for the answer's headers: a stalled API no longer blocks `StreamEvents`,
+  `Logs` or `ExecStream` for ever under `context.Background()`.
+- A stream that has started is never reopened, whatever `Request.Accept` the caller set.
+- `Follow` waits at least the retry policy's `MinBackoff` between connections, also after one that delivered events
+  (a server that sent an event and ended, or an error event, was reopened in a tight loop).
+- A context that ends during a retry's backoff returns an error that wraps `ctx.Err()` and the last try's answer.
+- `client.List` and `UsageSummary` return an error when the API repeats a cursor, instead of looping.
+- A refused proxy connection counts as never sent (a `POST` is retried); a failure on a redirect's next hop does
+  not (the first server had the request).
+- `Exec` reads any answer the API may send: its cap allows 16 MiB of each stream at six bytes per byte of JSON.
+- `VerifyWebhook` reads signatures split over several `webhook-signature` header lines.
+- An `ExecRequest.Stdin` that is not valid UTF-8 is an error before any call; it was rewritten to U+FFFD.
+- A `Sandbox` or `Exec` decoded from JSON returns `sandbox.ErrNoService` from its calls instead of panicking.
+
+### Changed
+
+- `Follow` reconnects for as long as `ctx` lives, with backoff capped at `MaxBackoff`; it gave up after five
+  failed connections (about 15 s of API outage). `StreamEvents` and `Exec.Follow` say so; bound them with `ctx`.
+  An answer that is not an event stream at all is not reconnected to.
+- `Config.Token` is a `StaticToken`, not a `string` (`string(cfg.Token)` is the token). `StaticToken` never prints:
+  `fmt` with any verb, `slog` and `encoding/json` show `StaticTokenRedacted`.
+- `Wait`, `WaitRunning` and `Exec.Wait` still poll through answers of 500 and above until `ctx` ends, now documented;
+  the error at `ctx`'s end wraps the last such answer.
+- `UsageSums.CPUAvg` (the summary's totals carry it too); `SandboxUsage.CPUAvg` moved there.
+
+### Added
+
+- `client.CodeInsufficientBalance` (403 `insufficient_balance`: the bucket's owner must top up); `CodeForbidden` is
+  only a token for another bucket.
+- `ExitStatus.Error`: why a command failed to run (exit code -1). A command at its timeout is exit code 124.
+- `UsageQuery.DACStatus` (the records' `dac_status` filter); JSON names on `LabelUsage`.
+
 ## client/v0.1.0-alpha.5
 
 ### Fixed
